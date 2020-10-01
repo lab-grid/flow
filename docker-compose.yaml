@@ -1,0 +1,48 @@
+version: "3.7"
+services:
+  # Uncomment the following to serve the development webapp container (rebuilds on save).
+  webapp:
+    build:
+      context: web
+      dockerfile: Dockerfile.dev
+    image: labgrid/labflow-webapp-dev:latest
+    environment:
+      # If rebuild-on-save is not working, try uncommenting the following (may increase CPU usage of system and prevent sleeping):
+      - "CHOKIDAR_USEPOLLING=true"
+    ports:
+      - 3001:3000
+    volumes:
+      - .:/app
+      - /app/node_modules
+  # Uncomment the following to serve the production webapp container.
+  # webapp:
+  #   build: web
+  #   image: labgrid/labflow-webapp:latest
+  #   ports:
+  #     - 3001:3000
+  server:
+    build: server
+    image: labgrid/labflow-server:latest
+    environment:
+      - FLASK_ENV=development
+      - PORT=5000
+      - PROPAGATE_EXCEPTIONS=True
+      - "SQLALCHEMY_DATABASE_URI=postgresql+pg8000://postgres:${POSTGRES_PASSWORD}@db/labflow"
+      - "AUTH_PROVIDER=${AUTH_PROVIDER}"
+      - "AUTH0_DOMAIN=${AUTH0_DOMAIN}"
+      - "AUTH0_API_AUDIENCE=${AUTH0_API_AUDIENCE}"
+      - "AUTH0_AUTHORIZATION_URL=${AUTH0_AUTHORIZATION_URL}"
+      - "AUTH0_TOKEN_URL=${AUTH0_TOKEN_URL}"
+    ports:
+      - 5000:5000
+    volumes:
+      - ./:/app
+  db:
+    image: supabase/postgres
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: labflow
+    volumes:
+      - ./.postgres:/var/lib/postgresql/data
