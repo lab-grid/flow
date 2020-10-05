@@ -12,7 +12,7 @@ export function ProfileMenu() {
         case "hasValue":
             const { user, auth0Client } = auth0Loadable.contents;
             if (user) {
-                return <Button variant="primary" onClick={() => { auth0Client.loginWithRedirect() }}>Login</Button>
+                return <Button variant="primary" onClick={() => { auth0Client && auth0Client.loginWithRedirect() }}>Login</Button>
             } else {
                 return <Button variant="primary" as={Link} to="/profile">Profile</Button>
             }

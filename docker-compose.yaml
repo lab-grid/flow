@@ -9,8 +9,13 @@ services:
     environment:
       # If rebuild-on-save is not working, try uncommenting the following (may increase CPU usage of system and prevent sleeping):
       - "CHOKIDAR_USEPOLLING=true"
+      - "REACT_APP_API_URL=${API_URL}"
+      - "REACT_APP_AUTH_PROVIDER=${AUTH_PROVIDER}"
+      - "REACT_APP_AUTH0_DOMAIN=${AUTH0_DOMAIN}"
+      - "REACT_APP_AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}"
+      - "REACT_APP_AUTH0_AUDIENCE=${AUTH0_API_AUDIENCE}"
     ports:
-      - 3001:3000
+      - 3000:3000
     volumes:
       - .:/app
       - /app/node_modules

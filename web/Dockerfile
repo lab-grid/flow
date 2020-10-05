@@ -1,11 +1,11 @@
-FROM node:15-alpine AS builder
+FROM node:14-alpine AS builder
 
 # For node-gyp.
 RUN apk update && apk add python make gcc g++
 
 # Build webapp bundle.
-COPY web /app
 WORKDIR /app
+COPY . .
 RUN npm install
 RUN npm ci --silent
 RUN npm run build

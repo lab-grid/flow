@@ -27,82 +27,38 @@ class BaseModel(db.Model):
     def __repr__(self):
         return pprint.pformat(self.__dict__)
 
+    created_on = db.Column(db.DateTime)
+    created_by = db.Column(db.String(64))
+    updated_on = db.Column(db.DateTime)
+    updated_by = db.Column(db.String(64))
+
 class Run(BaseModel):
     __tablename__ = 'run'
 
     id = db.Column(db.Integer, primary_key=True)
-    protocol_id = db.Column(db.Integer, db.ForeignKey('protocol.id'), nullable=True)
-    name = db.Column(db.String(512))
-    notes = db.Column(db.Text())
-    # tags = db.Column(db.Integer, nullable=False)
-    data_link = db.Column(db.Text())
+    data = db.Column(db.JSON())
 
 class Protocol(BaseModel):
     __tablename__ = 'protocol'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(512))
-    notes = db.Column(db.Text())
-    # tags = db.Column(db.Integer, nullable=False)
-    # data_link = db.Column(db.Text())
-
-class LayerValue(BaseModel):
-    __tablename__ = 'layer_value'
-
-    layer_id = db.Column(db.Integer, db.ForeignKey('layer.id'), primary_key=True)
-    row = db.Column(db.Integer, primary_key=True)
-    column = db.Column(db.Integer, primary_key=True)
-
-    compound_id = db.Column(db.Integer, db.ForeignKey('compound.id'), nullable=True)
-    value = db.Column(db.Numeric(64, 32))
-
-    layer = db.relationship('Layer')
-    compound = db.relationship('Compound')
-
-class Layer(BaseModel):
-    __tablename__ = 'layer'
-
-    id = db.Column(db.Integer, primary_key=True)
-    derivation_id = db.Column(db.Integer, db.ForeignKey('derivation.id'), nullable=True)
-    run_id = db.Column(db.Integer, db.ForeignKey('run.id'), nullable=False)
-    name = db.Column(db.String(512))
-    formula = db.Column(db.String(512))
-    row_count = db.Column(db.Integer)
-    column_count = db.Column(db.Integer)
-
-    derivation = db.relationship('Derivation')
-    run = db.relationship('Run')
-
-class Derivation(BaseModel):
-    __tablename__ = 'derivation'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(512))
-    notes = db.Column(db.Text())
-    formula = db.Column(db.String(512))
-
-class Compound(BaseModel):
-    __tablename__ = 'compound'
-
-    id = db.Column(db.Integer, primary_key=True)
-    compound_id = db.Column(db.String(256))
-    batch_id = db.Column(db.Integer)
-    target_id = db.Column(db.String(256))
-
-
-# TEMPORARY -------------------------------------------------------------------
-
-class DemoRun(BaseModel):
-    __tablename__ = 'demo_run'
-
-    id = db.Column(db.Integer, primary_key=True)
     data = db.Column(db.JSON())
 
 
-class DemoRunPermission(BaseModel):
-    __tablename__ = 'demo_run_permission'
+# Permissions -----------------------------------------------------------------
 
-    demo_run_id = db.Column(db.Integer, db.ForeignKey('demo_run.id'), primary_key=True)
+class RunPermission(BaseModel):
+    __tablename__ = 'run_permission'
+
+    run_id = db.Column(db.Integer, db.ForeignKey('run.id'), primary_key=True)
     user_id = db.Column(db.String(64), primary_key=True)
 
-    demo_run = db.relationship('DemoRun')
+    run = db.relationship('Run')
+
+class ProtocolPermission(BaseModel):
+    __tablename__ = 'protocol_permission'
+
+    protocol_id = db.Column(db.Integer, db.ForeignKey('protocol.id'), primary_key=True)
+    user_id = db.Column(db.String(64), primary_key=True)
+
+    protocol = db.relationship('Protocol')

@@ -1,0 +1,5 @@
+# Don't save secrets to the repository!
+.env
+
+# Don't save local database data to the repository!
+.postgres
