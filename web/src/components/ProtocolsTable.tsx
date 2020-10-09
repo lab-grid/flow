@@ -1,6 +1,7 @@
 import moment from "moment";
 import React from "react";
 import { Table, Spinner } from "react-bootstrap";
+import { Link } from "react-router-dom";
 import { useRecoilValueLoadable } from "recoil";
 import { protocolsQuery } from "../state/selectors";
 import { LoadableError } from "./LoadableError";
@@ -22,7 +23,9 @@ export function ProtocolsTable() {
                     <tbody>
                         {protocolsLoadable.contents.map(protocol => (
                             <tr key={protocol.id}>
-                                <td>{protocol.id}</td>
+                                <td>
+                                    <Link to={`/protocol/${protocol.id}`}>{protocol.id}</Link>
+                                </td>
                                 <td>{protocol.name}</td>
                                 <td>{moment(protocol.updatedOn).format("LLLL")}</td>
                             </tr>

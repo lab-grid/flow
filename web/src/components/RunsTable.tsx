@@ -1,6 +1,7 @@
 import moment from "moment";
 import React from "react";
 import { Table, Spinner } from "react-bootstrap";
+import { Link } from "react-router-dom";
 import { useRecoilValueLoadable } from "recoil";
 import { runsQuery } from "../state/selectors";
 import { LoadableError } from "./LoadableError";
@@ -22,7 +23,9 @@ export function RunsTable() {
                     <tbody>
                         {runsLoadable.contents.map(run => (
                             <tr key={run.id}>
-                                <td>{run.id}</td>
+                                <td>
+                                    <Link to={`/run/${run.id}`}>{run.id}</Link>
+                                </td>
                                 <td>{run.name}</td>
                                 <td>{moment(run.updatedOn).format("LLLL")}</td>
                             </tr>

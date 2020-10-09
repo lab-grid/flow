@@ -21,8 +21,7 @@ export const protocolQuery = selectorFamily<Protocol | undefined, number>({
       }
     }
 
-    const response = await apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `protocol/${protocolId}`);
-    return await response.json();
+    return await apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `protocol/${protocolId}`);
   }
 });
 
@@ -37,8 +36,7 @@ export const runQuery = selectorFamily<Run | undefined, number>({
       }
     }
 
-    const response = await apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `run/${runId}`);
-    return await response.json();
+    return await apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `run/${runId}`);
   }
 });
 

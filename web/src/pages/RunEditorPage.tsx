@@ -45,13 +45,17 @@ export function RunEditorPage() {
     const runLoadable = useRecoilValueLoadable(runQuery(parseInt(id)));
     const runUpsert = useRecoilCallback(({ set, snapshot }) => async (run: Run) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
-        if (run.id) {
-            const response = await apiFetch(labflowOptions, () => auth0Client, "PUT", `/run/${run.id}`, run);
-            set(runsState, await response.json());
-        } else {
-            const response = await apiFetch(labflowOptions, () => auth0Client, "POST", `/run`, run);
-            set(runsState, await response.json());
-        }
+        const method = run.id ? "PUT" : "POST";
+        const path = run.id ? `run/${run.id}` : "run";
+        const created: Run = await apiFetch(labflowOptions, () => auth0Client, method, path, run);
+        set(runsState, state => {
+            if (created.id) {
+                state.runCache.set(created.id, created);
+                return state;
+            } else {
+                throw new Error("Received a run without an ID from server!");
+            }
+        });
     });
 
     switch (runLoadable.state) {

@@ -45,13 +45,17 @@ export function ProtocolEditorPage() {
     const protocolLoadable = useRecoilValueLoadable(protocolQuery(parseInt(id)));
     const protocolUpsert = useRecoilCallback(({ set, snapshot }) => async (protocol: Protocol) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
-        if (protocol.id) {
-            const response = await apiFetch(labflowOptions, () => auth0Client, "PUT", `/protocol/${protocol.id}`, protocol);
-            set(protocolsState, await response.json());
-        } else {
-            const response = await apiFetch(labflowOptions, () => auth0Client, "POST", `/protocol`, protocol);
-            set(protocolsState, await response.json());
-        }
+        const method = protocol.id ? "PUT" : "POST";
+        const path = protocol.id ? `protocol/${protocol.id}` : "protocol";
+        const created: Protocol = await apiFetch(labflowOptions, () => auth0Client, method, path, protocol);
+        set(protocolsState, state => {
+            if (created.id) {
+                state.protocolCache.set(created.id, created);
+                return state;
+            } else {
+                throw new Error("Received a protocol without an ID from server!");
+            }
+        });
     });
 
     switch (protocolLoadable.state) {
