@@ -5,6 +5,7 @@ export interface LoadableErrorProps {
 }
 
 export function LoadableError({error}: LoadableErrorProps) {
+    console.error("LoadableError:", error);
     return (
         <div>
             Failed to load auth0: {error.name}

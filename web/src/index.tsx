@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
 import { RecoilRoot } from 'recoil';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { Spinner } from 'react-bootstrap';
 
 ReactDOM.render(
   <React.StrictMode>
     <RecoilRoot>
-      <App />
+      <Suspense fallback={<Spinner animation="border"/>}>
+        <App />
+      </Suspense>
     </RecoilRoot>
   </React.StrictMode>,
   document.getElementById('root')

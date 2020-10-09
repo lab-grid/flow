@@ -31,6 +31,8 @@ async function initializeAuth0State(): Promise<Auth0State> {
         }
 
         return { isAuthenticated, auth0Client, user };
+      } else {
+        return { isAuthenticated: true };
       }
     case 'none':
       return { isAuthenticated: true };

@@ -2,6 +2,13 @@ import { Auth0ClientOptions } from "@auth0/auth0-spa-js";
 
 export type LabflowAuthProvider = 'none' | 'auth0';
 
+export const auth0Scopes = [
+    'read:runs',
+    'read:protocols',
+    'write:runs',
+    'write:protocols',
+];
+
 export interface LabflowOptions {
     authProvider: LabflowAuthProvider;
     apiURL: string;
@@ -29,25 +36,18 @@ function parseAuthProvider(): LabflowAuthProvider {
         case undefined:
             return 'none';
         default:
-            throw 'Please provide either "auth0" or "none" to the environment variable "REACT_APP_AUTH_TYPE"';
+            throw new Error('Please provide either "auth0" or "none" to the environment variable "REACT_APP_AUTH_TYPE"');
     }
 }
 
 function parseAPIURL(): string {
     const apiURL = process.env.REACT_APP_API_URL;
     if (!apiURL) {
-        throw 'Please provide a value for the environment variable "REACT_APP_API_URL"';
+        throw new Error('Please provide a value for the environment variable "REACT_APP_API_URL"');
     }
 
     return apiURL;
 }
-
-export const auth0Scopes = [
-    'read:runs',
-    'read:protocols',
-    'write:runs',
-    'write:protocols',
-];
 
 function parseAuth0Options(): Auth0ClientOptions | undefined {
     switch (parseAuthProvider()) {
@@ -58,13 +58,13 @@ function parseAuth0Options(): Auth0ClientOptions | undefined {
             const audience = process.env.REACT_APP_AUTH0_AUDIENCE;
             const scope = auth0Scopes.join(' ');
             if (!domain) {
-                throw 'Please provide a value for the environment variable "REACT_APP_AUTH0_DOMAIN"';
+                throw new Error('Please provide a value for the environment variable "REACT_APP_AUTH0_DOMAIN"');
             }
             if (!client_id) {
-                throw 'Please provide a value for the environment variable "REACT_APP_AUTH0_CLIENT_ID"';
+                throw new Error('Please provide a value for the environment variable "REACT_APP_AUTH0_CLIENT_ID"');
             }
             if (!audience) {
-                throw 'Please provide a value for the environment variable "REACT_APP_AUTH0_AUDIENCE"';
+                throw new Error('Please provide a value for the environment variable "REACT_APP_AUTH0_AUDIENCE"');
             }
 
             return {

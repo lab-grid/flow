@@ -30,7 +30,7 @@ class ProtocolsResource(Resource):
     @requires_auth
     def get(self):
         if requires_scope('read:protocols'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             query = Protocol.query\
                 .join(ProtocolPermission, Protocol.id == ProtocolPermission.protocol_id)\
                 .filter(ProtocolPermission.user_id == user_id)\
@@ -45,7 +45,7 @@ class ProtocolsResource(Resource):
     @requires_auth
     def post(self):
         if requires_scope('write:protocols'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             protocol = Protocol(**request.json)
             db.session.add(protocol)
             protocol_permission = ProtocolPermission(user_id=user_id, protocol=protocol)
@@ -64,7 +64,7 @@ class ProtocolResource(Resource):
     @requires_auth
     def get(self, protocol_id):
         if requires_scope('read:protocols'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             query = Protocol.query\
                 .join(ProtocolPermission, Protocol.id == ProtocolPermission.protocol_id)\
                 .filter(ProtocolPermission.user_id == user_id)\
@@ -79,7 +79,7 @@ class ProtocolResource(Resource):
     @requires_auth
     def put(self, protocol_id):
         if requires_scope('write:protocols'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             protocol = Protocol.query\
                 .join(ProtocolPermission, Protocol.id == ProtocolPermission.protocol_id)\
                 .filter(ProtocolPermission.user_id == user_id)\
@@ -98,7 +98,7 @@ class ProtocolResource(Resource):
     @requires_auth
     def delete(self, protocol_id):
         if requires_scope('write:protocols'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             Protocol.query\
                 .join(ProtocolPermission, Protocol.id == ProtocolPermission.protocol_id)\
                 .filter(ProtocolPermission.user_id == user_id)\
@@ -142,7 +142,7 @@ class ProtocolPermissionsResource(Resource):
     @requires_auth
     def get(self, protocol_id):
         if requires_scope('read:protocols'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             user_ids = [permission.user_id for permission in get_permissions(protocol_id)]
             validate_access(user_id, user_ids)
             return {
@@ -160,7 +160,7 @@ class ProtocolPermissionResource(Resource):
     @requires_auth
     def post(self, protocol_id, user_id):
         if requires_scope('write:protocols'):
-            current_user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            current_user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             user_ids = [permission.user_id for permission in get_permissions(protocol_id)]
             validate_access(current_user_id, user_ids)
             permission = ProtocolPermission(user_id=user_id, protocol_id=protocol_id)
@@ -178,7 +178,7 @@ class ProtocolPermissionResource(Resource):
     @requires_auth
     def delete(self, protocol_id, user_id):
         if requires_scope('write:protocols'):
-            current_user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            current_user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             user_ids = [permission.user_id for permission in get_permissions(protocol_id)]
             validate_access(current_user_id, user_ids)
             ProtocolPermission.query\

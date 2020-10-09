@@ -30,7 +30,7 @@ class RunsResource(Resource):
     @requires_auth
     def get(self):
         if requires_scope('read:runs'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             query = Run.query\
                 .join(RunPermission, Run.id == RunPermission.run_id)\
                 .filter(RunPermission.user_id == user_id)\
@@ -45,7 +45,7 @@ class RunsResource(Resource):
     @requires_auth
     def post(self):
         if requires_scope('write:runs'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             run = Run(**request.json)
             db.session.add(run)
             run_permission = RunPermission(user_id=user_id, run=run)
@@ -64,7 +64,7 @@ class RunResource(Resource):
     @requires_auth
     def get(self, run_id):
         if requires_scope('read:runs'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             query = Run.query\
                 .join(RunPermission, Run.id == RunPermission.run_id)\
                 .filter(RunPermission.user_id == user_id)\
@@ -79,7 +79,7 @@ class RunResource(Resource):
     @requires_auth
     def put(self, run_id):
         if requires_scope('write:runs'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             run = Run.query\
                 .join(RunPermission, Run.id == RunPermission.run_id)\
                 .filter(RunPermission.user_id == user_id)\
@@ -98,7 +98,7 @@ class RunResource(Resource):
     @requires_auth
     def delete(self, run_id):
         if requires_scope('write:runs'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             Run.query\
                 .join(RunPermission, Run.id == RunPermission.run_id)\
                 .filter(RunPermission.user_id == user_id)\
@@ -142,7 +142,7 @@ class RunPermissionsResource(Resource):
     @requires_auth
     def get(self, run_id):
         if requires_scope('read:runs'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             user_ids = [permission.user_id for permission in get_permissions(run_id)]
             validate_access(user_id, user_ids)
             return {
@@ -160,7 +160,7 @@ class RunPermissionResource(Resource):
     @requires_auth
     def post(self, run_id, user_id):
         if requires_scope('write:runs'):
-            current_user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            current_user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             user_ids = [permission.user_id for permission in get_permissions(run_id)]
             validate_access(current_user_id, user_ids)
             permission = RunPermission(user_id=user_id, run_id=run_id)
@@ -178,7 +178,7 @@ class RunPermissionResource(Resource):
     @requires_auth
     def delete(self, run_id, user_id):
         if requires_scope('write:runs'):
-            current_user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user.sub
+            current_user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
             user_ids = [permission.user_id for permission in get_permissions(run_id)]
             validate_access(current_user_id, user_ids)
             RunPermission.query\

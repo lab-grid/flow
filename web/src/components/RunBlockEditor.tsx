@@ -1,7 +1,7 @@
 import React from 'react';
-import { Button, Form, FormControl, InputGroup, Tab, Table } from 'react-bootstrap';
+import { Button, Form, Table } from 'react-bootstrap';
 import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block } from '../models/block';
-import { BlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 
 function RunBlockTextQuestion({definition, answer, setAnswer}: {
     definition: TextQuestionBlockDefinition;
@@ -135,7 +135,7 @@ function RunBlockPlateAddReagentEditor({definition, plateLabel, setPlateLabel}: 
     );
 }
 
-function RunBlockPlateSequencerEditor({definition, plateLabel, setPlateLabel}: {
+function RunBlockPlateSequencerEditor({plateLabel, setPlateLabel}: {
     definition: PlateSequencerBlockDefinition;
     plateLabel?: string;
     setPlateLabel: (plateLabel?: string) => void;

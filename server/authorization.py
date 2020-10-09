@@ -83,7 +83,7 @@ def requires_auth(f):
                         token,
                         rsa_key,
                         algorithms=["RS256"],
-                        audience=app.config['API_AUDIENCE'],
+                        audience=app.config['AUTH0_API_AUDIENCE'],
                         issuer="https://"+app.config['AUTH0_DOMAIN']+"/"
                     )
                 except jwt.ExpiredSignatureError:
@@ -102,7 +102,7 @@ def requires_auth(f):
                         "description": "Unable to parse authentication token."
                     }, 401)
 
-                _request_ctx_stack.top.current_user = payload
+                request.current_user = payload
                 return f(*args, **kwargs)
             raise AuthError({
                 "code": "invalid_header",
