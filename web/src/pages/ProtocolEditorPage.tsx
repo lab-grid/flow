@@ -1,10 +1,9 @@
 import React from 'react';
-import { Form, Spinner } from 'react-bootstrap';
+import { Form } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
-import { useRecoilCallback, useRecoilValueLoadable } from 'recoil';
+import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { createEditor, Node } from 'slate';
 import { Slate, Editable, withReact } from 'slate-react';
-import { LoadableError } from '../components/LoadableError';
 import { ProtocolBlockEditor } from '../components/ProtocolBlockEditor';
 import { labflowOptions } from '../config';
 import { Protocol } from '../models/protocol';
@@ -42,7 +41,7 @@ export function ProtocolEditorPage() {
 
     const { id } = useParams<ProtocolEditorPageParams>();
 
-    const protocolLoadable = useRecoilValueLoadable(protocolQuery(parseInt(id)));
+    const protocol = useRecoilValue(protocolQuery(parseInt(id)));
     const protocolUpsert = useRecoilCallback(({ set, snapshot }) => async (protocol: Protocol) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
         const method = protocol.id ? "PUT" : "POST";
@@ -58,50 +57,33 @@ export function ProtocolEditorPage() {
         });
     });
 
-    switch (protocolLoadable.state) {
-        case "hasValue":
-            return (
-                <Form>
-                    <Form.Group controlId="formProtocolTitle">
-                        <Form.Label>Protocol Title</Form.Label>
-                        <Form.Control type="text" />
-                    </Form.Group>
-                    <Slate
-                        editor={editor}
-                        value={(protocolLoadable.contents && protocolLoadable.contents.description) ? deserializeSlate(protocolLoadable.contents.description) : []}
-                        onChange={newValue => protocolUpsert({ ...protocolLoadable.contents, description: serializeSlate(newValue) })}
-                    >
-                        <Editable />
-                    </Slate>
+    return (
+        <Form>
+            <Form.Group controlId="formProtocolTitle">
+                <Form.Label>Protocol Title</Form.Label>
+                <Form.Control type="text" />
+            </Form.Group>
+            <Slate
+                editor={editor}
+                value={(protocol && protocol.description) ? deserializeSlate(protocol.description) : []}
+                onChange={newValue => protocolUpsert({ ...protocol, description: serializeSlate(newValue) })}
+            >
+                <Editable />
+            </Slate>
 
-                    {
-                        protocolLoadable.contents &&
-                        protocolLoadable.contents.blocks &&
-                        protocolLoadable.contents.blocks.map(block => <ProtocolBlockEditor
-                            block={block}
-                            setBlock={block => {
-                                if (protocolLoadable.contents && block) {
-                                    const blocks = (protocolLoadable.contents.blocks || []).map(b => (b.id === block.id) ? block : b);
-                                    protocolUpsert({ ...protocolLoadable.contents, blocks });
-                                }
-                            }}
-                        />)
-                    }
-                </Form>
-            );
-        case "hasError":
-            return (
-                <LoadableError error={protocolLoadable.contents} />
-            );
-        case "loading":
-            return (
-                <Spinner
-                    as="span"
-                    animation="border"
-                    size="sm"
-                    role="status"
-                    aria-hidden="true"
-                />
-            );
-    }
+            {
+                protocol &&
+                protocol.blocks &&
+                protocol.blocks.map(block => <ProtocolBlockEditor
+                    block={block}
+                    setBlock={block => {
+                        if (protocol && block) {
+                            const blocks = (protocol.blocks || []).map(b => (b.id === block.id) ? block : b);
+                            protocolUpsert({ ...protocol, blocks });
+                        }
+                    }}
+                />)
+            }
+        </Form>
+    );
 }

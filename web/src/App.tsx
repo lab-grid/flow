@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Nav, Navbar } from 'react-bootstrap';
+import { Nav, Navbar, Spinner } from 'react-bootstrap';
 import { BrowserRouter, Route, Link, Switch } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
 import { ProfileMenu, ProfileMenuLoading } from './components/ProfileMenu';
@@ -44,10 +44,30 @@ export default function App() {
       <div className="container">
         <Switch>
           <Route path="/protocol/:id">
-            <ProtocolEditorPage />
+            <Suspense
+                fallback={<Spinner
+                  as="span"
+                  animation="border"
+                  size="sm"
+                  role="status"
+                  aria-hidden="true"
+                />}
+            >
+              <ProtocolEditorPage />
+            </Suspense>
           </Route>
           <Route path="/run/:id">
-            <RunEditorPage />
+            <Suspense
+                fallback={<Spinner
+                  as="span"
+                  animation="border"
+                  size="sm"
+                  role="status"
+                  aria-hidden="true"
+                />}
+            >
+              <RunEditorPage />
+            </Suspense>
           </Route>
           <Route path="/profile/:id">
             <ProfilePage />

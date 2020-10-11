@@ -1,10 +1,9 @@
 import React from 'react';
-import { Form, Spinner } from 'react-bootstrap';
+import { Form } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
-import { useRecoilCallback, useRecoilValueLoadable } from 'recoil';
+import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { createEditor, Node } from 'slate';
 import { Slate, Editable, withReact } from 'slate-react';
-import { LoadableError } from '../components/LoadableError';
 import { RunBlockEditor } from '../components/RunBlockEditor';
 import { labflowOptions } from '../config';
 import { Run } from '../models/run';
@@ -42,7 +41,7 @@ export function RunEditorPage() {
 
     const { id } = useParams<RunEditorPageParams>();
 
-    const runLoadable = useRecoilValueLoadable(runQuery(parseInt(id)));
+    const run = useRecoilValue(runQuery(parseInt(id)));
     const runUpsert = useRecoilCallback(({ set, snapshot }) => async (run: Run) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
         const method = run.id ? "PUT" : "POST";
@@ -58,50 +57,33 @@ export function RunEditorPage() {
         });
     });
 
-    switch (runLoadable.state) {
-        case "hasValue":
-            return (
-                <Form>
-                    <Form.Group controlId="formRunTitle">
-                        <Form.Label>Run Title</Form.Label>
-                        <Form.Control type="text" />
-                    </Form.Group>
-                    <Slate
-                        editor={editor}
-                        value={(runLoadable.contents && runLoadable.contents.description) ? deserializeSlate(runLoadable.contents.description) : []}
-                        onChange={newValue => runUpsert({ ...runLoadable.contents, description: serializeSlate(newValue) })}
-                    >
-                        <Editable />
-                    </Slate>
+    return (
+        <Form>
+            <Form.Group controlId="formRunTitle">
+                <Form.Label>Run Title</Form.Label>
+                <Form.Control type="text" />
+            </Form.Group>
+            <Slate
+                editor={editor}
+                value={(run && run.description) ? deserializeSlate(run.description) : []}
+                onChange={newValue => runUpsert({ ...run, description: serializeSlate(newValue) })}
+            >
+                <Editable />
+            </Slate>
 
-                    {
-                        runLoadable.contents &&
-                        runLoadable.contents.blocks &&
-                        runLoadable.contents.blocks.map(block => <RunBlockEditor
-                            block={block}
-                            setBlock={block => {
-                                if (runLoadable.contents && block) {
-                                    const blocks = (runLoadable.contents.blocks || []).map(b => (b.id === block.id) ? block : b);
-                                    runUpsert({ ...runLoadable.contents, blocks });
-                                }
-                            }}
-                        />)
-                    }
-                </Form>
-            );
-        case "hasError":
-            return (
-                <LoadableError error={runLoadable.contents} />
-            );
-        case "loading":
-            return (
-                <Spinner
-                    as="span"
-                    animation="border"
-                    size="sm"
-                    role="status"
-                    aria-hidden="true"
-                />
-            );
-    }
+            {
+                run &&
+                run.blocks &&
+                run.blocks.map(block => <RunBlockEditor
+                    block={block}
+                    setBlock={block => {
+                        if (run && block) {
+                            const blocks = (run.blocks || []).map(b => (b.id === block.id) ? block : b);
+                            runUpsert({ ...run, blocks });
+                        }
+                    }}
+                />)
+            }
+        </Form>
+    );
 }

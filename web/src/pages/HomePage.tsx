@@ -1,5 +1,5 @@
-import React from 'react';
-import { Button } from 'react-bootstrap';
+import React, { Suspense } from 'react';
+import { Button, Spinner } from 'react-bootstrap';
 import { useHistory } from 'react-router-dom';
 import { useRecoilCallback } from 'recoil';
 import { ProtocolsTable } from '../components/ProtocolsTable';
@@ -44,7 +44,17 @@ export function HomePage() {
     });
     return <div>
         <div className="row mt-4">
-            <ProtocolsTable />
+            <Suspense
+                fallback={<Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                />}
+            >
+                <ProtocolsTable />
+            </Suspense>
         </div>
         <div className="row">
             <div className="col text-center">
@@ -62,7 +72,17 @@ export function HomePage() {
             </div>
         </div>
         <div className="row mt-4">
-            <RunsTable />
+            <Suspense
+                fallback={<Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                />}
+            >
+                <RunsTable />
+            </Suspense>
         </div>
         <div className="row">
             <div className="col text-center">
