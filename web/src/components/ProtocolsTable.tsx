@@ -13,7 +13,9 @@ export function ProtocolsTable() {
                 <tr>
                     <th>ID</th>
                     <th>Name</th>
+                    <th>Owner</th>
                     <th>Last Modified</th>
+                    <th>Date Created</th>
                 </tr>
             </thead>
             <tbody>
@@ -23,7 +25,9 @@ export function ProtocolsTable() {
                             <Link to={`/protocol/${protocol.id}`}>{protocol.id}</Link>
                         </td>
                         <td>{protocol.name}</td>
-                        <td>{moment(protocol.updatedOn).format("LLLL")}</td>
+                        <td>{protocol.createdBy}</td>
+                        <td>{protocol.createdOn ? moment(protocol.createdOn).format("LLLL") : undefined}</td>
+                        <td>{(protocol.updatedOn || protocol.createdOn) ? moment(protocol.updatedOn || protocol.createdOn).format("LLLL") : undefined}</td>
                     </tr>
                 ))}
             </tbody>

@@ -14,7 +14,7 @@ export default function App() {
   const { auth0Client, isAuthenticated } = useRecoilValue(auth0State);
   if (!isAuthenticated) {
     switch (labflowOptions.authProvider) {
-      case 'auth0':   
+      case 'auth0':
         if (auth0Client) {
           auth0Client.loginWithRedirect()
           return (

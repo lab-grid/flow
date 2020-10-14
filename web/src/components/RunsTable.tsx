@@ -13,7 +13,10 @@ export function RunsTable() {
                 <tr>
                     <th>ID</th>
                     <th>Name</th>
+                    <th>Owner</th>
+                    <th>Status</th>
                     <th>Last Modified</th>
+                    <th>Date Created</th>
                 </tr>
             </thead>
             <tbody>
@@ -23,7 +26,10 @@ export function RunsTable() {
                             <Link to={`/run/${run.id}`}>{run.id}</Link>
                         </td>
                         <td>{run.name}</td>
-                        <td>{moment(run.updatedOn).format("LLLL")}</td>
+                        <td>{run.createdBy}</td>
+                        <td>{run.status}</td>
+                        <td>{run.createdOn ? moment(run.createdOn).format("LLLL") : undefined}</td>
+                        <td>{(run.updatedOn || run.createdOn) ? moment(run.updatedOn || run.createdOn).format("LLLL") : undefined}</td>
                     </tr>
                 ))}
             </tbody>
