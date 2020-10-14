@@ -8,11 +8,11 @@ click = "*"
 flask = "*"
 flask-cors = "*"
 flask-migrate = "*"
-flask-restplus = "*"
+flask-restx = "*"
 flask-sqlalchemy = "*"
 pylint = "*"
 python-jose = "*"
-pg8000 = "*"
+pg8000 = "==1.16.5"
 Werkzeug = "==0.16.1"
 
 [dev-packages]

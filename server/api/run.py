@@ -1,9 +1,9 @@
 from flask import request
-from flask_restplus import Resource, fields, Namespace
+from flask_restx import Resource, fields, Namespace
 
 from server import app, db
 from authorization import AuthError, requires_auth, requires_scope
-from database import row2dict, Run, RunPermission
+from database import jsonRow2dict, Run, RunPermission
 
 from api.utils import success_output
 
@@ -11,17 +11,9 @@ from api.utils import success_output
 api = Namespace('runs', description='Extra-Simple operations on runs.', path='/')
 
 
-# - Tags
-run_input = api.model('RunInput', {
-    'data': fields.Raw()
-})
-run_output = api.model('RunOutput', {
-    'id': fields.Integer(),
-    'data': fields.Raw()
-})
-runs_output = api.model('RunsOutput', {
-    'runs': fields.List(fields.Nested(run_output))
-})
+run_input = api.model('RunInput', {})
+run_output = api.model('RunOutput', { 'id': fields.Integer() })
+runs_output = fields.List(fields.Nested(run_output))
 
 
 @api.route('/run')
@@ -35,7 +27,7 @@ class RunsResource(Resource):
                 .join(RunPermission, Run.id == RunPermission.run_id)\
                 .filter(RunPermission.user_id == user_id)\
                 .all()
-            return [ row2dict(record) for record in query ]
+            return [ jsonRow2dict(record) for record in query ]
         raise AuthError({
             'code': 'Unauthorized',
             'description': 'Token missing scope "read:runs"'
@@ -46,12 +38,15 @@ class RunsResource(Resource):
     def post(self):
         if requires_scope('write:runs'):
             user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
-            run = Run(**request.json)
+            run_dict = request.json
+            # Drop the id field if it was provided.
+            run_dict.pop('id', None)
+            run = Run(data=run_dict)
             db.session.add(run)
             run_permission = RunPermission(user_id=user_id, run=run)
             db.session.add(run_permission)
             db.session.commit()
-            return row2dict(run)
+            return jsonRow2dict(run)
         raise AuthError({
             'code': 'Unauthorized',
             'description': 'Token missing scope "write:runs"'
@@ -69,7 +64,7 @@ class RunResource(Resource):
                 .join(RunPermission, Run.id == RunPermission.run_id)\
                 .filter(RunPermission.user_id == user_id)\
                 .first()
-            return row2dict(query)
+            return jsonRow2dict(query)
         raise AuthError({
             'code': 'Unauthorized',
             'description': 'Token missing scope "read:runs"'
@@ -80,11 +75,18 @@ class RunResource(Resource):
     def put(self, run_id):
         if requires_scope('write:runs'):
             user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
+            run_dict = request.json
+            # Drop the id field if it was provided.
+            run_dict.pop('id', None)
+            # TODO: Make this an update, not an overwrite.
+            # SEE: https://stackoverflow.com/questions/26703476/how-to-perform-update-operations-on-columns-of-type-jsonb-in-postgres-9-4
+            # SEE: https://wiki.postgresql.org/wiki/What%27s_new_in_PostgreSQL_9.5#JSONB-modifying_operators_and_functions
+            # SEE: https://dba.stackexchange.com/questions/166092/postgresql-9-4-deep-merge-jsonb-values#comment320704_166092
             run = Run.query\
                 .join(RunPermission, Run.id == RunPermission.run_id)\
                 .filter(RunPermission.user_id == user_id)\
                 .filter(Run.id == run_id)\
-                .update(request.json)
+                .update({'data': run_dict})
             db.session.commit()
             return {
                 'success': True
@@ -99,11 +101,18 @@ class RunResource(Resource):
     def delete(self, run_id):
         if requires_scope('write:runs'):
             user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
-            Run.query\
+            run = Run.query\
                 .join(RunPermission, Run.id == RunPermission.run_id)\
                 .filter(RunPermission.user_id == user_id)\
                 .filter(Run.id == run_id)\
-                .delete()
+                .first()
+            if run:
+                RunPermission.query\
+                    .filter(RunPermission.run_id == run_id)\
+                    .delete()
+                Run.query\
+                    .filter(Run.id == run_id)\
+                    .delete()
             db.session.commit()
             return {
                 'success': True
