@@ -1,5 +1,6 @@
 """Database models and utilities."""
 
+import copy
 import pprint
 from server import db
 
@@ -16,6 +17,19 @@ def row2dict(row):
         attribute = getattr(row, column.name)
         if attribute is not None:
             d[column.name] = attribute
+
+    return d
+
+def jsonRow2dict(row):
+    """Converts a flask-sqlalchemy db row object with a single JSON data column
+    into a plain python dictionary
+
+    Args:
+        row (BaseModel): The db row object
+    """
+    d = copy.deepcopy(row.data) if row.data else {}
+    if row.id:
+        d['id'] = row.id
 
     return d
 

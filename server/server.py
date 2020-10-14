@@ -3,13 +3,13 @@ import os
 from flask import Flask
 from flask_cors import CORS
 from flask_migrate import Migrate
-from flask_restplus import Api
+from flask_restx import Api
 from flask_sqlalchemy import SQLAlchemy
 # https://github.com/noirbizarre/flask-restplus/issues/565#issuecomment-562610603
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='')
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
 
@@ -20,7 +20,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.environ.get('SQLALCHEMY_TRACK_
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI', 'sqlite:////tmp/datalayer.db')
 app.config['AUTH_PROVIDER'] = os.environ.get('AUTH_PROVIDER', 'auth0')
 app.config['AUTH0_DOMAIN'] = os.environ.get('AUTH0_DOMAIN', '')
-app.config['AUTH0_CLIENT_ID'] = os.environ.get('AUTH0_CLIENT_ID', '')
+app.config['AUTH0_CLIENT_ID'] = os.environ.get('AUTH0_CLIENT_ID', 'Msk8I4Ad2ujE76MwOatsmmvEEds5v50h')
 app.config['AUTH0_API_AUDIENCE'] = os.environ.get('AUTH0_API_AUDIENCE', '')
 app.config['AUTH0_AUTHORIZATION_URL'] = os.environ.get('AUTH0_AUTHORIZATION_URL', '')
 app.config['AUTH0_TOKEN_URL'] = os.environ.get('AUTH0_TOKEN_URL', '')
@@ -31,8 +31,8 @@ app.config['AUTH0_TOKEN_URL'] = os.environ.get('AUTH0_TOKEN_URL', '')
 authorizations = {
     'token': {
         'type': 'oauth2',
-        # 'flow': 'authorizationCode',
         'flow': 'accessCode',
+        # 'flow': 'authorizationCode',
         'audience': app.config['AUTH0_API_AUDIENCE'],
         'domain': app.config['AUTH0_DOMAIN'],
         'clientId': app.config['AUTH0_CLIENT_ID'],

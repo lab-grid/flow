@@ -1,9 +1,9 @@
 from flask import request
-from flask_restplus import Resource, fields, Namespace
+from flask_restx import Resource, fields, Namespace
 
 from server import app, db
 from authorization import AuthError, requires_auth, requires_scope
-from database import row2dict, Protocol, ProtocolPermission
+from database import jsonRow2dict, Protocol, ProtocolPermission
 
 from api.utils import success_output
 
@@ -11,17 +11,9 @@ from api.utils import success_output
 api = Namespace('protocols', description='Extra-Simple operations on protocols.', path='/')
 
 
-# - Tags
-protocol_input = api.model('ProtocolInput', {
-    'data': fields.Raw()
-})
-protocol_output = api.model('ProtocolOutput', {
-    'id': fields.Integer(),
-    'data': fields.Raw()
-})
-protocols_output = api.model('ProtocolsOutput', {
-    'protocols': fields.List(fields.Nested(protocol_output))
-})
+protocol_input = api.model('ProtocolInput', {})
+protocol_output = api.model('ProtocolOutput', { 'id': fields.Integer() })
+protocols_output = fields.List(fields.Nested(protocol_output))
 
 
 @api.route('/protocol')
@@ -35,7 +27,7 @@ class ProtocolsResource(Resource):
                 .join(ProtocolPermission, Protocol.id == ProtocolPermission.protocol_id)\
                 .filter(ProtocolPermission.user_id == user_id)\
                 .all()
-            return [ row2dict(record) for record in query ]
+            return [ jsonRow2dict(record) for record in query ]
         raise AuthError({
             'code': 'Unauthorized',
             'description': 'Token missing scope "read:protocols"'
@@ -46,12 +38,15 @@ class ProtocolsResource(Resource):
     def post(self):
         if requires_scope('write:protocols'):
             user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
-            protocol = Protocol(**request.json)
+            protocol_dict = request.json
+            # Drop the id field if it was provided.
+            protocol_dict.pop('id', None)
+            protocol = Protocol(data=protocol_dict)
             db.session.add(protocol)
             protocol_permission = ProtocolPermission(user_id=user_id, protocol=protocol)
             db.session.add(protocol_permission)
             db.session.commit()
-            return row2dict(protocol)
+            return jsonRow2dict(protocol)
         raise AuthError({
             'code': 'Unauthorized',
             'description': 'Token missing scope "write:protocols"'
@@ -69,7 +64,7 @@ class ProtocolResource(Resource):
                 .join(ProtocolPermission, Protocol.id == ProtocolPermission.protocol_id)\
                 .filter(ProtocolPermission.user_id == user_id)\
                 .first()
-            return row2dict(query)
+            return jsonRow2dict(query)
         raise AuthError({
             'code': 'Unauthorized',
             'description': 'Token missing scope "read:protocols"'
@@ -80,11 +75,18 @@ class ProtocolResource(Resource):
     def put(self, protocol_id):
         if requires_scope('write:protocols'):
             user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
+            protocol_dict = request.json
+            # Drop the id field if it was provided.
+            protocol_dict.pop('id', None)
+            # TODO: Make this an update, not an overwrite.
+            # SEE: https://stackoverflow.com/questions/26703476/how-to-perform-update-operations-on-columns-of-type-jsonb-in-postgres-9-4
+            # SEE: https://wiki.postgresql.org/wiki/What%27s_new_in_PostgreSQL_9.5#JSONB-modifying_operators_and_functions
+            # SEE: https://dba.stackexchange.com/questions/166092/postgresql-9-4-deep-merge-jsonb-values#comment320704_166092
             protocol = Protocol.query\
                 .join(ProtocolPermission, Protocol.id == ProtocolPermission.protocol_id)\
                 .filter(ProtocolPermission.user_id == user_id)\
                 .filter(Protocol.id == protocol_id)\
-                .update(request.json)
+                .update({'data': protocol_dict})
             db.session.commit()
             return {
                 'success': True
@@ -99,11 +101,18 @@ class ProtocolResource(Resource):
     def delete(self, protocol_id):
         if requires_scope('write:protocols'):
             user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
-            Protocol.query\
+            protocol = Protocol.query\
                 .join(ProtocolPermission, Protocol.id == ProtocolPermission.protocol_id)\
                 .filter(ProtocolPermission.user_id == user_id)\
                 .filter(Protocol.id == protocol_id)\
-                .delete()
+                .first()
+            if protocol:
+                ProtocolPermission.query\
+                    .filter(ProtocolPermission.protocol_id == protocol_id)\
+                    .delete()
+                Protocol.query\
+                    .filter(Protocol.id == protocol_id)\
+                    .delete()
             db.session.commit()
             return {
                 'success': True
