@@ -1,5 +1,5 @@
-import React from 'react';
-import { Form } from 'react-bootstrap';
+import React, { useState } from 'react';
+import { Button, Form } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { createEditor, Node } from 'slate';
@@ -10,9 +10,10 @@ import { Run } from '../models/run';
 import { apiFetch } from '../state/api';
 import { auth0State, runsState } from '../state/atoms';
 import { runQuery } from '../state/selectors';
+import { Block } from '../models/block';
 
 // Define a serializing function that takes a value and returns a string.
-export function serializeSlate(value: Node[]): string{
+export function serializeSlate(value: Node[]): string {
     return (
         value
             // Return the string content of each paragraph in the value's children.
@@ -37,10 +38,11 @@ export interface RunEditorPageParams {
 }
 
 export function RunEditorPage() {
+    const [name, setName] = useState<string | null>(null);
+    const [description, setDescription] = useState<Node[] | null>(null);
+    const [blocks, setBlocks] = useState<Block[] | null>(null);
     const editor = React.useMemo(() => withReact(createEditor()), []);
-
     const { id } = useParams<RunEditorPageParams>();
-
     const run = useRecoilValue(runQuery(parseInt(id)));
     const runUpsert = useRecoilCallback(({ set, snapshot }) => async (run: Run) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
@@ -57,33 +59,62 @@ export function RunEditorPage() {
         });
     });
 
+    const currentName = name || (run && run.name) || "";
+    const currentDescription = description || (run && run.description && deserializeSlate(run.description)) || [];
+    const currentBlocks = blocks || (run && run.blocks) || [];
+
+    const updateBlock = (block?: Block) => {
+        if (block) {
+            setBlocks(currentBlocks.map(b => (b.definition.id === block.definition.id) ? block : b));
+        }
+    };
+
     return (
         <Form>
             <Form.Group controlId="formRunTitle">
                 <Form.Label>Run Title</Form.Label>
-                <Form.Control type="text" />
+                <Form.Control
+                    type="text"
+                    value={currentName}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
+                />
             </Form.Group>
             <Slate
                 editor={editor}
-                value={(run && run.description) ? deserializeSlate(run.description) : []}
-                onChange={newValue => runUpsert({ ...run, description: serializeSlate(newValue) })}
+                value={currentDescription}
+                onChange={setDescription}
             >
                 <Editable />
             </Slate>
+            {currentBlocks.map((block, index) => {
+                if (!block || !block.definition || !block.definition.id) {
+                    return undefined;
+                }
+                return <RunBlockEditor key={block.definition.id} block={block} setBlock={updateBlock} />
+            })}
 
-            {
-                run &&
-                run.blocks &&
-                run.blocks.map(block => <RunBlockEditor
-                    block={block}
-                    setBlock={block => {
-                        if (run && block) {
-                            const blocks = (run.blocks || []).map(b => (b.id === block.id) ? block : b);
-                            runUpsert({ ...run, blocks });
-                        }
-                    }}
-                />)
-            }
+            <div className="row">
+                <Button
+                    className="col-auto mr-3"
+                    variant="primary"
+                    disabled={true}>Sign</Button>
+                <Button
+                    className="col-auto mr-3"
+                    variant="primary"
+                    disabled={true}>Witness</Button>
+                <Button
+                    className="col-auto"
+                    variant="primary"
+                    onClick={() => runUpsert({
+                        id: parseInt(id),
+                        name: currentName,
+                        description: serializeSlate(currentDescription),
+                        blocks: currentBlocks,
+                    })}
+                >
+                    Save
+                </Button>
+            </div>
         </Form>
     );
 }

@@ -1,7 +1,6 @@
 import { atom } from "recoil";
 import { Protocol } from "../models/protocol";
 import { Run } from "../models/run";
-import LRUCache from "lru-cache";
 import createAuth0Client, { Auth0Client } from "@auth0/auth0-spa-js";
 import { labflowOptions } from "../config";
 
@@ -55,20 +54,21 @@ export const auth0State = atom<Auth0State>({
 // Protocols ------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-const defaultProtocolCacheSize = 1000;
-const defaultProtocolCacheAge = 1000 * 60;  // 1 minute
+// const defaultProtocolCacheSize = 1000;
+// const defaultProtocolCacheAge = 1000 * 60;  // 1 minute
 
 export interface ProtocolsState {
-  protocolCache: LRUCache<number, Protocol>;
+  protocolCache: Map<number, Protocol>;
 }
 
 export const protocolsState = atom<ProtocolsState>({
   key: "protocolsState",
   default: {
-    protocolCache: new LRUCache({
-      max: defaultProtocolCacheSize,
-      maxAge: defaultProtocolCacheAge,
-    }),
+    // protocolCache: new LRUCache({
+    //   max: defaultProtocolCacheSize,
+    //   maxAge: defaultProtocolCacheAge,
+    // }),
+    protocolCache: new Map<number, Protocol>(),
   },
 });
 
@@ -77,19 +77,20 @@ export const protocolsState = atom<ProtocolsState>({
 // Runs -----------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-const defaultRunCacheSize = 1000;
-const defaultRunCacheAge = 1000 * 60;  // 1 minute
+// const defaultRunCacheSize = 1000;
+// const defaultRunCacheAge = 1000 * 60;  // 1 minute
 
 export interface RunsState {
-  runCache: LRUCache<number, Run>;
+  runCache: Map<number, Run>;
 }
 
 export const runsState = atom<RunsState>({
   key: "runsState",
   default: {
-    runCache: new LRUCache({
-      max: defaultRunCacheSize,
-      maxAge: defaultRunCacheAge,
-    }),
+    // runCache: new LRUCache({
+    //   max: defaultRunCacheSize,
+    //   maxAge: defaultRunCacheAge,
+    // }),
+    runCache: new Map<number, Run>(),
   },
 });

@@ -6,7 +6,6 @@ export interface TextQuestionBlock {
     type: 'text-question';
     definition: TextQuestionBlockDefinition;
 
-    id?: number;
     answer?: string;
 }
 
@@ -14,7 +13,6 @@ export interface OptionsQuestionBlock {
     type: 'options-question';
     definition: OptionsQuestionBlockDefinition;
 
-    id?: number;
     answer?: string;
 }
 
@@ -22,7 +20,6 @@ export interface PlateSamplerBlock {
     type: 'plate-sampler';
     definition: PlateSamplerBlockDefinition;
 
-    id?: number;
     plateLabels?: string[];
     outputPlateLabel?: string;
 
@@ -34,7 +31,6 @@ export interface PlateAddReagentBlock {
     type: 'plate-add-reagent';
     definition: PlateAddReagentBlockDefinition;
 
-    id?: number;
     plateLabel?: string;
 }
 
@@ -42,7 +38,6 @@ export interface PlateSequencerBlock {
     type: 'plate-sequencer';
     definition: PlateSequencerBlockDefinition;
 
-    id?: number;
     plateLabel?: string;
 
     // TODO:

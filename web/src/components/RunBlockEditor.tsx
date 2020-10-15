@@ -10,7 +10,7 @@ function RunBlockTextQuestion({definition, answer, setAnswer}: {
 }) {
     return (
         <Form.Group>
-            <Form.Label>{definition.question}</Form.Label>
+            <Form.Label>{definition.name}</Form.Label>
             <Form.Control
                 type="text"
                 value={answer}
@@ -32,7 +32,7 @@ function RunBlockOptionsQuestion({definition, answer, setAnswer}: {
         default:
             const optionType: 'switch' | 'radio' | 'checkbox' = definition.optionType || 'checkbox';
             return <div>
-                <Form.Label>{definition.question || 'Select an option'}</Form.Label>
+                <Form.Label>{definition.name || 'Select an option'}</Form.Label>
                 {definition.options && definition.options.map((option, i) => <Form.Check
                     radioGroup="run-block"
                     type={optionType}
@@ -44,7 +44,7 @@ function RunBlockOptionsQuestion({definition, answer, setAnswer}: {
         case 'menu-item':
         case 'user':
             return <Form.Group>
-                <Form.Label>{definition.question || 'Select an option'}</Form.Label>
+                <Form.Label>{definition.name || 'Select an option'}</Form.Label>
                 <Form.Control
                     as="select"
                     value={answer}

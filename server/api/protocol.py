@@ -70,7 +70,7 @@ class ProtocolResource(Resource):
             'description': 'Token missing scope "read:protocols"'
         }, 401)
 
-    @api.doc(security='token', model=success_output, body=protocol_input)
+    @api.doc(security='token', model=protocol_output, body=protocol_input)
     @requires_auth
     def put(self, protocol_id):
         if requires_scope('write:protocols'):
@@ -78,19 +78,18 @@ class ProtocolResource(Resource):
             protocol_dict = request.json
             # Drop the id field if it was provided.
             protocol_dict.pop('id', None)
-            # TODO: Make this an update, not an overwrite.
-            # SEE: https://stackoverflow.com/questions/26703476/how-to-perform-update-operations-on-columns-of-type-jsonb-in-postgres-9-4
-            # SEE: https://wiki.postgresql.org/wiki/What%27s_new_in_PostgreSQL_9.5#JSONB-modifying_operators_and_functions
-            # SEE: https://dba.stackexchange.com/questions/166092/postgresql-9-4-deep-merge-jsonb-values#comment320704_166092
             protocol = Protocol.query\
                 .join(ProtocolPermission, Protocol.id == ProtocolPermission.protocol_id)\
                 .filter(ProtocolPermission.user_id == user_id)\
                 .filter(Protocol.id == protocol_id)\
-                .update({'data': protocol_dict})
+                .first()
+            if protocol:
+                protocol.data = protocol_dict
+                Protocol.query\
+                    .filter(Protocol.id == protocol_id)\
+                    .update({'data': protocol_dict})
             db.session.commit()
-            return {
-                'success': True
-            }
+            return jsonRow2dict(protocol)
         raise AuthError({
             'code': 'Unauthorized',
             'description': 'Token missing scope "write:protocols"'

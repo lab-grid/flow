@@ -3,17 +3,15 @@ export type BlockDefinition = TextQuestionBlockDefinition | OptionsQuestionBlock
 export interface TextQuestionBlockDefinition {
     type: 'text-question';
 
-    id?: number;
+    id?: string;
     name?: string;
-    question?: string;
 }
 
 export interface OptionsQuestionBlockDefinition {
     type: 'options-question';
 
-    id?: number;
+    id?: string;
     name?: string;
-    question?: string;
     optionType?: 'switch' | 'checkbox' | 'radio' | 'menu-item' | 'user';
     options?: string[];
 }
@@ -21,7 +19,7 @@ export interface OptionsQuestionBlockDefinition {
 export interface PlateSamplerBlockDefinition {
     type: 'plate-sampler';
 
-    id?: number;
+    id?: string;
     name?: string;
     plateCount?: number;
     plateSize?: 96;
@@ -30,7 +28,7 @@ export interface PlateSamplerBlockDefinition {
 export interface PlateAddReagentBlockDefinition {
     type: 'plate-add-reagent';
 
-    id?: number;
+    id?: string;
     name?: string;
     plateSize?: 96 | 384;
     reagentLabel?: string;
@@ -39,7 +37,7 @@ export interface PlateAddReagentBlockDefinition {
 export interface PlateSequencerBlockDefinition {
     type: 'plate-sequencer';
 
-    id?: number;
+    id?: string;
     name?: string;
     plateSize?: 96 | 384;
 }

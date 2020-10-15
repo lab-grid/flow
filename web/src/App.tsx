@@ -34,7 +34,7 @@ export default function App() {
         <Navbar.Brand>
           <Link to="/">
             LabFlow
-          </Link>
+            </Link>
         </Navbar.Brand>
         <Nav className="mr-auto"></Nav>
         <Suspense fallback={<ProfileMenuLoading />}>
@@ -45,26 +45,26 @@ export default function App() {
         <Switch>
           <Route path="/protocol/:id">
             <Suspense
-                fallback={<Spinner
-                  as="span"
-                  animation="border"
-                  size="sm"
-                  role="status"
-                  aria-hidden="true"
-                />}
+              fallback={<Spinner
+                as="span"
+                animation="border"
+                size="sm"
+                role="status"
+                aria-hidden="true"
+              />}
             >
               <ProtocolEditorPage />
             </Suspense>
           </Route>
           <Route path="/run/:id">
             <Suspense
-                fallback={<Spinner
-                  as="span"
-                  animation="border"
-                  size="sm"
-                  role="status"
-                  aria-hidden="true"
-                />}
+              fallback={<Spinner
+                as="span"
+                animation="border"
+                size="sm"
+                role="status"
+                aria-hidden="true"
+              />}
             >
               <RunEditorPage />
             </Suspense>

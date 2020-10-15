@@ -6,13 +6,17 @@ import * as serviceWorker from './serviceWorker';
 import { RecoilRoot } from 'recoil';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Spinner } from 'react-bootstrap';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 ReactDOM.render(
   <React.StrictMode>
     <RecoilRoot>
-      <Suspense fallback={<Spinner animation="border"/>}>
-        <App />
-      </Suspense>
+      <DndProvider backend={HTML5Backend}>
+        <Suspense fallback={<Spinner animation="border" />}>
+          <App />
+        </Suspense>
+      </DndProvider>
     </RecoilRoot>
   </React.StrictMode>,
   document.getElementById('root')
