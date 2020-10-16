@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup } from 'react-bootstrap';
 import { GripHorizontal, Trash, UpcScan } from 'react-bootstrap-icons';
 import { BlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { trimEmpty } from '../utils';
 
 export function humanizeBlockType(blockType: "text-question" | "options-question" | "plate-sampler" | "plate-add-reagent" | "plate-sequencer" | undefined): string {
     switch (blockType) {
@@ -53,44 +54,36 @@ function ProtocolBlockOptionsEditor({ options, setOptions }: {
     options?: string[];
     setOptions: (options?: string[]) => void;
 }) {
+    const currentOptions = trimEmpty(options);
+    currentOptions.push("");
     return <>
         <Form.Label>
             Options
         </Form.Label>
-        {options && options.map((option, i) => <ProtocolBlockOptionEditor
+        {currentOptions.map((option, i) => <ProtocolBlockOptionEditor
+            key={i}
             option={option}
-            optionIndex={i}
-            setOption={(option, optionIndex) => {
-                if (options && option) {
-                    const newOptions = [...(options || [])]
-                    newOptions[optionIndex] = option;
-                    setOptions(newOptions);
-                }
+            setOption={(option) => {
+                const newOptions = [...currentOptions];
+                newOptions[i] = option || "";
+                setOptions(newOptions);
             }}
+            placeholder={(currentOptions.length - 1 === i) ? "Start typing here to add an option..." : "Blank option (will be ignored)"}
         />)}
-        <Form.Group controlId="block-option-add">
-            <Form.Control
-                type="text"
-                placeholder="Add an option"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    setOptions([...(options || []), (e.target as HTMLInputElement).value]);
-                }}
-            />
-        </Form.Group>
     </>
 }
 
-function ProtocolBlockOptionEditor({ option, optionIndex, setOption }: {
+function ProtocolBlockOptionEditor({ placeholder, option, setOption }: {
+    placeholder?: string;
     option?: string;
-    optionIndex: number;
-    setOption: (option: string | undefined, optionIndex: number) => void;
+    setOption: (option: string | undefined) => void;
 }) {
-    return <Form.Group controlId={`block-option-${optionIndex}`}>
+    return <Form.Group>
         <InputGroup>
             <FormControl
-                placeholder="Blank option (will be ignored)"
+                placeholder={placeholder}
                 value={option}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOption((e.target as HTMLInputElement).value, optionIndex)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOption((e.target as HTMLInputElement).value)}
             />
             <InputGroup.Append>
                 <Button variant="secondary"><Trash /></Button>
@@ -144,11 +137,6 @@ function ProtocolBlockPlateEditor<T extends number = number>({ label, name, plat
                 value={name}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
             />
-            <InputGroup.Append>
-                <Button variant="info" disabled={true}>
-                    <UpcScan />
-                </Button>
-            </InputGroup.Append>
         </InputGroup>
     </Form.Group>
 }

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, Form, Table } from 'react-bootstrap';
+import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
+import { UpcScan } from 'react-bootstrap-icons';
 import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block } from '../models/block';
 import { OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 
@@ -34,6 +35,7 @@ function RunBlockOptionsQuestion({definition, answer, setAnswer}: {
             return <div>
                 <Form.Label>{definition.name || 'Select an option'}</Form.Label>
                 {definition.options && definition.options.map((option, i) => <Form.Check
+                    key={i}
                     radioGroup="run-block"
                     type={optionType}
                     id={`run-block-${i}`}
@@ -50,7 +52,7 @@ function RunBlockOptionsQuestion({definition, answer, setAnswer}: {
                     value={answer}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAnswer((e.target as HTMLSelectElement).value)}
                 >
-                    {definition.options && definition.options.map(option => <option>{option}</option>)}
+                    {definition.options && definition.options.map((option, i) => <option key={i}>{option}</option>)}
                 </Form.Control>
             </Form.Group>
     }
@@ -68,6 +70,29 @@ function cloneArrayToSize<T>(size: number, defaultValue: T, original?: T[]): T[]
     return newPlateLabels;
 }
 
+function RunBlockPlateLabelEditor({wells, label, setLabel}: {
+    wells?: number;
+    label?: string;
+    setLabel: (label?: string) => void;
+}) {
+    return <InputGroup>
+        <InputGroup.Prepend>
+            <InputGroup.Text>{wells || 96}-well</InputGroup.Text>
+        </InputGroup.Prepend>
+        <FormControl
+            placeholder="Enter a plate label"
+            aria-label="Enter a plate label"
+            value={label}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLabel((e.target as HTMLInputElement).value)}
+        />
+        <InputGroup.Append>
+            <Button variant="secondary" disabled={true}>
+                <UpcScan /> Scan
+            </Button>
+        </InputGroup.Append>
+    </InputGroup>
+}
+
 function RunBlockPlateSamplerEditor({definition, outputPlateLabel, setOutputPlateLabel, plateLabels, setPlateLabels}: {
     definition: PlateSamplerBlockDefinition;
     outputPlateLabel?: string;
@@ -77,16 +102,18 @@ function RunBlockPlateSamplerEditor({definition, outputPlateLabel, setOutputPlat
 }) {
     const inputRows: JSX.Element[] = [];
     for (let i = 0; i < (definition.plateCount || 0); i++) {
-        inputRows.push(<tr>
+        inputRows.push(<tr key={i}>
             <th>Input Plate {i}</th>
             <td>
-                <Form.Control
-                    type="text"
-                    value={plateLabels ? plateLabels[i] : undefined}
-                    onInput={(e: React.FormEvent<HTMLInputElement>) => {
-                        const newPlateLabels = cloneArrayToSize(definition.plateCount || 0, '', plateLabels);
-                        newPlateLabels[i] = (e.target as HTMLInputElement).value;
-                        setPlateLabels(newPlateLabels);
+                <RunBlockPlateLabelEditor
+                    wells={definition.plateSize}
+                    label={plateLabels ? plateLabels[i] : undefined}
+                    setLabel={label => {
+                        if (label !== undefined) {
+                            const newPlateLabels = cloneArrayToSize(definition.plateCount || 0, '', plateLabels);
+                            newPlateLabels[i] = label;
+                            setPlateLabels(newPlateLabels);
+                        }
                     }}
                 />
             </td>

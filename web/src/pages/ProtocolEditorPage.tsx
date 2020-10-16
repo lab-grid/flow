@@ -16,6 +16,7 @@ import { DragSourceMonitor, DropTargetMonitor, useDrag, useDrop, XYCoord } from 
 import { CheckCircle } from 'react-bootstrap-icons';
 import moment from 'moment';
 import { deserializeSlate, serializeSlate } from '../slate';
+import { trimEmpty } from '../utils';
 
 interface DragItem {
     type: 'protocol-block';
