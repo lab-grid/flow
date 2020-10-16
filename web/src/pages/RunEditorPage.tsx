@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Form } from 'react-bootstrap';
+import { Button, ButtonGroup, ButtonToolbar, Form } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { createEditor, Node } from 'slate';
@@ -11,27 +11,7 @@ import { apiFetch } from '../state/api';
 import { auth0State, runsState } from '../state/atoms';
 import { runQuery } from '../state/selectors';
 import { Block } from '../models/block';
-
-// Define a serializing function that takes a value and returns a string.
-export function serializeSlate(value: Node[]): string {
-    return (
-        value
-            // Return the string content of each paragraph in the value's children.
-            .map(n => Node.string(n))
-            // Join them all with line breaks denoting paragraphs.
-            .join('\n')
-    )
-}
-
-// Define a deserializing function that takes a string and returns a value.
-export function deserializeSlate(str: string): Node[] {
-    // Return a value array of children derived by splitting the string.
-    return str.split('\n').map(line => {
-        return {
-            children: [{ text: line }],
-        }
-    })
-}
+import { deserializeSlate, serializeSlate } from '../slate';
 
 export interface RunEditorPageParams {
     id: string;
@@ -41,6 +21,7 @@ export function RunEditorPage() {
     const [name, setName] = useState<string | null>(null);
     const [description, setDescription] = useState<Node[] | null>(null);
     const [blocks, setBlocks] = useState<Block[] | null>(null);
+    const [status, setStatus] = useState<"todo" | "signed" | "witnessed" | null>(null);
     const editor = React.useMemo(() => withReact(createEditor()), []);
     const { id } = useParams<RunEditorPageParams>();
     const run = useRecoilValue(runQuery(parseInt(id)));
@@ -62,6 +43,7 @@ export function RunEditorPage() {
     const currentName = name || (run && run.name) || "";
     const currentDescription = description || (run && run.description && deserializeSlate(run.description)) || [];
     const currentBlocks = blocks || (run && run.blocks) || [];
+    const currentStatus = status || (run && run.status) || 'todo';
 
     const updateBlock = (block?: Block) => {
         if (block) {
@@ -69,8 +51,12 @@ export function RunEditorPage() {
         }
     };
 
+    const isSigned = currentStatus === 'signed';
+    const isWitnessed = currentStatus === 'witnessed';
+    const isTodo = currentStatus === 'todo';
+
     return (
-        <Form>
+        <Form className="mt-4">
             <Form.Group controlId="formRunTitle">
                 <Form.Label>Run Title</Form.Label>
                 <Form.Control
@@ -93,28 +79,45 @@ export function RunEditorPage() {
                 return <RunBlockEditor key={block.definition.id} block={block} setBlock={updateBlock} />
             })}
 
-            <div className="row">
-                <Button
-                    className="col-auto mr-3"
-                    variant="primary"
-                    disabled={true}>Sign</Button>
-                <Button
-                    className="col-auto mr-3"
-                    variant="primary"
-                    disabled={true}>Witness</Button>
-                <Button
-                    className="col-auto"
-                    variant="primary"
-                    onClick={() => runUpsert({
-                        id: parseInt(id),
-                        name: currentName,
-                        description: serializeSlate(currentDescription),
-                        blocks: currentBlocks,
-                    })}
-                >
-                    Save
-                </Button>
-            </div>
+            <ButtonToolbar>
+                <ButtonGroup className="mr-2">
+                    <Button
+                        variant={isTodo ? 'success' : 'secondary'}
+                        onClick={() => setStatus('todo')}
+                    >
+                        {isTodo ? 'To Do' : 'Done'}
+                    </Button>
+                    <Button
+                        variant={isSigned ? 'success' : 'secondary'}
+                        onClick={() => setStatus('signed')}
+                        disabled={isSigned}
+                    >
+                        {(isSigned || isWitnessed) ? 'Signed' : 'Sign'}
+                    </Button>
+                    <Button
+                        variant={isWitnessed ? 'success' : 'secondary'}
+                        onClick={() => setStatus('witnessed')}
+                        disabled={isWitnessed || !isSigned}
+                    >
+                        {isWitnessed ? 'Witnessed' : 'Witness'}
+                    </Button>
+                </ButtonGroup>
+                <ButtonGroup>
+                    <Button
+                        className="col-auto"
+                        variant="primary"
+                        onClick={() => runUpsert({
+                            id: parseInt(id),
+                            name: currentName,
+                            description: serializeSlate(currentDescription),
+                            status: currentStatus,
+                            blocks: currentBlocks,
+                        })}
+                    >
+                        Save
+                    </Button>
+                </ButtonGroup>
+            </ButtonToolbar>
         </Form>
     );
 }

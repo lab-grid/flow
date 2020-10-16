@@ -15,27 +15,7 @@ import * as uuid from 'uuid';
 import { DragSourceMonitor, DropTargetMonitor, useDrag, useDrop, XYCoord } from 'react-dnd';
 import { CheckCircle } from 'react-bootstrap-icons';
 import moment from 'moment';
-
-// Define a serializing function that takes a value and returns a string.
-export function serializeSlate(value: Node[]): string {
-    return (
-        value
-            // Return the string content of each paragraph in the value's children.
-            .map(n => Node.string(n))
-            // Join them all with line breaks denoting paragraphs.
-            .join('\n')
-    )
-}
-
-// Define a deserializing function that takes a string and returns a value.
-export function deserializeSlate(str: string): Node[] {
-    // Return a value array of children derived by splitting the string.
-    return str.split('\n').map(line => {
-        return {
-            children: [{ text: line }],
-        }
-    })
-}
+import { deserializeSlate, serializeSlate } from '../slate';
 
 interface DragItem {
     type: 'protocol-block';
