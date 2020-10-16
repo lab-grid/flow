@@ -5,28 +5,27 @@ import unittest
 from decimal import Decimal
 
 from server import app, api, db
-from database import Run, Protocol
+from database import Run, RunPermission, Protocol, ProtocolPermission
 
 from api.protocol import api as protocols
 from api.run import api as runs
 
 
-def create_app():
-    app.config["TESTING"] = True
-    app.config["AUTH_PROVIDER"] = "none"
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/datalayer-test.db"
-    api.add_namespace(protocols)
-    api.add_namespace(runs)
-
-    with app.test_client() as client:
-        with app.app_context():
-            db.create_all()
-        yield client
-
-
 class ServerTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        app.config["TESTING"] = True
+        app.config["AUTH_PROVIDER"] = "none"
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/datalayer-test.db"
+        # import pdb; pdb.set_trace()
+        api.add_namespace(protocols)
+        api.add_namespace(runs)
+
     def setUp(self):
-        self.client = create_app()
+        with app.test_client() as client:
+            with app.app_context():
+                db.create_all()
+            self.client = client
         self.maxDiff = None
 
     def tearDown(self):
@@ -43,6 +42,11 @@ class ServerTest(unittest.TestCase):
             "data_link": "https://s3.amazon.com/..."
         }
         db.session.add(example_run_1)
+
+        example_run_1_permission = RunPermission()
+        example_run_1_permission.run = example_run_1
+        example_run_1_permission.user_id = 42
+        db.session.add(example_run_1_permission)
 
         response = self.client.get("/run")
         if response.json is None:
@@ -98,6 +102,11 @@ class ServerTest(unittest.TestCase):
             "notes": "Example notes!"
         }
         db.session.add(example_protocol_1)
+
+        example_protocol_1_permission = ProtocolPermission()
+        example_protocol_1_permission.protocol = example_protocol_1
+        example_protocol_1_permission.user_id = 42
+        db.session.add(example_protocol_1_permission)
 
         response = self.client.get("/protocol")
         if response.json is None:
