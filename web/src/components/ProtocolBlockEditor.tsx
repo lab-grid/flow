@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup } from 'react-bootstrap';
-import { GripHorizontal, Trash, UpcScan } from 'react-bootstrap-icons';
+import { GripHorizontal, Trash } from 'react-bootstrap-icons';
 import { BlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { trimEmpty } from '../utils';
 

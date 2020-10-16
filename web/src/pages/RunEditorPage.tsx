@@ -6,7 +6,7 @@ import { createEditor, Node } from 'slate';
 import { Slate, Editable, withReact } from 'slate-react';
 import { RunBlockEditor } from '../components/RunBlockEditor';
 import { labflowOptions } from '../config';
-import { Run } from '../models/run';
+import { humanizeRunName, Run } from '../models/run';
 import { apiFetch } from '../state/api';
 import { auth0State, runsState } from '../state/atoms';
 import { runQuery } from '../state/selectors';
@@ -18,8 +18,7 @@ export interface RunEditorPageParams {
 }
 
 export function RunEditorPage() {
-    const [name, setName] = useState<string | null>(null);
-    const [description, setDescription] = useState<Node[] | null>(null);
+    const [notes, setNotes] = useState<Node[] | null>(null);
     const [blocks, setBlocks] = useState<Block[] | null>(null);
     const [status, setStatus] = useState<"todo" | "signed" | "witnessed" | null>(null);
     const editor = React.useMemo(() => withReact(createEditor()), []);
@@ -40,8 +39,7 @@ export function RunEditorPage() {
         });
     });
 
-    const currentName = name || (run && run.name) || "";
-    const currentDescription = description || (run && run.description && deserializeSlate(run.description)) || [];
+    const currentNotes = notes || (run && run.notes && deserializeSlate(run.notes)) || [];
     const currentBlocks = blocks || (run && run.blocks) || [];
     const currentStatus = status || (run && run.status) || 'todo';
 
@@ -57,22 +55,18 @@ export function RunEditorPage() {
 
     return (
         <Form className="mt-4">
-            <Form.Group controlId="formRunTitle">
-                <Form.Label>Run Title</Form.Label>
-                <Form.Control
-                    type="text"
-                    value={currentName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
-                />
+            <h1>{humanizeRunName(run)}</h1>
+            <Form.Group>
+                <Form.Label>Notes</Form.Label>
+                <Slate
+                    editor={editor}
+                    value={currentNotes}
+                    onChange={setNotes}
+                >
+                    <Editable />
+                </Slate>
             </Form.Group>
-            <Slate
-                editor={editor}
-                value={currentDescription}
-                onChange={setDescription}
-            >
-                <Editable />
-            </Slate>
-            {currentBlocks.map((block, index) => {
+            {currentBlocks.map(block => {
                 if (!block || !block.definition || !block.definition.id) {
                     return undefined;
                 }
@@ -108,8 +102,7 @@ export function RunEditorPage() {
                         variant="primary"
                         onClick={() => runUpsert({
                             id: parseInt(id),
-                            name: currentName,
-                            description: serializeSlate(currentDescription),
+                            notes: serializeSlate(currentNotes),
                             status: currentStatus,
                             blocks: currentBlocks,
                         })}

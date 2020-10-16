@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Dropdown, Form, Spinner } from 'react-bootstrap';
+import { useHistory } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { createEditor, Node } from 'slate';
@@ -9,14 +10,15 @@ import { labflowOptions } from '../config';
 import { BlockDefinition } from '../models/block-definition';
 import { Protocol } from '../models/protocol';
 import { apiFetch } from '../state/api';
-import { auth0State, protocolsState } from '../state/atoms';
+import { auth0State, protocolsState, runsState } from '../state/atoms';
 import { protocolQuery } from '../state/selectors';
 import * as uuid from 'uuid';
 import { DragSourceMonitor, DropTargetMonitor, useDrag, useDrop, XYCoord } from 'react-dnd';
 import { CheckCircle } from 'react-bootstrap-icons';
 import moment from 'moment';
 import { deserializeSlate, serializeSlate } from '../slate';
-import { trimEmpty } from '../utils';
+import { Run } from '../models/run';
+import { Block } from '../models/block';
 
 interface DragItem {
     type: 'protocol-block';
@@ -79,6 +81,7 @@ export interface ProtocolEditorPageParams {
 }
 
 export function ProtocolEditorPage() {
+    const history = useHistory();
     const [name, setName] = useState<string | null>(null);
     const [description, setDescription] = useState<Node[] | null>(null);
     const [blocks, setBlocks] = useState<BlockDefinition[] | null>(null);
@@ -106,6 +109,21 @@ export function ProtocolEditorPage() {
             setFormSaving(false);
             setFormSavedTime(moment().format());
         }
+    });
+    const runUpsert = useRecoilCallback(({ set, snapshot }) => async (run: Run) => {
+        const { auth0Client } = await snapshot.getPromise(auth0State);
+        const method = run.id ? "PUT" : "POST";
+        const path = run.id ? `run/${run.id}` : "run";
+        const created: Run = await apiFetch(labflowOptions, () => auth0Client, method, path, run);
+        set(runsState, state => {
+            if (created.id) {
+                state.runCache.set(created.id, created);
+                return state;
+            } else {
+                throw new Error("Received a run without an ID from server!");
+            }
+        });
+        return created;
     });
 
     const currentName = name || (protocol && protocol.name) || "";
@@ -163,6 +181,25 @@ export function ProtocolEditorPage() {
             })}
 
             <div className="row">
+                <Button
+                    className="col-auto"
+                    variant="success"
+                    onClick={async () => {
+                        if (!protocol) {
+                            return;
+                        }
+                        // Create new run
+                        const created = await runUpsert({
+                            status: 'todo',
+                            blocks: protocol.blocks && protocol.blocks.map(definition => ({ type: definition.type, definition } as Block)),
+                            protocol,
+                        });
+                        // Redirect to the new run page editor
+                        history.push(`/run/${created.id}`);
+                    }}
+                >
+                    Create Run
+                </Button>
                 <Dropdown className="col-auto">
                     <Dropdown.Toggle variant="success" id="block-add">
                         Add a new section

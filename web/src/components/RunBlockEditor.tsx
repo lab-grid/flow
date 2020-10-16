@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
+import { Button, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
 import { UpcScan } from 'react-bootstrap-icons';
 import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block } from '../models/block';
 import { OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
@@ -123,10 +123,10 @@ function RunBlockPlateSamplerEditor({definition, outputPlateLabel, setOutputPlat
         <tr>
             <th>Output Plate</th>
             <td>
-                <Form.Control
-                    type="text"
-                    value={outputPlateLabel}
-                    onInput={(e: React.FormEvent<HTMLInputElement>) => setOutputPlateLabel((e.target as HTMLInputElement).value)}
+                <RunBlockPlateLabelEditor
+                    wells={398}
+                    label={outputPlateLabel}
+                    setLabel={setOutputPlateLabel}
                 />
             </td>
         </tr>
@@ -152,17 +152,17 @@ function RunBlockPlateAddReagentEditor({definition, plateLabel, setPlateLabel}: 
 }) {
     return (
         <Form.Group>
-            <Form.Label>Plates with reagent ({definition.reagentLabel}) added</Form.Label>
-            <Form.Control
-                type="text"
-                value={plateLabel}
-                onInput={(e: React.FormEvent<HTMLInputElement>) => setPlateLabel((e.target as HTMLInputElement).value)}
+            <Form.Label>Plate with reagent ({definition.reagentLabel}) added</Form.Label>
+            <RunBlockPlateLabelEditor
+                wells={definition.plateSize}
+                label={plateLabel}
+                setLabel={setPlateLabel}
             />
         </Form.Group>
     );
 }
 
-function RunBlockPlateSequencerEditor({plateLabel, setPlateLabel}: {
+function RunBlockPlateSequencerEditor({definition, plateLabel, setPlateLabel}: {
     definition: PlateSequencerBlockDefinition;
     plateLabel?: string;
     setPlateLabel: (plateLabel?: string) => void;
@@ -170,10 +170,10 @@ function RunBlockPlateSequencerEditor({plateLabel, setPlateLabel}: {
     return (
         <Form.Group>
             <Form.Label>Sequenced plate</Form.Label>
-            <Form.Control
-                type="text"
-                value={plateLabel}
-                onInput={(e: React.FormEvent<HTMLInputElement>) => setPlateLabel((e.target as HTMLInputElement).value)}
+            <RunBlockPlateLabelEditor
+                wells={definition.plateSize}
+                label={plateLabel}
+                setLabel={setPlateLabel}
             />
         </Form.Group>
     );

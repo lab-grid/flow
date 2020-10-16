@@ -104,6 +104,7 @@ export function HomePage() {
                                         const created = await runUpsert({
                                             status: 'todo',
                                             blocks: protocol.blocks && protocol.blocks.map(definition => ({ type: definition.type, definition } as Block)),
+                                            protocol,
                                         });
                                         // Redirect to the new run page editor
                                         history.push(`/run/${created.id}`);

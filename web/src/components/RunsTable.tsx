@@ -3,6 +3,7 @@ import React from "react";
 import { Table } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { useRecoilValue } from "recoil";
+import { humanizeRunName } from "../models/run";
 import { runsQuery } from "../state/selectors";
 
 export function RunsTable() {
@@ -25,7 +26,7 @@ export function RunsTable() {
                         <td>
                             <Link to={`/run/${run.id}`}>{run.id}</Link>
                         </td>
-                        <td>{run.name}</td>
+                        <td>{humanizeRunName(run)}</td>
                         <td>{run.createdBy}</td>
                         <td>{run.status}</td>
                         <td>{run.createdOn ? moment(run.createdOn).format("LLLL") : undefined}</td>
