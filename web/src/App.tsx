@@ -33,7 +33,7 @@ export default function App() {
       <Navbar bg="dark" variant="dark">
         <Navbar.Brand>
           <Link to="/">
-            LabFlow
+            Flow by LabGrid
             </Link>
         </Navbar.Brand>
         <Nav className="mr-auto"></Nav>

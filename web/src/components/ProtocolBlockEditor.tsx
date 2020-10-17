@@ -149,7 +149,7 @@ function ProtocolBlockPlateCountEditor({ plateCount, setPlateCount }: {
         <Form.Label>Number of plates</Form.Label>
         <Form.Control
             type="number"
-            placeholder="Enter a name"
+            placeholder="Enter a number"
             value={plateCount}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPlateCount(parseInt((e.target as HTMLInputElement).value))}
         />

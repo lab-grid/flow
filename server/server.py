@@ -48,7 +48,7 @@ authorizations = {
 }
 api = Api(
     app,
-    title='LabFlow API',
+    title='Flow by LabGrid API',
     version='0.1.0',
     authorizations=authorizations,
 )
