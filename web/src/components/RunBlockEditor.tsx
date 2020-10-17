@@ -124,7 +124,7 @@ function RunBlockPlateSamplerEditor({definition, outputPlateLabel, setOutputPlat
             <th>Output Plate</th>
             <td>
                 <RunBlockPlateLabelEditor
-                    wells={398}
+                    wells={384}
                     label={outputPlateLabel}
                     setLabel={setOutputPlateLabel}
                 />
