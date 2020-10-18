@@ -1,0 +1,25 @@
+version: "3.7"
+services:
+  web:
+    build:
+      context: web
+      dockerfile: Dockerfile.dev
+    image: labflow/webapp-dev:latest
+    tty: true
+    environment:
+      - "CHOKIDAR_USEPOLLING=true"
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+  server:
+    volumes:
+      - ./server:/app
+  db:
+    image: supabase/postgres
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: labflow
+    volumes:
+      - ./.postgres:/var/lib/postgresql/data

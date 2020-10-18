@@ -1,36 +1,17 @@
 version: "3.7"
 services:
-  # Uncomment the following to serve the development webapp container (rebuilds on save).
   web:
-    build:
-      context: web
-      dockerfile: Dockerfile.dev
-    image: labflow/webapp-dev:latest
-    tty: true
+    build: web
+    image: labflow/webapp:latest
+    ports:
+      - 3000:3000
     environment:
-      - "CHOKIDAR_USEPOLLING=true"
+      - PORT=3000
       - "REACT_APP_API_URL=${API_URL}"
       - "REACT_APP_AUTH_PROVIDER=${AUTH_PROVIDER}"
       - "REACT_APP_AUTH0_DOMAIN=${AUTH0_DOMAIN}"
       - "REACT_APP_AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}"
       - "REACT_APP_AUTH0_AUDIENCE=${AUTH0_API_AUDIENCE}"
-    ports:
-      - 3000:3000
-    volumes:
-      - ./web:/app
-      - /app/node_modules
-  # Uncomment the following to serve the production webapp container.
-  # webapp:
-  #   build: web
-  #   image: labflow/webapp:latest
-  #   ports:
-  #     - 3000:3000
-  #   environment:
-  #     - "REACT_APP_API_URL=${API_URL}"
-  #     - "REACT_APP_AUTH_PROVIDER=${AUTH_PROVIDER}"
-  #     - "REACT_APP_AUTH0_DOMAIN=${AUTH0_DOMAIN}"
-  #     - "REACT_APP_AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}"
-  #     - "REACT_APP_AUTH0_AUDIENCE=${AUTH0_API_AUDIENCE}"
   server:
     build: server
     image: labflow/server:latest
@@ -48,14 +29,3 @@ services:
       - "AUTH0_TOKEN_URL=${AUTH0_TOKEN_URL}"
     ports:
       - 5000:5000
-    volumes:
-      - ./server:/app
-  db:
-    image: supabase/postgres
-    ports:
-      - 5432:5432
-    environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: labflow
-    volumes:
-      - ./.postgres:/var/lib/postgresql/data
