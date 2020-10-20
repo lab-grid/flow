@@ -1,0 +1,14 @@
+# This docker-compose file helps connect an external google SQL instance to the
+# docker-compose environment.
+version: "3.7"
+services:
+  db:
+    image: gcr.io/cloudsql-docker/gce-proxy:1.18.0
+    ports:
+      - 5432:5432
+    volumes:
+      - ./cloud-sql-dev-proxy.json:/config
+    command:
+      - "/cloud_sql_proxy"
+      - "-instances=${POSTGRES_INSTANCE}=tcp:0.0.0.0:5432"
+      - "-credential_file=/config"

@@ -4,11 +4,11 @@ set -e
 set -o pipefail
 
 react_env_vars="$(env | grep REACT_APP_ || true)"
-react_config_js="/usr/share/nginx/html/config.js"
+react_runtime_js="/usr/share/nginx/html/runtime.js"
 
-echo "window.process = {env: {}};" >> "${react_config_js}"
+echo "window.runtime = {};" >> "${react_runtime_js}"
 for env_var in ${react_env_vars}; do
-    echo "window.process.env.${env_var}\";" | sed -e 's/=/="/' >> "${react_config_js}"
+    echo "window.runtime.${env_var}\";" | sed -e 's/=/="/' >> "${react_runtime_js}"
 done
 
 if [ -z "${PORT}" ]; then

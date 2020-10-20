@@ -25,9 +25,20 @@ export const labflowOptions: LabflowOptions = {
 };
 
 
+function getEnv(envVar: string, defaultValue?: string): string | undefined {
+    if (runtime && runtime[envVar]) {
+        return runtime[envVar];
+    }
+    if (process && process.env && process.env[envVar]) {
+        return process.env[envVar];
+    }
+    return defaultValue;
+}
+
+
 // Parse function helpers
 function parseAuthProvider(): LabflowAuthProvider {
-    switch (process.env.REACT_APP_AUTH_PROVIDER) {
+    switch (getEnv('REACT_APP_AUTH_PROVIDER')) {
         case 'auth0':
             return 'auth0';
         case 'none':
@@ -41,7 +52,7 @@ function parseAuthProvider(): LabflowAuthProvider {
 }
 
 function parseAPIURL(): string {
-    const apiURL = process.env.REACT_APP_API_URL;
+    const apiURL = getEnv('REACT_APP_API_URL');
     if (!apiURL) {
         throw new Error('Please provide a value for the environment variable "REACT_APP_API_URL"');
     }
@@ -52,10 +63,10 @@ function parseAPIURL(): string {
 function parseAuth0Options(): Auth0ClientOptions | undefined {
     switch (parseAuthProvider()) {
         case 'auth0':
-            const domain = process.env.REACT_APP_AUTH0_DOMAIN;
-            const client_id = process.env.REACT_APP_AUTH0_CLIENT_ID;
+            const domain = getEnv('REACT_APP_AUTH0_DOMAIN');
+            const client_id = getEnv('REACT_APP_AUTH0_CLIENT_ID');
             const redirect_uri = window.location.origin;
-            const audience = process.env.REACT_APP_AUTH0_AUDIENCE;
+            const audience = getEnv('REACT_APP_AUTH0_AUDIENCE');
             const scope = auth0Scopes.join(' ');
             if (!domain) {
                 throw new Error('Please provide a value for the environment variable "REACT_APP_AUTH0_DOMAIN"');
