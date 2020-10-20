@@ -15,5 +15,5 @@ export interface Run extends Audited {
 }
 
 export function humanizeRunName(run?: Run) {
-    return `Run ${run && run.id || 'Unknown'} (Protocol: ${run && run.protocol && run.protocol.name || 'Untitled Protocol'})`;
+    return `Run ${(run && run.id) || 'Unknown'} (Protocol: ${(run && run.protocol && run.protocol.name) || 'Untitled Protocol'})`;
 }

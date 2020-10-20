@@ -4,7 +4,8 @@ import { UpcScan } from 'react-bootstrap-icons';
 import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block } from '../models/block';
 import { OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 
-function RunBlockTextQuestion({definition, answer, setAnswer}: {
+function RunBlockTextQuestion({disabled, definition, answer, setAnswer}: {
+    disabled?: boolean;
     definition: TextQuestionBlockDefinition;
     answer?: string;
     setAnswer: (answer?: string) => void;
@@ -13,6 +14,7 @@ function RunBlockTextQuestion({definition, answer, setAnswer}: {
         <Form.Group>
             <Form.Label>{definition.name}</Form.Label>
             <Form.Control
+                disabled={disabled}
                 type="text"
                 value={answer}
                 onInput={(e: React.FormEvent<HTMLInputElement>) => setAnswer((e.target as HTMLInputElement).value)}
@@ -21,7 +23,8 @@ function RunBlockTextQuestion({definition, answer, setAnswer}: {
     );
 }
 
-function RunBlockOptionsQuestion({definition, answer, setAnswer}: {
+function RunBlockOptionsQuestion({disabled, definition, answer, setAnswer}: {
+    disabled?: boolean;
     definition: OptionsQuestionBlockDefinition;
     answer?: string;
     setAnswer: (answer?: string) => void;
@@ -35,6 +38,7 @@ function RunBlockOptionsQuestion({definition, answer, setAnswer}: {
             return <div>
                 <Form.Label>{definition.name || 'Select an option'}</Form.Label>
                 {definition.options && definition.options.map((option, i) => <Form.Check
+                    disabled={disabled}
                     key={i}
                     radioGroup="run-block"
                     type={optionType}
@@ -48,6 +52,7 @@ function RunBlockOptionsQuestion({definition, answer, setAnswer}: {
             return <Form.Group>
                 <Form.Label>{definition.name || 'Select an option'}</Form.Label>
                 <Form.Control
+                    disabled={disabled}
                     as="select"
                     value={answer}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAnswer((e.target as HTMLSelectElement).value)}
@@ -70,7 +75,8 @@ function cloneArrayToSize<T>(size: number, defaultValue: T, original?: T[]): T[]
     return newPlateLabels;
 }
 
-function RunBlockPlateLabelEditor({wells, label, setLabel}: {
+function RunBlockPlateLabelEditor({disabled, wells, label, setLabel}: {
+    disabled?: boolean;
     wells?: number;
     label?: string;
     setLabel: (label?: string) => void;
@@ -80,6 +86,7 @@ function RunBlockPlateLabelEditor({wells, label, setLabel}: {
             <InputGroup.Text>{wells || 96}-well</InputGroup.Text>
         </InputGroup.Prepend>
         <FormControl
+            disabled={disabled}
             placeholder="Enter a plate label"
             aria-label="Enter a plate label"
             value={label}
@@ -93,7 +100,8 @@ function RunBlockPlateLabelEditor({wells, label, setLabel}: {
     </InputGroup>
 }
 
-function RunBlockPlateSamplerEditor({definition, outputPlateLabel, setOutputPlateLabel, plateLabels, setPlateLabels}: {
+function RunBlockPlateSamplerEditor({disabled, definition, outputPlateLabel, setOutputPlateLabel, plateLabels, setPlateLabels}: {
+    disabled?: boolean;
     definition: PlateSamplerBlockDefinition;
     outputPlateLabel?: string;
     setOutputPlateLabel: (outputPlateLabel?: string) => void;
@@ -106,6 +114,7 @@ function RunBlockPlateSamplerEditor({definition, outputPlateLabel, setOutputPlat
             <th>Input Plate {i}</th>
             <td>
                 <RunBlockPlateLabelEditor
+                    disabled={disabled}
                     wells={definition.plateSize}
                     label={plateLabels ? plateLabels[i] : undefined}
                     setLabel={label => {
@@ -124,6 +133,7 @@ function RunBlockPlateSamplerEditor({definition, outputPlateLabel, setOutputPlat
             <th>Output Plate</th>
             <td>
                 <RunBlockPlateLabelEditor
+                    disabled={disabled}
                     wells={384}
                     label={outputPlateLabel}
                     setLabel={setOutputPlateLabel}
@@ -145,7 +155,8 @@ function RunBlockPlateSamplerEditor({definition, outputPlateLabel, setOutputPlat
     </Table>
 }
 
-function RunBlockPlateAddReagentEditor({definition, plateLabel, setPlateLabel}: {
+function RunBlockPlateAddReagentEditor({disabled, definition, plateLabel, setPlateLabel}: {
+    disabled?: boolean;
     definition: PlateAddReagentBlockDefinition;
     plateLabel?: string;
     setPlateLabel: (plateLabel?: string) => void;
@@ -154,6 +165,7 @@ function RunBlockPlateAddReagentEditor({definition, plateLabel, setPlateLabel}: 
         <Form.Group>
             <Form.Label>Plate with reagent ({definition.reagentLabel}) added</Form.Label>
             <RunBlockPlateLabelEditor
+                disabled={disabled}
                 wells={definition.plateSize}
                 label={plateLabel}
                 setLabel={setPlateLabel}
@@ -162,7 +174,8 @@ function RunBlockPlateAddReagentEditor({definition, plateLabel, setPlateLabel}: 
     );
 }
 
-function RunBlockPlateSequencerEditor({definition, plateLabel, setPlateLabel}: {
+function RunBlockPlateSequencerEditor({disabled, definition, plateLabel, setPlateLabel}: {
+    disabled?: boolean;
     definition: PlateSequencerBlockDefinition;
     plateLabel?: string;
     setPlateLabel: (plateLabel?: string) => void;
@@ -171,6 +184,7 @@ function RunBlockPlateSequencerEditor({definition, plateLabel, setPlateLabel}: {
         <Form.Group>
             <Form.Label>Sequenced plate</Form.Label>
             <RunBlockPlateLabelEditor
+                disabled={disabled}
                 wells={definition.plateSize}
                 label={plateLabel}
                 setLabel={setPlateLabel}
@@ -180,6 +194,7 @@ function RunBlockPlateSequencerEditor({definition, plateLabel, setPlateLabel}: {
 }
 
 export interface RunBlockEditorProps {
+    disabled?: boolean;
     block?: Block;
     setBlock: (block?: Block) => void;
 }
@@ -188,7 +203,7 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
     if (!props.block) {
         return (
             <div className="row">
-                <Button variant="primary">
+                <Button variant="primary" disabled={props.disabled}>
                     Select a block type
                 </Button>
             </div>
@@ -200,6 +215,7 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
             const block: TextQuestionBlock = props.block;
             return (
                 <RunBlockTextQuestion
+                    disabled={props.disabled}
                     definition={block.definition}
                     answer={block.answer}
                     setAnswer={answer => props.setBlock({ ...block, type: 'text-question', answer })}
@@ -210,6 +226,7 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
             const block: OptionsQuestionBlock = props.block;
             return (
                 <RunBlockOptionsQuestion
+                    disabled={props.disabled}
                     definition={block.definition}
                     answer={block.answer}
                     setAnswer={answer => props.setBlock({ ...block, type: 'options-question', answer })}
@@ -220,6 +237,7 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
             const block: PlateSamplerBlock = props.block;
             return (
                 <RunBlockPlateSamplerEditor
+                    disabled={props.disabled}
                     definition={block.definition}
                     outputPlateLabel={block.outputPlateLabel}
                     setOutputPlateLabel={outputPlateLabel => props.setBlock({ ...block, type: 'plate-sampler', outputPlateLabel })}
@@ -232,6 +250,7 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
             const block: PlateAddReagentBlock = props.block;
             return (
                 <RunBlockPlateAddReagentEditor
+                    disabled={props.disabled}
                     definition={block.definition}
                     plateLabel={block.plateLabel}
                     setPlateLabel={plateLabel => props.setBlock({ ...block, type: 'plate-add-reagent', plateLabel })}
@@ -242,6 +261,7 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
             const block: PlateSequencerBlock = props.block;
             return (
                 <RunBlockPlateSequencerEditor
+                    disabled={props.disabled}
                     definition={block.definition}
                     plateLabel={block.plateLabel}
                     setPlateLabel={plateLabel => props.setBlock({ ...block, type: 'plate-sequencer', plateLabel })}

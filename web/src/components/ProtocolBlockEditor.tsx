@@ -30,7 +30,8 @@ function BlockLabel({ index, blockType }: {
     </div>;
 }
 
-function ProtocolBlockNameEditor({ name, setName }: {
+function ProtocolBlockNameEditor({ disabled, name, setName }: {
+    disabled?: boolean;
     name?: string;
     setName: (name?: string) => void;
 }) {
@@ -38,19 +39,23 @@ function ProtocolBlockNameEditor({ name, setName }: {
         <Form.Group>
             <InputGroup>
                 <FormControl
+                    disabled={disabled}
                     placeholder="Enter a step name"
                     value={name}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
                 />
-                <InputGroup.Append>
-                    <Button variant="danger">Delete Step</Button>
-                </InputGroup.Append>
+                {!disabled &&
+                    <InputGroup.Append>
+                        <Button variant="danger">Delete Step</Button>
+                    </InputGroup.Append>
+                }
             </InputGroup>
         </Form.Group>
     );
 }
 
-function ProtocolBlockOptionsEditor({ options, setOptions }: {
+function ProtocolBlockOptionsEditor({ disabled, options, setOptions }: {
+    disabled?: boolean;
     options?: string[];
     setOptions: (options?: string[]) => void;
 }) {
@@ -61,6 +66,7 @@ function ProtocolBlockOptionsEditor({ options, setOptions }: {
             Options
         </Form.Label>
         {currentOptions.map((option, i) => <ProtocolBlockOptionEditor
+            disabled={disabled}
             key={i}
             option={option}
             setOption={(option) => {
@@ -73,7 +79,8 @@ function ProtocolBlockOptionsEditor({ options, setOptions }: {
     </>
 }
 
-function ProtocolBlockOptionEditor({ placeholder, option, setOption }: {
+function ProtocolBlockOptionEditor({ disabled, placeholder, option, setOption }: {
+    disabled?: boolean;
     placeholder?: string;
     option?: string;
     setOption: (option: string | undefined) => void;
@@ -81,24 +88,29 @@ function ProtocolBlockOptionEditor({ placeholder, option, setOption }: {
     return <Form.Group>
         <InputGroup>
             <FormControl
+                disabled={disabled}
                 placeholder={placeholder}
                 value={option}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOption((e.target as HTMLInputElement).value)}
             />
-            <InputGroup.Append>
-                <Button variant="secondary"><Trash /></Button>
-            </InputGroup.Append>
+            {!disabled &&
+                <InputGroup.Append>
+                    <Button variant="secondary"><Trash /></Button>
+                </InputGroup.Append>
+            }
         </InputGroup>
     </Form.Group>
 }
 
-function ProtocolBlockOptionTypeEditor({ optionType, setOptionType }: {
+function ProtocolBlockOptionTypeEditor({ disabled, optionType, setOptionType }: {
+    disabled?: boolean;
     optionType?: 'switch' | 'checkbox' | 'radio' | 'menu-item' | 'user';
     setOptionType: (optionType?: 'switch' | 'checkbox' | 'radio' | 'menu-item' | 'user') => void;
 }) {
     return <Form.Group>
         <Form.Label>Option Type</Form.Label>
         <Form.Control
+            disabled={disabled}
             as="select"
             value={optionType}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setOptionType((e.target as HTMLSelectElement).value as 'switch' | 'checkbox' | 'radio' | 'menu-item' | 'user')}
@@ -112,7 +124,8 @@ function ProtocolBlockOptionTypeEditor({ optionType, setOptionType }: {
     </Form.Group>
 }
 
-function ProtocolBlockPlateEditor<T extends number = number>({ label, name, plateSize, plateSizes, setName, setPlateSize }: {
+function ProtocolBlockPlateEditor<T extends number = number>({ disabled, label, name, plateSize, plateSizes, setName, setPlateSize }: {
+    disabled?: boolean;
     label?: string;
     name?: string;
     plateSize?: T;
@@ -124,6 +137,7 @@ function ProtocolBlockPlateEditor<T extends number = number>({ label, name, plat
         {label && <Form.Label>{label}</Form.Label>}
         <InputGroup>
             <DropdownButton
+                disabled={disabled}
                 as={InputGroup.Prepend}
                 variant="outline-secondary"
                 title={`${plateSize || (plateSizes && plateSizes[0])}-well`}
@@ -132,6 +146,7 @@ function ProtocolBlockPlateEditor<T extends number = number>({ label, name, plat
                 {(plateSizes || []).map(s => <Dropdown.Item key={s} onClick={() => setPlateSize(s)}>{s}-well</Dropdown.Item>)}
             </DropdownButton>
             <FormControl
+                disabled={disabled}
                 placeholder="Enter a plate label"
                 aria-label="Enter a plate label"
                 value={name}
@@ -141,13 +156,15 @@ function ProtocolBlockPlateEditor<T extends number = number>({ label, name, plat
     </Form.Group>
 }
 
-function ProtocolBlockPlateCountEditor({ plateCount, setPlateCount }: {
+function ProtocolBlockPlateCountEditor({ disabled, plateCount, setPlateCount }: {
+    disabled?: boolean;
     plateCount?: number;
     setPlateCount: (plateCount?: number) => void;
 }) {
     return <Form.Group>
         <Form.Label>Number of plates</Form.Label>
         <Form.Control
+            disabled={disabled}
             type="number"
             placeholder="Enter a number"
             value={plateCount}
@@ -156,13 +173,15 @@ function ProtocolBlockPlateCountEditor({ plateCount, setPlateCount }: {
     </Form.Group>
 }
 
-function ProtocolBlockReagentLabelEditor({ reagentLabel, setReagentLabel }: {
+function ProtocolBlockReagentLabelEditor({ disabled, reagentLabel, setReagentLabel }: {
+    disabled?: boolean;
     reagentLabel?: string;
     setReagentLabel: (reagentLabel?: string) => void;
 }) {
     return <Form.Group>
         <Form.Label>Reagent Label</Form.Label>
         <Form.Control
+            disabled={disabled}
             type="text"
             placeholder="Enter a name"
             value={reagentLabel}
@@ -172,6 +191,7 @@ function ProtocolBlockReagentLabelEditor({ reagentLabel, setReagentLabel }: {
 }
 
 export interface ProtocolBlockEditorProps {
+    disabled?: boolean;
     index: number;
     block?: BlockDefinition;
     setBlock: (block?: BlockDefinition) => void;
@@ -194,6 +214,7 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
             return <>
                 <BlockLabel index={props.index} blockType={block.type} />
                 <ProtocolBlockNameEditor
+                    disabled={props.disabled}
                     name={block.name}
                     setName={name => props.setBlock({ ...block, type: 'text-question', name })}
                 />
@@ -204,14 +225,17 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
             return <>
                 <BlockLabel index={props.index} blockType={block.type} />
                 <ProtocolBlockNameEditor
+                    disabled={props.disabled}
                     name={block.name}
                     setName={name => props.setBlock({ ...block, type: 'options-question', name })}
                 />
                 <ProtocolBlockOptionTypeEditor
+                    disabled={props.disabled}
                     optionType={block.optionType}
                     setOptionType={optionType => props.setBlock({ ...block, type: 'options-question', optionType })}
                 />
                 <ProtocolBlockOptionsEditor
+                    disabled={props.disabled}
                     options={block.options}
                     setOptions={options => props.setBlock({ ...block, type: 'options-question', options })}
                 />
@@ -222,10 +246,12 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
             return <>
                 <BlockLabel index={props.index} blockType={block.type} />
                 <ProtocolBlockNameEditor
+                    disabled={props.disabled}
                     name={block.name}
                     setName={name => props.setBlock({ ...block, type: 'plate-sampler', name })}
                 />
                 <ProtocolBlockPlateEditor
+                    disabled={props.disabled}
                     label="Plate to sample"
                     name={block.name}
                     plateSize={block.plateSize}
@@ -234,6 +260,7 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     setPlateSize={plateSize => props.setBlock({ ...block, type: 'plate-sampler', plateSize })}
                 />
                 <ProtocolBlockPlateCountEditor
+                    disabled={props.disabled}
                     plateCount={block.plateCount}
                     setPlateCount={plateCount => props.setBlock({ ...block, type: 'plate-sampler', plateCount })}
                 />
@@ -244,10 +271,12 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
             return <>
                 <BlockLabel index={props.index} blockType={block.type} />
                 <ProtocolBlockNameEditor
+                    disabled={props.disabled}
                     name={block.name}
                     setName={name => props.setBlock({ ...block, type: 'plate-add-reagent', name })}
                 />
                 <ProtocolBlockPlateEditor
+                    disabled={props.disabled}
                     label="Plate to add reagent to"
                     name={block.name}
                     plateSize={block.plateSize}
@@ -256,6 +285,7 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     setPlateSize={plateSize => props.setBlock({ ...block, type: 'plate-add-reagent', plateSize })}
                 />
                 <ProtocolBlockReagentLabelEditor
+                    disabled={props.disabled}
                     reagentLabel={block.reagentLabel}
                     setReagentLabel={reagentLabel => props.setBlock({ ...block, type: 'plate-add-reagent', reagentLabel })}
                 />
@@ -266,10 +296,12 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
             return <>
                 <BlockLabel index={props.index} blockType={block.type} />
                 <ProtocolBlockNameEditor
+                    disabled={props.disabled}
                     name={block.name}
                     setName={name => props.setBlock({ ...block, type: 'plate-sequencer', name })}
                 />
                 <ProtocolBlockPlateEditor
+                    disabled={props.disabled}
                     label="Plate to sequence"
                     name={block.name}
                     plateSize={block.plateSize}
