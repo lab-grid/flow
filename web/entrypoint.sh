@@ -3,16 +3,13 @@
 set -e
 set -o pipefail
 
-react_env_vars="$(env | grep REACT_APP_)"
+react_env_vars="$(env | grep REACT_APP_ || true)"
 react_config_js="/usr/share/nginx/html/config.js"
-react_config_js_written="/usr/share/nginx/html/config.js.written"
 
-if [ ! -f "${react_config_js_written}" ]; then
-    echo "process.env = {};" >> "${react_config_js}"
-    for env_var in ${react_env_vars}; do
-        echo "process.env.${env_var};" >> "${react_config_js}"
-    done
-fi
+echo "window.process = {env: {}};" >> "${react_config_js}"
+for env_var in ${react_env_vars}; do
+    echo "window.process.env.${env_var}\";" | sed -e 's/=/="/' >> "${react_config_js}"
+done
 
 if [ -z "${PORT}" ]; then
     export PORT=80
