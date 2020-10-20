@@ -66,7 +66,7 @@ function parseAuth0Options(): Auth0ClientOptions | undefined {
             const domain = getEnv('REACT_APP_AUTH0_DOMAIN');
             const client_id = getEnv('REACT_APP_AUTH0_CLIENT_ID');
             const redirect_uri = window.location.origin;
-            const audience = getEnv('REACT_APP_AUTH0_AUDIENCE');
+            const audience = getEnv('REACT_APP_AUTH0_API_AUDIENCE');
             const scope = auth0Scopes.join(' ');
             if (!domain) {
                 throw new Error('Please provide a value for the environment variable "REACT_APP_AUTH0_DOMAIN"');

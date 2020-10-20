@@ -5,6 +5,9 @@ cloud-sql-dev-proxy.json
 # Don't save local database data to the repository!
 .postgres
 
+# Don't save user customizations to the repository!
+docker-compose.local.yaml
+
 # Don't save any python virtual environments!
 .venv
 env/

@@ -1,1 +1,1 @@
-// Values for process.env are injected here at runtime.
+// Values for runtime are injected here at runtime.
