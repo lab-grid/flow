@@ -2,7 +2,7 @@
 
 Flow by LabGrid is an open-source configurable workflow manager with a React/Typescript frontend, Python Flask backend, and Postgres database.  
 
-This project is currently under active development. See the getting started documentation to run the app using Docker and Auth0 for user auth. Hosted version coming soon.
+This project is currently under active development. See the getting started documentation to run the app using Docker and Auth0 for user auth. Hosted version of the latest master branch is available at https://flow.labgrid.com
 
 ## Philosophy
 
@@ -27,13 +27,16 @@ cp example.env .env
 
 Edit the .env file to contain secrets appropriate for your environment.
 
-To change which configuration files your docker-compose will read from, use:
+To change which configuration files your docker-compose will read from, use this alias before any of the docker-compose commands below:
 
 ```sh
+#sh
+# Setup docker-compose to use the develop environment configuration.
 alias docker-compose="docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml"
 ```
 
 ```powershell
+#powershell
 # Edit docker-compose.ps1 first to contain the configurations you would like to use
 Set-Alias -Name docker-compose -Value .\docker-compose.ps1
 ```
@@ -41,15 +44,6 @@ Set-Alias -Name docker-compose -Value .\docker-compose.ps1
 ## Launch database, server, and webapp.
 
 ```sh
-# Setup docker-compose to use the develop environment configuration.
-alias docker-compose="docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml"
-docker-compose build
-docker-compose up
-```
-
-```powershell
-# Edit docker-compose.ps1 first to contain the configurations you would like to use
-Set-Alias -Name docker-compose -Value .\docker-compose.ps1
 docker-compose build
 docker-compose up
 ```
@@ -58,17 +52,15 @@ Once the database, server, and webapp are running, the database itself needs to 
 
 ## Updating your database
 
-Whenever changes to the database schema for Flow are made, new migration(s) get created in the server/migrations/versions/ directory. To update your database to the latest version, first start the database and server containers, then run:
+Whenever changes to the database schema for Flow are made, new migration(s) get created in the server/migrations/versions/ directory. To update your database to the latest version, first start the database and server containers, run the relevant docker-compose alias command (above), then run:
 
 ```sh
-# Setup docker-compose to use the develop environment configuration.
-alias docker-compose="docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml"
+#sh
 ./server.sh db upgrade
 ```
 
 ```powershell
-# Edit docker-compose.ps1 first to contain the configurations you would like to use
-Set-Alias -Name docker-compose -Value .\docker-compose.ps1
+#powershell
 ./server.ps1 db upgrade
 ```
 
