@@ -27,9 +27,29 @@ cp example.env .env
 
 Edit the .env file to contain secrets appropriate for your environment.
 
+To change which configuration files your docker-compose will read from, use:
+
+```sh
+alias docker-compose="docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml"
+```
+
+```powershell
+# Edit docker-compose.ps1 first to contain the configurations you would like to use
+Set-Alias -Name docker-compose -Value .\docker-compose.ps1
+```
+
 ## Launch database, server, and webapp.
 
+```sh
+# Setup docker-compose to use the develop environment configuration.
+alias docker-compose="docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml"
+docker-compose build
+docker-compose up
 ```
+
+```powershell
+# Edit docker-compose.ps1 first to contain the configurations you would like to use
+Set-Alias -Name docker-compose -Value .\docker-compose.ps1
 docker-compose build
 docker-compose up
 ```
@@ -40,8 +60,16 @@ Once the database, server, and webapp are running, the database itself needs to 
 
 Whenever changes to the database schema for Flow are made, new migration(s) get created in the server/migrations/versions/ directory. To update your database to the latest version, first start the database and server containers, then run:
 
-```
+```sh
+# Setup docker-compose to use the develop environment configuration.
+alias docker-compose="docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml"
 ./server.sh db upgrade
+```
+
+```powershell
+# Edit docker-compose.ps1 first to contain the configurations you would like to use
+Set-Alias -Name docker-compose -Value .\docker-compose.ps1
+./server.ps1 db upgrade
 ```
 
 [Additional documentation](https://github.com/lab-grid/flow/wiki/Getting-Started)
