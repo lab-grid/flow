@@ -26,7 +26,7 @@ export const labflowOptions: LabflowOptions = {
 
 
 function getEnv(envVar: string, defaultValue?: string): string | undefined {
-    if (runtime && runtime[envVar]) {
+    if (window.runtime && runtime[envVar]) {
         return runtime[envVar];
     }
     if (process && process.env && process.env[envVar]) {
