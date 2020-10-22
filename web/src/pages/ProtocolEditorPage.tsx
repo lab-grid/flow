@@ -28,11 +28,12 @@ interface DragResult {
     isDragging: boolean;
 }
 
-export function ProtocolDraggableBlock({ index, block, setBlock, moveBlock }: {
+export function ProtocolDraggableBlock({ index, block, setBlock, moveBlock, deleteBlock }: {
     index: number;
     block?: BlockDefinition;
     setBlock: (block?: BlockDefinition) => void;
     moveBlock: (dragIndex: number, hoverIndex: number) => void;
+    deleteBlock: (blockId?: string) => void;
 }) {
     const ref = React.useRef<HTMLDivElement>(null);
     const [, drop] = useDrop({
@@ -71,7 +72,7 @@ export function ProtocolDraggableBlock({ index, block, setBlock, moveBlock }: {
     drag(drop(ref));
     return (
         <div ref={ref} style={{ opacity }} className="mt-5 mb-5">
-            <ProtocolBlockEditor index={index} block={block} setBlock={setBlock} />
+            <ProtocolBlockEditor index={index} block={block} setBlock={setBlock} deleteBlock={() => deleteBlock(block && block.id)} />
         </div>
     );
 }
@@ -145,6 +146,11 @@ export function ProtocolEditorPage() {
         },
         [currentBlocks],
     )
+    const deleteBlock = (blockId?: string) => {
+        if (blockId) {
+            setBlocks(currentBlocks.filter(b => b.id !== blockId));
+        }
+    }
 
     return (
         <Form className="mt-4">
@@ -177,6 +183,7 @@ export function ProtocolEditorPage() {
                     moveBlock={moveBlock}
                     block={block}
                     setBlock={updateBlock}
+                    deleteBlock={deleteBlock}
                 />;
             })}
 

@@ -37,14 +37,14 @@ function RunBlockOptionsQuestion({disabled, definition, answer, setAnswer}: {
             const optionType: 'switch' | 'radio' | 'checkbox' = definition.optionType || 'checkbox';
             return <div>
                 <Form.Label>{definition.name || 'Select an option'}</Form.Label>
-                {definition.options && definition.options.map((option, i) => <Form.Check
+                {definition.options && definition.options.map(option => <Form.Check
                     disabled={disabled}
-                    key={i}
+                    key={option.id}
                     radioGroup="run-block"
                     type={optionType}
-                    id={`run-block-${i}`}
+                    id={`run-block-${option.id}`}
                     label={option}
-                    onClick={() => setAnswer(option)}
+                    onClick={() => setAnswer(option.option)}
                 />)}
             </div>
         case 'menu-item':

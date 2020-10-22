@@ -1,5 +1,10 @@
 export type BlockDefinition = TextQuestionBlockDefinition | OptionsQuestionBlockDefinition | PlateSamplerBlockDefinition | PlateAddReagentBlockDefinition | PlateSequencerBlockDefinition;
 
+export interface BlockOption {
+    id: string;
+    option: string;
+}
+
 export interface TextQuestionBlockDefinition {
     type: 'text-question';
 
@@ -13,7 +18,7 @@ export interface OptionsQuestionBlockDefinition {
     id?: string;
     name?: string;
     optionType?: 'switch' | 'checkbox' | 'radio' | 'menu-item' | 'user';
-    options?: string[];
+    options?: BlockOption[];
 }
 
 export interface PlateSamplerBlockDefinition {
@@ -21,6 +26,7 @@ export interface PlateSamplerBlockDefinition {
 
     id?: string;
     name?: string;
+    plateName?: string;
     plateCount?: number;
     plateSize?: 96;
 }
@@ -30,6 +36,7 @@ export interface PlateAddReagentBlockDefinition {
 
     id?: string;
     name?: string;
+    plateName?: string;
     plateSize?: 96 | 384;
     reagentLabel?: string;
 }
@@ -39,5 +46,6 @@ export interface PlateSequencerBlockDefinition {
 
     id?: string;
     name?: string;
+    plateName?: string;
     plateSize?: 96 | 384;
 }
