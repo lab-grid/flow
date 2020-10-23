@@ -63,6 +63,7 @@ class ProtocolResource(Resource):
             query = Protocol.query\
                 .join(ProtocolPermission, Protocol.id == ProtocolPermission.protocol_id)\
                 .filter(ProtocolPermission.user_id == user_id)\
+                .filter(Protocol.id == protocol_id)\
                 .first()
             return jsonRow2dict(query)
         raise AuthError({

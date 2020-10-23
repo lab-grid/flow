@@ -57,7 +57,7 @@ function RunBlockOptionsQuestion({disabled, definition, answer, setAnswer}: {
                     value={answer}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAnswer((e.target as HTMLSelectElement).value)}
                 >
-                    {definition.options && definition.options.map((option, i) => <option key={i}>{option}</option>)}
+                    {definition.options && definition.options.map(option => <option key={option.id}>{option.option}</option>)}
                 </Form.Control>
             </Form.Group>
     }
