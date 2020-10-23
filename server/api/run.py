@@ -8,6 +8,10 @@ from database import jsonRow2dict, Run, RunPermission
 from api.utils import success_output
 
 
+import json
+import sys
+
+
 api = Namespace('runs', description='Extra-Simple operations on runs.', path='/')
 
 
@@ -63,6 +67,7 @@ class RunResource(Resource):
             query = Run.query\
                 .join(RunPermission, Run.id == RunPermission.run_id)\
                 .filter(RunPermission.user_id == user_id)\
+                .filter(Run.id == run_id)\
                 .first()
             return jsonRow2dict(query)
         raise AuthError({
