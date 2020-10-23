@@ -13,7 +13,9 @@ flask-sqlalchemy = "*"
 pylint = "*"
 python-jose = "*"
 pg8000 = "==1.16.5"
-Werkzeug = "==0.16.1"
+Werkzeug = "*"
+casbin = "*"
+casbin-sqlalchemy-adapter = "*"
 
 [dev-packages]
 

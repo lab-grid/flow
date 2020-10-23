@@ -17,13 +17,15 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 
 app.config['SERVER_NAME'] = os.environ.get('SERVER_NAME', app.config.get('SERVER_NAME'))
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.environ.get('SQLALCHEMY_TRACK_MODIFICATIONS', False)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI', 'sqlite:////tmp/datalayer.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///labflow.db')
 app.config['AUTH_PROVIDER'] = os.environ.get('AUTH_PROVIDER', 'auth0')
 app.config['AUTH0_DOMAIN'] = os.environ.get('AUTH0_DOMAIN', '')
 app.config['AUTH0_CLIENT_ID'] = os.environ.get('AUTH0_CLIENT_ID', 'Msk8I4Ad2ujE76MwOatsmmvEEds5v50h')
 app.config['AUTH0_API_AUDIENCE'] = os.environ.get('AUTH0_API_AUDIENCE', '')
 app.config['AUTH0_AUTHORIZATION_URL'] = os.environ.get('AUTH0_AUTHORIZATION_URL', '')
 app.config['AUTH0_TOKEN_URL'] = os.environ.get('AUTH0_TOKEN_URL', '')
+app.config['CASBIN_MODEL'] = os.environ.get('CASBIN_MODEL', 'casbinmodel.conf')
+app.config['CASBIN_SQLALCHEMY_DATABASE_URI'] = os.environ.get('CASBIN_SQLALCHEMY_DATABASE_URI', app.config['SQLALCHEMY_DATABASE_URI'])
 
 
 # API Documentation -----------------------------------------------------------

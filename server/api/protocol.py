@@ -1,8 +1,10 @@
 from flask import request
 from flask_restx import Resource, fields, Namespace
 
+from functools import wraps
+
 from server import app, db
-from authorization import AuthError, requires_auth, requires_scope
+from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
 from database import jsonRow2dict, Protocol, ProtocolPermission
 
 from api.utils import success_output
@@ -20,185 +22,127 @@ protocols_output = fields.List(fields.Nested(protocol_output))
 class ProtocolsResource(Resource):
     @api.doc(security='token', model=protocols_output)
     @requires_auth
+    @requires_scope('read:protocols')
     def get(self):
-        if requires_scope('read:protocols'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
-            query = Protocol.query\
-                .join(ProtocolPermission, Protocol.id == ProtocolPermission.protocol_id)\
-                .filter(ProtocolPermission.user_id == user_id)\
-                .all()
-            return [ jsonRow2dict(record) for record in query ]
-        raise AuthError({
-            'code': 'Unauthorized',
-            'description': 'Token missing scope "read:protocols"'
-        }, 401)
+        return [
+            jsonRow2dict(record)
+            for record
+            in Protocol.query.all()
+            if check_access(path=f"/protocol/{str(record.id)}", method="GET")
+        ]
 
     @api.doc(security='token', model=protocol_output, body=protocol_input)
     @requires_auth
+    @requires_scope('write:protocols')
+    # @requires_access()
     def post(self):
-        if requires_scope('write:protocols'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
-            protocol_dict = request.json
-            # Drop the id field if it was provided.
-            protocol_dict.pop('id', None)
-            protocol = Protocol(data=protocol_dict)
-            db.session.add(protocol)
-            protocol_permission = ProtocolPermission(user_id=user_id, protocol=protocol)
-            db.session.add(protocol_permission)
-            db.session.commit()
-            return jsonRow2dict(protocol)
-        raise AuthError({
-            'code': 'Unauthorized',
-            'description': 'Token missing scope "write:protocols"'
-        }, 401)
+        protocol_dict = request.json
+        # Drop the id field if it was provided.
+        protocol_dict.pop('id', None)
+        protocol = Protocol(data=protocol_dict)
+        db.session.add(protocol)
+        db.session.commit()
+        add_policy(path=f"/protocol/{str(protocol.id)}", method="GET")
+        add_policy(path=f"/protocol/{str(protocol.id)}", method="PUT")
+        add_policy(path=f"/protocol/{str(protocol.id)}", method="DELETE")
+        return jsonRow2dict(protocol)
 
 
 @api.route('/protocol/<int:protocol_id>')
 class ProtocolResource(Resource):
     @api.doc(security='token', model=protocol_output)
     @requires_auth
+    @requires_scope('read:protocols')
+    @requires_access()
     def get(self, protocol_id):
-        if requires_scope('read:protocols'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
-            query = Protocol.query\
-                .join(ProtocolPermission, Protocol.id == ProtocolPermission.protocol_id)\
-                .filter(ProtocolPermission.user_id == user_id)\
-                .filter(Protocol.id == protocol_id)\
-                .first()
-            return jsonRow2dict(query)
-        raise AuthError({
-            'code': 'Unauthorized',
-            'description': 'Token missing scope "read:protocols"'
-        }, 401)
+        query = Protocol.query.get(protocol_id)
+        return jsonRow2dict(query)
 
     @api.doc(security='token', model=protocol_output, body=protocol_input)
     @requires_auth
+    @requires_scope('write:protocols')
+    @requires_access()
     def put(self, protocol_id):
-        if requires_scope('write:protocols'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
-            protocol_dict = request.json
-            # Drop the id field if it was provided.
-            protocol_dict.pop('id', None)
-            protocol = Protocol.query\
-                .join(ProtocolPermission, Protocol.id == ProtocolPermission.protocol_id)\
-                .filter(ProtocolPermission.user_id == user_id)\
-                .filter(Protocol.id == protocol_id)\
-                .first()
-            if protocol:
-                protocol.data = protocol_dict
-                Protocol.query\
-                    .filter(Protocol.id == protocol_id)\
-                    .update({'data': protocol_dict})
-            db.session.commit()
-            return jsonRow2dict(protocol)
-        raise AuthError({
-            'code': 'Unauthorized',
-            'description': 'Token missing scope "write:protocols"'
-        }, 401)
+        user_id = request.current_user["sub"]
+        protocol_dict = request.json
+        # Drop the id field if it was provided.
+        protocol_dict.pop('id', None)
+        protocol = Protocol.query.get(protocol_id)
+        if protocol:
+            protocol.data = protocol_dict
+        db.session.commit()
+        return jsonRow2dict(protocol)
 
     @api.doc(security='token', model=success_output)
     @requires_auth
+    @requires_scope('write:protocols')
+    @requires_access()
     def delete(self, protocol_id):
-        if requires_scope('write:protocols'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
-            protocol = Protocol.query\
-                .join(ProtocolPermission, Protocol.id == ProtocolPermission.protocol_id)\
-                .filter(ProtocolPermission.user_id == user_id)\
+        user_id = request.current_user["sub"]
+        protocol = Protocol.query.get(protocol_id)
+        if protocol:
+            Protocol.query\
                 .filter(Protocol.id == protocol_id)\
-                .first()
-            if protocol:
-                ProtocolPermission.query\
-                    .filter(ProtocolPermission.protocol_id == protocol_id)\
-                    .delete()
-                Protocol.query\
-                    .filter(Protocol.id == protocol_id)\
-                    .delete()
-            db.session.commit()
-            return {
-                'success': True
-            }
-        raise AuthError({
-            'code': 'Unauthorized',
-            'description': 'Token missing scope "write:protocols"'
-        }, 401)
+                .delete()
+        db.session.commit()
+        return {
+            'success': True
+        }
 
 
 # Permissions -----------------------------------------------------------------
 
 
-protocol_permissions_output = api.model('ProtocolPermissionsOutput', {
-    'user_ids': fields.List(fields.String())
+protocol_permission_output = api.model('ProtocolPermissionOutput', {
+    'user': fields.String(),
+    'path': fields.String(),
+    'method': fields.String()
 })
+protocol_permissions_output = fields.List(fields.Nested(protocol_permission_output))
 
 
-def get_permissions(protocol_id):
-    return ProtocolPermission.query\
-        .filter(ProtocolPermission.protocol_id == protocol_id)\
-        .all()
-
-
-def validate_access(user_id, user_ids):
-    if user_id not in user_ids:
-        raise AuthError({
-            'code': 'Unauthorized',
-            'description': 'User not authorized to read protocol'
-        }, 401)
+def requires_permissions_access(method=None):
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            if check_access(path=f"/protocol/{kwargs.get('protocol_id')}", method=method):
+                return f(*args, **kwargs)
+            raise AuthError({
+                'code': 'forbidden',
+                'description': 'User is not allowed to perform this action'
+            }, 403)
+        return decorated
+    return decorator
 
 
 @api.route('/protocol/<int:protocol_id>/permission')
 class ProtocolPermissionsResource(Resource):
     @api.doc(security='token', model=protocol_permissions_output)
     @requires_auth
+    @requires_scope('read:protocols')
+    @requires_permissions_access()
     def get(self, protocol_id):
-        if requires_scope('read:protocols'):
-            user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
-            user_ids = [permission.user_id for permission in get_permissions(protocol_id)]
-            validate_access(user_id, user_ids)
-            return {
-                'user_ids': user_ids
-            }
-        raise AuthError({
-            'code': 'Unauthorized',
-            'description': 'Token missing scope "read:protocols"'
-        }, 401)
+        return get_policies(path=f"/protocol/{protocol_id}")
 
 
-@api.route('/protocol/<int:protocol_id>/permission/<string:user_id>')
+@api.route('/protocol/<int:protocol_id>/permission/<string:method>/<string:user_id>')
 class ProtocolPermissionResource(Resource):
     @api.doc(security='token', model=success_output)
     @requires_auth
-    def post(self, protocol_id, user_id):
-        if requires_scope('write:protocols'):
-            current_user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
-            user_ids = [permission.user_id for permission in get_permissions(protocol_id)]
-            validate_access(current_user_id, user_ids)
-            permission = ProtocolPermission(user_id=user_id, protocol_id=protocol_id)
-            db.session.add(permission)
-            db.session.commit()
-            return {
-                'success': True
-            }
-        raise AuthError({
-            'code': 'Unauthorized',
-            'description': 'Token missing scope "write:protocols"'
-        }, 401)
+    @requires_scope('write:protocols')
+    @requires_permissions_access('PUT')
+    def post(self, protocol_id, method, user_id):
+        add_policy(user=user_id, path=f"/protocol/{protocol_id}", method=method)
+        return {
+            'success': True
+        }
 
     @api.doc(security='token', model=success_output)
     @requires_auth
-    def delete(self, protocol_id, user_id):
-        if requires_scope('write:protocols'):
-            current_user_id = '42' if app.config['AUTH_PROVIDER'] == 'none' else request.current_user["sub"]
-            user_ids = [permission.user_id for permission in get_permissions(protocol_id)]
-            validate_access(current_user_id, user_ids)
-            ProtocolPermission.query\
-                .filter(ProtocolPermission.user_id == user_id)\
-                .filter(ProtocolPermission.protocol_id == protocol_id)\
-                .delete()
-            db.session.commit()
-            return {
-                'success': True
-            }
-        raise AuthError({
-            'code': 'Unauthorized',
-            'description': 'Token missing scope "write:protocols"'
-        }, 401)
+    @requires_scope('write:protocols')
+    @requires_permissions_access('PUT')
+    def delete(self, protocol_id, method, user_id):
+        delete_policy(user=user_id, path=f"/protocol/{protocol_id}", method=method)
+        return {
+            'success': True
+        }

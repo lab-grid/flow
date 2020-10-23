@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "ae742ab2e9ef7b2948b7fe0a69af9cac1876277c5b936b3965b8b8fb1b45f286"
+            "sha256": "ad4e457399c0592528258035b01bb4ea654dca070a1d69d9ed68ab46dd5e141b"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -47,6 +47,22 @@
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
             "version": "==20.2.0"
         },
+        "casbin": {
+            "hashes": [
+                "sha256:273a521a79cdcae1e4c01d96dd0fd081e3a331d82996fb2748a2b640c2f082e6",
+                "sha256:34cbff31f7735efcd42a58adb220de929b32d71350a79c4c1aa3d843be425476"
+            ],
+            "index": "pypi",
+            "version": "==0.9.0"
+        },
+        "casbin-sqlalchemy-adapter": {
+            "hashes": [
+                "sha256:0db2649974c64a701a5448b8c4be0dc02d889a3ab7a43c00476a9bb8848f29ee",
+                "sha256:3e1724527efcef936ba0862793a9cc89fb1bb4480f60bf7be492b2e6468bc62d"
+            ],
+            "index": "pypi",
+            "version": "==0.1.0"
+        },
         "click": {
             "hashes": [
                 "sha256:d2b5255c7c6349bc1bd1e59e08cd12acbbd63ce649f2588755783aa94dfb6b1a",
@@ -57,6 +73,7 @@
         },
         "colorama": {
             "hashes": [
+                "sha256:5941b2b48a20143d2267e95b1c2a7603ce057ee39fd88e7329b0c292aa16869b",
                 "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"
             ],
             "markers": "sys_platform == 'win32'",
@@ -312,6 +329,12 @@
             "markers": "python_version >= '3.5'",
             "version": "==1.2.0"
         },
+        "simpleeval": {
+            "hashes": [
+                "sha256:692055488c2864637f6c2edb5fa48175978a2a07318009e7cf03c9790ca17bea"
+            ],
+            "version": "==0.9.10"
+        },
         "six": {
             "hashes": [
                 "sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259",
@@ -373,11 +396,11 @@
         },
         "werkzeug": {
             "hashes": [
-                "sha256:1e0dedc2acb1f46827daa2e399c1485c8fa17c0d8e70b6b875b4e7f54bf408d2",
-                "sha256:b353856d37dec59d6511359f97f6a4b2468442e454bd1c98298ddce53cac1f04"
+                "sha256:2de2a5db0baeae7b2d2664949077c2ac63fbd16d98da0ff71837f7d1dea3fd43",
+                "sha256:6c80b1e5ad3665290ea39320b91e1be1e0d5f60652b964a3070216de83d2e47c"
             ],
             "index": "pypi",
-            "version": "==0.16.1"
+            "version": "==1.0.1"
         },
         "wrapt": {
             "hashes": [
