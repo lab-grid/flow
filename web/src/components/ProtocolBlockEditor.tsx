@@ -1,8 +1,9 @@
 import React from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup } from 'react-bootstrap';
 import { GripHorizontal, Trash } from 'react-bootstrap-icons';
-import { BlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { BlockDefinition, BlockOption, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { trimEmpty } from '../utils';
+import * as uuid from 'uuid';
 
 export function humanizeBlockType(blockType: "text-question" | "options-question" | "plate-sampler" | "plate-add-reagent" | "plate-sequencer" | undefined): string {
     switch (blockType) {
@@ -30,10 +31,11 @@ function BlockLabel({ index, blockType }: {
     </div>;
 }
 
-function ProtocolBlockNameEditor({ disabled, name, setName }: {
+function ProtocolBlockNameEditor({ disabled, name, setName, deleteStep }: {
     disabled?: boolean;
     name?: string;
     setName: (name?: string) => void;
+    deleteStep: () => void;
 }) {
     return (
         <Form.Group>
@@ -46,7 +48,7 @@ function ProtocolBlockNameEditor({ disabled, name, setName }: {
                 />
                 {!disabled &&
                     <InputGroup.Append>
-                        <Button variant="danger">Delete Step</Button>
+                        <Button variant="danger" onClick={deleteStep}>Delete Step</Button>
                     </InputGroup.Append>
                 }
             </InputGroup>
@@ -56,22 +58,28 @@ function ProtocolBlockNameEditor({ disabled, name, setName }: {
 
 function ProtocolBlockOptionsEditor({ disabled, options, setOptions }: {
     disabled?: boolean;
-    options?: string[];
-    setOptions: (options?: string[]) => void;
+    options?: BlockOption[];
+    setOptions: (options?: BlockOption[]) => void;
 }) {
-    const currentOptions = trimEmpty(options);
-    currentOptions.push("");
+    const currentOptions = trimEmpty(options, option => option.option);
+    currentOptions.push({ id: uuid.v4(), option: "" });
     return <>
         <Form.Label>
             Options
         </Form.Label>
         {currentOptions.map((option, i) => <ProtocolBlockOptionEditor
             disabled={disabled}
-            key={i}
-            option={option}
-            setOption={(option) => {
+            deletable={currentOptions.length - 1 !== i}
+            key={option.id}
+            option={option.option}
+            setOption={option => {
                 const newOptions = [...currentOptions];
-                newOptions[i] = option || "";
+                newOptions[i].option = option || "";
+                setOptions(newOptions);
+            }}
+            deleteOption={() => {
+                const newOptions = [...currentOptions];
+                newOptions.splice(i, 1);
                 setOptions(newOptions);
             }}
             placeholder={(currentOptions.length - 1 === i) ? "Start typing here to add an option..." : "Blank option (will be ignored)"}
@@ -79,11 +87,13 @@ function ProtocolBlockOptionsEditor({ disabled, options, setOptions }: {
     </>
 }
 
-function ProtocolBlockOptionEditor({ disabled, placeholder, option, setOption }: {
+function ProtocolBlockOptionEditor({ disabled, deletable, placeholder, option, setOption, deleteOption }: {
     disabled?: boolean;
+    deletable?: boolean;
     placeholder?: string;
     option?: string;
     setOption: (option: string | undefined) => void;
+    deleteOption: () => void;
 }) {
     return <Form.Group>
         <InputGroup>
@@ -93,9 +103,9 @@ function ProtocolBlockOptionEditor({ disabled, placeholder, option, setOption }:
                 value={option}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOption((e.target as HTMLInputElement).value)}
             />
-            {!disabled &&
+            {!disabled && deletable &&
                 <InputGroup.Append>
-                    <Button variant="secondary"><Trash /></Button>
+                    <Button variant="secondary" onClick={deleteOption}><Trash /></Button>
                 </InputGroup.Append>
             }
         </InputGroup>
@@ -124,13 +134,13 @@ function ProtocolBlockOptionTypeEditor({ disabled, optionType, setOptionType }: 
     </Form.Group>
 }
 
-function ProtocolBlockPlateEditor<T extends number = number>({ disabled, label, name, plateSize, plateSizes, setName, setPlateSize }: {
+function ProtocolBlockPlateEditor<T extends number = number>({ disabled, label, plateName, plateSize, plateSizes, setPlateName: setName, setPlateSize }: {
     disabled?: boolean;
     label?: string;
-    name?: string;
+    plateName?: string;
     plateSize?: T;
     plateSizes?: T[];
-    setName: (name?: string) => void;
+    setPlateName: (name?: string) => void;
     setPlateSize: (plateSize?: T) => void;
 }) {
     return <Form.Group>
@@ -149,7 +159,7 @@ function ProtocolBlockPlateEditor<T extends number = number>({ disabled, label, 
                 disabled={disabled}
                 placeholder="Enter a plate label"
                 aria-label="Enter a plate label"
-                value={name}
+                value={plateName}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
             />
         </InputGroup>
@@ -195,6 +205,7 @@ export interface ProtocolBlockEditorProps {
     index: number;
     block?: BlockDefinition;
     setBlock: (block?: BlockDefinition) => void;
+    deleteBlock: () => void;
 }
 
 export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
@@ -217,6 +228,7 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     disabled={props.disabled}
                     name={block.name}
                     setName={name => props.setBlock({ ...block, type: 'text-question', name })}
+                    deleteStep={props.deleteBlock}
                 />
             </>;
         }
@@ -228,6 +240,7 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     disabled={props.disabled}
                     name={block.name}
                     setName={name => props.setBlock({ ...block, type: 'options-question', name })}
+                    deleteStep={props.deleteBlock}
                 />
                 <ProtocolBlockOptionTypeEditor
                     disabled={props.disabled}
@@ -249,14 +262,15 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     disabled={props.disabled}
                     name={block.name}
                     setName={name => props.setBlock({ ...block, type: 'plate-sampler', name })}
+                    deleteStep={props.deleteBlock}
                 />
                 <ProtocolBlockPlateEditor
                     disabled={props.disabled}
                     label="Plate to sample"
-                    name={block.name}
+                    plateName={block.plateName}
                     plateSize={block.plateSize}
                     plateSizes={[96]}
-                    setName={name => props.setBlock({ ...block, type: 'plate-sampler', name })}
+                    setPlateName={plateName => props.setBlock({ ...block, type: 'plate-sampler', plateName })}
                     setPlateSize={plateSize => props.setBlock({ ...block, type: 'plate-sampler', plateSize })}
                 />
                 <ProtocolBlockPlateCountEditor
@@ -274,14 +288,15 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     disabled={props.disabled}
                     name={block.name}
                     setName={name => props.setBlock({ ...block, type: 'plate-add-reagent', name })}
+                    deleteStep={props.deleteBlock}
                 />
                 <ProtocolBlockPlateEditor
                     disabled={props.disabled}
                     label="Plate to add reagent to"
-                    name={block.name}
+                    plateName={block.plateName}
                     plateSize={block.plateSize}
                     plateSizes={[96, 384]}
-                    setName={name => props.setBlock({ ...block, type: 'plate-add-reagent', name })}
+                    setPlateName={plateName => props.setBlock({ ...block, type: 'plate-add-reagent', plateName })}
                     setPlateSize={plateSize => props.setBlock({ ...block, type: 'plate-add-reagent', plateSize })}
                 />
                 <ProtocolBlockReagentLabelEditor
@@ -299,14 +314,15 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     disabled={props.disabled}
                     name={block.name}
                     setName={name => props.setBlock({ ...block, type: 'plate-sequencer', name })}
+                    deleteStep={props.deleteBlock}
                 />
                 <ProtocolBlockPlateEditor
                     disabled={props.disabled}
                     label="Plate to sequence"
-                    name={block.name}
+                    plateName={block.plateName}
                     plateSize={block.plateSize}
                     plateSizes={[96, 384]}
-                    setName={name => props.setBlock({ ...block, type: 'plate-sequencer', name })}
+                    setPlateName={plateName => props.setBlock({ ...block, type: 'plate-sequencer', plateName })}
                     setPlateSize={plateSize => props.setBlock({ ...block, type: 'plate-sequencer', plateSize })}
                 />
             </>;

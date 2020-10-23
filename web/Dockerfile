@@ -17,5 +17,7 @@ COPY --from=builder /app/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.template
 COPY entrypoint.sh /entrypoint.sh
 
+RUN dos2unix /entrypoint.sh
+
 EXPOSE 80
 ENTRYPOINT [ "/entrypoint.sh" ]

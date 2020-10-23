@@ -15,10 +15,11 @@ services:
     volumes:
       - ./server:/app
   db:
-    image: supabase/postgres
+    image: postgres:12-alpine
     ports:
       - 5432:5432
     environment:
+      POSTGRES_USER: ${POSTGRES_USERNAME}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: labflow
     volumes:
