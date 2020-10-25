@@ -3,6 +3,7 @@ import { Protocol } from "../models/protocol";
 import { Run } from "../models/run";
 import createAuth0Client, { Auth0Client } from "@auth0/auth0-spa-js";
 import { labflowOptions } from "../config";
+import { User } from "../models/user";
 
 
 // ----------------------------------------------------------------------------
@@ -92,5 +93,21 @@ export const runsState = atom<RunsState>({
     //   maxAge: defaultRunCacheAge,
     // }),
     runCache: new Map<number, Run>(),
+  },
+});
+
+
+// ----------------------------------------------------------------------------
+// Users ----------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+export interface UsersState {
+  userCache: Map<string, User>;
+}
+
+export const usersState = atom<UsersState>({
+  key: "usersState",
+  default: {
+    userCache: new Map<string, User>(),
   },
 });

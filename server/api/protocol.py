@@ -5,7 +5,7 @@ from functools import wraps
 
 from server import app, db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
-from database import jsonRow2dict, Protocol, ProtocolPermission
+from database import jsonRow2dict, Protocol
 
 from api.utils import success_output
 
@@ -63,7 +63,6 @@ class ProtocolResource(Resource):
     @requires_scope('write:protocols')
     @requires_access()
     def put(self, protocol_id):
-        user_id = request.current_user["sub"]
         protocol_dict = request.json
         # Drop the id field if it was provided.
         protocol_dict.pop('id', None)
@@ -78,13 +77,13 @@ class ProtocolResource(Resource):
     @requires_scope('write:protocols')
     @requires_access()
     def delete(self, protocol_id):
-        user_id = request.current_user["sub"]
         protocol = Protocol.query.get(protocol_id)
         if protocol:
             Protocol.query\
                 .filter(Protocol.id == protocol_id)\
                 .delete()
         db.session.commit()
+        delete_policy(path=f"/protocol/{str(protocol.id)}")
         return {
             'success': True
         }

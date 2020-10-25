@@ -46,6 +46,12 @@ class BaseModel(db.Model):
     updated_on = db.Column(db.DateTime)
     updated_by = db.Column(db.String(64))
 
+class User(BaseModel):
+    __tablename__ = 'user'
+
+    id = db.Column(db.String(64), primary_key=True)
+    data = db.Column(db.JSON())
+
 class Run(BaseModel):
     __tablename__ = 'run'
 
@@ -57,22 +63,3 @@ class Protocol(BaseModel):
 
     id = db.Column(db.Integer, primary_key=True)
     data = db.Column(db.JSON())
-
-
-# Permissions -----------------------------------------------------------------
-
-class RunPermission(BaseModel):
-    __tablename__ = 'run_permission'
-
-    run_id = db.Column(db.Integer, db.ForeignKey('run.id'), primary_key=True)
-    user_id = db.Column(db.String(64), primary_key=True)
-
-    run = db.relationship('Run')
-
-class ProtocolPermission(BaseModel):
-    __tablename__ = 'protocol_permission'
-
-    protocol_id = db.Column(db.Integer, db.ForeignKey('protocol.id'), primary_key=True)
-    user_id = db.Column(db.String(64), primary_key=True)
-
-    protocol = db.relationship('Protocol')

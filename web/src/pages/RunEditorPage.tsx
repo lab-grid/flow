@@ -14,12 +14,14 @@ import { Block } from '../models/block';
 import { deserializeSlate, serializeSlate } from '../slate';
 import moment from 'moment';
 import { CheckCircle } from 'react-bootstrap-icons';
+import { SharingModal } from '../components/SharingModal';
 
 export interface RunEditorPageParams {
     id: string;
 }
 
 export function RunEditorPage() {
+    const [showSharingModal, setShowSharingModal] = useState(false);
     const [notes, setNotes] = useState<Node[] | null>(null);
     const [blocks, setBlocks] = useState<Block[] | null>(null);
     const [status, setStatus] = useState<"todo" | "signed" | "witnessed" | null>(null);
@@ -63,7 +65,13 @@ export function RunEditorPage() {
     const isWitnessed = currentStatus === 'witnessed';
     const isTodo = currentStatus === 'todo';
 
-    return (
+    return <>
+        <SharingModal
+            show={showSharingModal}
+            setShow={show => setShowSharingModal(show || false)}
+            targetName="Protocol"
+            targetPath={`/protocol/${id}`}
+        />
         <Form className="mt-4">
             <h1>{humanizeRunName(run)}</h1>
             <Form.Group>
@@ -134,5 +142,5 @@ export function RunEditorPage() {
                 </div>
             </div>
         </Form>
-    );
+    </>;
 }

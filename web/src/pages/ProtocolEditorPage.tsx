@@ -1,24 +1,25 @@
 import React, { useState } from 'react';
-import { Button, Dropdown, Form, Spinner } from 'react-bootstrap';
+import { Button, Dropdown, Form, InputGroup, Spinner } from 'react-bootstrap';
 import { useHistory } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { createEditor, Node } from 'slate';
 import { Slate, Editable, withReact } from 'slate-react';
 import { ProtocolBlockEditor } from '../components/ProtocolBlockEditor';
-import { labflowOptions } from '../config';
 import { BlockDefinition } from '../models/block-definition';
 import { Protocol } from '../models/protocol';
-import { apiFetch } from '../state/api';
 import { auth0State, protocolsState, runsState } from '../state/atoms';
 import { protocolQuery } from '../state/selectors';
 import * as uuid from 'uuid';
 import { DragSourceMonitor, DropTargetMonitor, useDrag, useDrop, XYCoord } from 'react-dnd';
-import { CheckCircle } from 'react-bootstrap-icons';
+import { CheckCircle, Share } from 'react-bootstrap-icons';
 import moment from 'moment';
 import { deserializeSlate, serializeSlate } from '../slate';
-import { Run } from '../models/run';
 import { Block } from '../models/block';
+import { SharingModal } from '../components/SharingModal';
+import { labflowOptions } from '../config';
+import { apiFetch } from '../state/api';
+import { Run } from '../models/run';
 
 interface DragItem {
     type: 'protocol-block';
@@ -83,6 +84,7 @@ export interface ProtocolEditorPageParams {
 
 export function ProtocolEditorPage() {
     const history = useHistory();
+    const [showSharingModal, setShowSharingModal] = useState(false);
     const [name, setName] = useState<string | null>(null);
     const [description, setDescription] = useState<Node[] | null>(null);
     const [blocks, setBlocks] = useState<BlockDefinition[] | null>(null);
@@ -152,15 +154,28 @@ export function ProtocolEditorPage() {
         }
     }
 
-    return (
+    return <>
+        <SharingModal
+            show={showSharingModal}
+            setShow={show => setShowSharingModal(show || false)}
+            targetName="Protocol"
+            targetPath={`/protocol/${id}`}
+        />
         <Form className="mt-4">
-            <Form.Group controlId="formProtocolTitle">
+            <Form.Group>
                 <Form.Label>Protocol Title</Form.Label>
-                <Form.Control
-                    type="text"
-                    value={currentName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
-                />
+                <InputGroup>
+                    <Form.Control
+                        type="text"
+                        value={currentName}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
+                    />
+                    <InputGroup.Append>
+                        <Button variant="secondary" onClick={() => setShowSharingModal(true)}>
+                            <Share /> Share
+                        </Button>
+                    </InputGroup.Append>
+                </InputGroup>
             </Form.Group>
             <Form.Group>
                 <Form.Label>Description</Form.Label>
@@ -243,5 +258,5 @@ export function ProtocolEditorPage() {
                 </div>
             </div>
         </Form>
-    );
+    </>;
 }

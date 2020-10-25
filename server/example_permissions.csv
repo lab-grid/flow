@@ -1,0 +1,20 @@
+p, admins, /user, GET
+p, admins, /user/*, GET
+p, admins, /run, GET|POST
+p, admins, /run/*, GET|PUT|DELETE
+p, admins, /protocol, GET|POST
+p, admins, /protocol/*, GET|PUT|DELETE
+p, users, /user, GET
+p, users, /user/*, GET
+p, users, /run, GET|POST
+p, users, /run/*, GET
+p, users, /protocol, GET
+p, users, /protocol/*, GET
+
+p, google-oauth2|asdfasdfiouwerkjoif, /protocol/1, GET|PUT|DELETE
+p, google-oauth2|asdfasdfiouwerkjoif, /run/1, GET|PUT|DELETE
+
+p, google-oauth2|asadofiuaspodifweree, /run/2, GET|PUT|DELETE
+
+g, google-oauth2|asdfasdfiouwerkjoif, admins
+g, google-oauth2|asadofiuaspodifweree, users

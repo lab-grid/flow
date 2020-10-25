@@ -5,7 +5,7 @@ from functools import wraps
 
 from server import app, db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
-from database import jsonRow2dict, Run, RunPermission
+from database import jsonRow2dict, Run
 
 from api.utils import success_output
 
@@ -63,7 +63,6 @@ class RunResource(Resource):
     @requires_scope('write:runs')
     @requires_access()
     def put(self, run_id):
-        user_id = request.current_user["sub"]
         run_dict = request.json
         # Drop the id field if it was provided.
         run_dict.pop('id', None)
@@ -78,13 +77,13 @@ class RunResource(Resource):
     @requires_scope('write:runs')
     @requires_access()
     def delete(self, run_id):
-        user_id = request.current_user["sub"]
         run = Run.query.get(run_id)
         if run:
             Run.query\
                 .filter(Run.id == run_id)\
                 .delete()
         db.session.commit()
+        delete_policy(path=f"/run/{str(run.id)}")
         return {
             'success': True
         }

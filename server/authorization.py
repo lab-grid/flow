@@ -119,6 +119,7 @@ def has_scope(required_scope):
     else:
         return True
 
+# TODO: Support multi-tenant mode (teams)
 def check_access(user=None, path=None, method=None):
     sub = request.current_user["sub"] if user is None else user
     obj = request.path if path is None else path
@@ -132,12 +133,15 @@ def add_policy(user=None, path=None, method=None):
     return casbin_enforcer.add_permission_for_user(sub, obj, act)
 
 def delete_policy(user='', path='', method=''):
-    casbin_enforcer.remove_filtered_policy(0, user, path, method)
+    return casbin_enforcer.remove_filtered_policy(0, user, path, method)
 
 def get_policies(user='', path='', method=''):
     rules = casbin_enforcer.get_filtered_policy(0, user, path, method)
     # TODO: Make sure the /protocol/* cases are handled properly.
     return [{'user': rule[0], 'path': rule[1], 'method': rule[2]} for rule in rules]
+
+def get_roles(user=None):
+    return casbin_enforcer.get_roles_for_user(user if user else request.current_user["sub"])
 
 
 # Decorators ------------------------------------------------------------------

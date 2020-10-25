@@ -24,6 +24,10 @@ export async function apiFetch(options: LabflowOptions, auth0ClientFn: () => Aut
             if (auth0Client) {
                 const token = await auth0Client.getTokenSilently();
                 const response = await fetchWithBearerToken(method, `${options.apiURL}/${path}`, token, newBody);
+                if (!response.ok) {
+                    console.error('Response body:', await response.text());
+                    throw new Error(`Request to ${options.apiURL}/${path} failed: ${response.status} ${response.statusText}`);
+                }
                 return await response.json();
             } else {
                 throw new Error("Auth0 is not initialized yet!");
