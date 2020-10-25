@@ -42,7 +42,7 @@ export function SharingModal(props: SharingModalProps) {
         }
     }
 
-    return <Modal show={props.show} onHide={props.setShow}>
+    return <Modal show={props.show} onHide={props.setShow} size="lg">
         <Modal.Header closeButton>
             <Modal.Title>Share {props.targetName ? props.targetName : "an Item"}</Modal.Title>
         </Modal.Header>
@@ -72,7 +72,7 @@ export function SharingModal(props: SharingModalProps) {
                         <option value="DELETE">Delete</option>
                     </Form.Control>
                 </Form.Group>
-                <Button className="col" onClick={handleAddPerm}>
+                <Button className="col-auto mt-auto mb-3" onClick={handleAddPerm}>
                     Add Policy
                 </Button>
             </Form>
