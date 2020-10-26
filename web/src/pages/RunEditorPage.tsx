@@ -13,7 +13,7 @@ import { runQuery } from '../state/selectors';
 import { Block } from '../models/block';
 import { deserializeSlate, serializeSlate } from '../slate';
 import moment from 'moment';
-import { CheckCircle } from 'react-bootstrap-icons';
+import { CheckCircle, Share } from 'react-bootstrap-icons';
 import { SharingModal } from '../components/SharingModal';
 
 export interface RunEditorPageParams {
@@ -69,11 +69,16 @@ export function RunEditorPage() {
         <SharingModal
             show={showSharingModal}
             setShow={show => setShowSharingModal(show || false)}
-            targetName="Protocol"
-            targetPath={`/protocol/${id}`}
+            targetName="Run"
+            targetPath={`/run/${id}`}
         />
-        <Form className="mt-4">
-            <h1>{humanizeRunName(run)}</h1>
+        <Form className="mt-4 container">
+            <div className="row">
+                <h1 className="col">{humanizeRunName(run)}</h1>
+                <Button className="col-auto ml-3 my-auto" variant="secondary" onClick={() => setShowSharingModal(true)}>
+                    <Share /> Share
+                </Button>
+            </div>
             <Form.Group>
                 <Form.Label>Notes</Form.Label>
                 <Slate
