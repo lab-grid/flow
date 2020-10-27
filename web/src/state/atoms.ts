@@ -1,9 +1,6 @@
 import { atom } from "recoil";
-import { Protocol } from "../models/protocol";
-import { Run } from "../models/run";
 import createAuth0Client, { Auth0Client } from "@auth0/auth0-spa-js";
 import { labflowOptions } from "../config";
-import { User } from "../models/user";
 
 
 // ----------------------------------------------------------------------------
@@ -48,66 +45,4 @@ export interface Auth0State {
 export const auth0State = atom<Auth0State>({
   key: "auth0State",
   default: initializeAuth0State(),
-});
-
-
-// ----------------------------------------------------------------------------
-// Protocols ------------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
-// const defaultProtocolCacheSize = 1000;
-// const defaultProtocolCacheAge = 1000 * 60;  // 1 minute
-
-export interface ProtocolsState {
-  protocolCache: Map<number, Protocol>;
-}
-
-export const protocolsState = atom<ProtocolsState>({
-  key: "protocolsState",
-  default: {
-    // protocolCache: new LRUCache({
-    //   max: defaultProtocolCacheSize,
-    //   maxAge: defaultProtocolCacheAge,
-    // }),
-    protocolCache: new Map<number, Protocol>(),
-  },
-});
-
-
-// ----------------------------------------------------------------------------
-// Runs -----------------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
-// const defaultRunCacheSize = 1000;
-// const defaultRunCacheAge = 1000 * 60;  // 1 minute
-
-export interface RunsState {
-  runCache: Map<number, Run>;
-}
-
-export const runsState = atom<RunsState>({
-  key: "runsState",
-  default: {
-    // runCache: new LRUCache({
-    //   max: defaultRunCacheSize,
-    //   maxAge: defaultRunCacheAge,
-    // }),
-    runCache: new Map<number, Run>(),
-  },
-});
-
-
-// ----------------------------------------------------------------------------
-// Users ----------------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
-export interface UsersState {
-  userCache: Map<string, User>;
-}
-
-export const usersState = atom<UsersState>({
-  key: "usersState",
-  default: {
-    userCache: new Map<string, User>(),
-  },
 });

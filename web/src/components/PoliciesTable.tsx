@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button, Table } from "react-bootstrap";
 import { Trash } from "react-bootstrap-icons";
 import { useRecoilValue } from "recoil";
 import { Policy } from "../models/policy";
 import { User } from "../models/user";
 import { usersQuery } from "../state/selectors";
+import moment from 'moment';
 
 function humanizePolicyMethod(method?: string) {
     switch(method) {
@@ -30,7 +31,8 @@ export interface PoliciesTableProps {
 }
 
 export function PoliciesTable(props: PoliciesTableProps) {
-    const users = useRecoilValue(usersQuery);
+    const [usersTimestamp] = useState(moment().format());
+    const users = useRecoilValue(usersQuery({ queryTime: usersTimestamp }));
     const userLookup = new Map<string, User>();
     users.forEach(user => user.id && userLookup.set(user.id, user));
 

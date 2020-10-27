@@ -4,46 +4,26 @@ import { useHistory } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { ProtocolsTable } from '../components/ProtocolsTable';
 import { RunsTable } from '../components/RunsTable';
-import { labflowOptions } from '../config';
 import { Protocol } from '../models/protocol';
 import { Block } from '../models/block';
 import { Run } from '../models/run';
-import { apiFetch } from '../state/api';
-import { auth0State, protocolsState, runsState } from '../state/atoms';
-import { protocolsQuery } from '../state/selectors';
+import { auth0State } from '../state/atoms';
+import { protocolsQuery, runsQuery, upsertProtocol, upsertRun } from '../state/selectors';
+import moment from 'moment';
 
 export function HomePage() {
+    const [runsTimestamp, setRunsTimestamp] = React.useState(moment().format());
+    const [protocolsTimestamp, setProtocolsTimestamp] = React.useState(moment().format());
     const history = useHistory();
-    const protocols = useRecoilValue(protocolsQuery);
-    const protocolUpsert = useRecoilCallback(({ set, snapshot }) => async (protocol: Protocol) => {
+    const protocols = useRecoilValue(protocolsQuery({queryTime: protocolsTimestamp}));
+    const runs = useRecoilValue(runsQuery({queryTime: runsTimestamp}));
+    const protocolUpsert = useRecoilCallback(({ snapshot }) => async (protocol: Protocol) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
-        const method = protocol.id ? "PUT" : "POST";
-        const path = protocol.id ? `protocol/${protocol.id}` : "protocol";
-        const created: Protocol = await apiFetch(labflowOptions, () => auth0Client, method, path, protocol);
-        set(protocolsState, state => {
-            if (created.id) {
-                state.protocolCache.set(created.id, created);
-                return state;
-            } else {
-                throw new Error("Received a protocol without an ID from server!");
-            }
-        });
-        return created;
+        return await upsertProtocol(() => auth0Client, protocol);
     });
-    const runUpsert = useRecoilCallback(({ set, snapshot }) => async (run: Run) => {
+    const runUpsert = useRecoilCallback(({ snapshot }) => async (run: Run) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
-        const method = run.id ? "PUT" : "POST";
-        const path = run.id ? `run/${run.id}` : "run";
-        const created: Run = await apiFetch(labflowOptions, () => auth0Client, method, path, run);
-        set(runsState, state => {
-            if (created.id) {
-                state.runCache.set(created.id, created);
-                return state;
-            } else {
-                throw new Error("Received a run without an ID from server!");
-            }
-        });
-        return created;
+        return await upsertRun(() => auth0Client, run);
     });
     return <div>
         <div className="row mt-4">
@@ -56,11 +36,21 @@ export function HomePage() {
                     aria-hidden="true"
                 />}
             >
-                <ProtocolsTable />
+                <ProtocolsTable protocols={protocols} />
             </Suspense>
         </div>
         <div className="row">
             <div className="col text-center">
+                <Button
+                    className="mr-3"
+                    variant="primary"
+                    onClick={() => {
+                        setRunsTimestamp(moment().format());
+                        setProtocolsTimestamp(moment().format());
+                    }}
+                >
+                    Refresh
+                </Button>
                 <Button
                     variant="success"
                     onClick={async () => {
@@ -84,12 +74,22 @@ export function HomePage() {
                     aria-hidden="true"
                 />}
             >
-                <RunsTable />
+                <RunsTable runs={runs} />
             </Suspense>
         </div>
         <div className="row">
             <div className="col text-center">
-                <Dropdown>
+                <Button
+                    className="mr-3"
+                    variant="primary"
+                    onClick={() => {
+                        setRunsTimestamp(moment().format());
+                        setProtocolsTimestamp(moment().format());
+                    }}
+                >
+                    Refresh
+                </Button>
+                <Dropdown className="d-inline">
                     <Dropdown.Toggle variant="success">
                         Create Run
                     </Dropdown.Toggle>
@@ -113,6 +113,9 @@ export function HomePage() {
                                     {protocol.name || <i>Untitled Protocol</i>}
                                 </Dropdown.Item>
                             )
+                        }
+                        {
+                            !protocols.length && <Dropdown.Item disabled={true}>No protocols found!</Dropdown.Item>
                         }
                     </Dropdown.Menu>
                 </Dropdown>

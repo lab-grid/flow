@@ -1,52 +1,52 @@
-import { selector, selectorFamily } from "recoil";
+import { selectorFamily } from "recoil";
 import { labflowOptions } from "../config";
 import { Protocol } from "../models/protocol";
 import { Run } from "../models/run";
-import { auth0State, protocolsState, runsState, usersState } from "./atoms";
+import { auth0State } from "./atoms";
 import { apiFetch } from "./api";
 import { User } from "../models/user";
 import { Policy } from "../models/policy";
+import { SearchResults } from "../models/search-results";
+import { Auth0Client } from "@auth0/auth0-spa-js";
+
+
+function paramsToQuery(params?: {[name: string]: string}): string {
+  if (!params) {
+    return '';
+  }
+  const queryParams = new URLSearchParams(params);
+  const queryParamsStr = queryParams.toString();
+
+  return queryParamsStr ? `?${queryParamsStr}` : '';
+}
 
 
 // ----------------------------------------------------------------------------
 // Single-Model Queries -------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-export const protocolQuery = selectorFamily<Protocol | undefined, number>({
+export const protocolQuery = selectorFamily<Protocol | undefined, {
+  protocolId: number;
+  queryTime: string;
+}>({
   key: "protocolQuery",
-  get: protocolId => async ({ get }) => {
-    const protocols = get(protocolsState);
-    const cachedProtocol = protocolId && protocols.protocolCache.get(protocolId);
-    if (cachedProtocol) {
-      return cachedProtocol;
-    }
-
-    return await apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `protocol/${protocolId}`);
-  }
+  get: ({ protocolId }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `protocol/${protocolId}`)
 });
 
-export const runQuery = selectorFamily<Run | undefined, number>({
+export const runQuery = selectorFamily<Run | undefined, {
+  runId: number;
+  queryTime: string;
+}>({
   key: "runQuery",
-  get: runId => async ({ get }) => {
-    const runs = get(runsState);
-    const cachedRun = runId && runs.runCache.get(runId);
-    if (cachedRun) {
-      return cachedRun;
-    }
-
-    return await apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `run/${runId}`);
-  }
+  get: ({ runId }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `run/${runId}`)
 });
 
-export const userQuery = selectorFamily<User | undefined, string>({
+export const userQuery = selectorFamily<User | undefined, {
+  userId: string;
+  queryTime: string;
+}>({
   key: "userQuery",
-  get: userId => async ({ get }) => {
-    const users = get(usersState);
-    const cachedUser = userId && users.userCache.get(userId);
-    if (cachedUser) {
-      return cachedUser;
-    }
-  }
+  get: ({ userId }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `user/${userId}`),
 })
 
 
@@ -54,52 +54,28 @@ export const userQuery = selectorFamily<User | undefined, string>({
 // List Queries ---------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-export const protocolsQuery = selector<Protocol[]>({
+export const protocolsQuery = selectorFamily<Protocol[], {
+  filterParams?: {[name: string]: string}
+  queryTime: string;
+}>({
   key: "protocolsQuery",
-  get: async ({ get }) => {
-    const { protocolCache } = get(protocolsState);
-    const protocols: Protocol[] = await apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `protocol`);
-    for (const protocol of protocols) {
-      if (protocol.id === undefined) {
-        console.warn("Received a protocol without an id: %o", protocol);
-      } else {
-        protocolCache.set(protocol.id, protocol)
-      }
-    }
-    return protocols;
-  }
+  get: ({ filterParams }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `protocol${paramsToQuery(filterParams)}`),
 });
 
-export const runsQuery = selector<Run[]>({
+export const runsQuery = selectorFamily<Run[], {
+  filterParams?: {[name: string]: string}
+  queryTime: string;
+}>({
   key: "runsQuery",
-  get: async ({ get }) => {
-    const { runCache } = get(runsState);
-    const runs: Run[] = await apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `run`);
-    for (const run of runs) {
-      if (run.id === undefined) {
-        console.warn("Received a run without an id: %o", run);
-      } else {
-        runCache.set(run.id, run)
-      }
-    }
-    return runs;
-  }
+  get: ({ filterParams }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `run${paramsToQuery(filterParams)}`),
 });
 
-export const usersQuery = selector<User[]>({
+export const usersQuery = selectorFamily<User[], {
+  filterParams?: {[name: string]: string}
+  queryTime: string;
+}>({
   key: "usersQuery",
-  get: async ({ get }) => {
-    const { userCache } = get(usersState);
-    const users: User[] = await apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `user`);
-    for (const user of users) {
-      if (user.id === undefined) {
-        console.warn("Received a user without an id: %o", user);
-      } else {
-        userCache.set(user.id, user)
-      }
-    }
-    return users;
-  }
+  get: ({ filterParams }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `user${paramsToQuery(filterParams)}`),
 });
 
 
@@ -107,9 +83,46 @@ export const usersQuery = selector<User[]>({
 // Permissions ----------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-export const policyQuery = selectorFamily<Policy[], string>({
+export const policyQuery = selectorFamily<Policy[], {
+  path: string;
+  queryTime: string;
+}>({
   key: "policyQuery",
-  get: path => async ({ get }) => {
-    return await apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `${path}/permission`);
-  }
-})
+  get: ({ path }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `${path}/permission`),
+});
+
+
+// ----------------------------------------------------------------------------
+// Search Results -------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+export const searchQuery = selectorFamily<SearchResults, {
+  filterParams: {[name: string]: string}
+  queryTime: string;
+}>({
+  key: "searchQuery",
+  get: ({ filterParams }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `search${paramsToQuery(filterParams)}`),
+});
+
+
+// ----------------------------------------------------------------------------
+// Upserts --------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+export function upsertProtocol(auth0ClientFn: () => Auth0Client | undefined, protocol: Protocol): Promise<Protocol> {
+  const method = protocol.id ? "PUT" : "POST";
+  const path = protocol.id ? `protocol/${protocol.id}` : "protocol";
+  return apiFetch(labflowOptions, auth0ClientFn, method, path, protocol);
+}
+
+export function upsertRun(auth0ClientFn: () => Auth0Client | undefined, run: Run): Promise<Run> {
+  const method = run.id ? "PUT" : "POST";
+  const path = run.id ? `run/${run.id}` : "run";
+  return apiFetch(labflowOptions, auth0ClientFn, method, path, run);
+}
+
+export function upsertUser(auth0ClientFn: () => Auth0Client | undefined, user: User): Promise<User> {
+  const method = user.id ? "PUT" : "POST";
+  const path = user.id ? `user/${user.id}` : "user";
+  return apiFetch(labflowOptions, auth0ClientFn, method, path, user);
+}

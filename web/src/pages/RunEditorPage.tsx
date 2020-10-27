@@ -5,11 +5,9 @@ import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { createEditor, Node } from 'slate';
 import { Slate, Editable, withReact } from 'slate-react';
 import { RunBlockEditor } from '../components/RunBlockEditor';
-import { labflowOptions } from '../config';
 import { humanizeRunName, Run } from '../models/run';
-import { apiFetch } from '../state/api';
-import { auth0State, runsState } from '../state/atoms';
-import { runQuery } from '../state/selectors';
+import { auth0State } from '../state/atoms';
+import { runQuery, upsertRun } from '../state/selectors';
 import { Block } from '../models/block';
 import { deserializeSlate, serializeSlate } from '../slate';
 import moment from 'moment';
@@ -31,6 +29,7 @@ export interface RunEditorPageParams {
 }
 
 export function RunEditorPage() {
+    const [runTimestamp, setRunTimestamp] = useState(moment().format());
     const [showSharingModal, setShowSharingModal] = useState(false);
     const [notes, setNotes] = useState<Node[] | null>(null);
     const [blocks, setBlocks] = useState<Block[] | null>(null);
@@ -39,33 +38,25 @@ export function RunEditorPage() {
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
     const editor = React.useMemo(() => withReact(createEditor()), []);
     const { id } = useParams<RunEditorPageParams>();
-    const run = useRecoilValue(runQuery(parseInt(id)));
-    const runUpsert = useRecoilCallback(({ set, snapshot }) => async (run: Run) => {
+    const run = useRecoilValue(runQuery({ runId: parseInt(id), queryTime: runTimestamp }));
+    const runUpsert = useRecoilCallback(({ snapshot }) => async (run: Run) => {
         setFormSaving(true);
         try {
             const { auth0Client } = await snapshot.getPromise(auth0State);
-            const method = run.id ? "PUT" : "POST";
-            const path = run.id ? `run/${run.id}` : "run";
-            const created: Run = await apiFetch(labflowOptions, () => auth0Client, method, path, run);
-            set(runsState, state => {
-                if (created.id) {
-                    state.runCache.set(created.id, created);
-                    return state;
-                } else {
-                    throw new Error("Received a run without an ID from server!");
-                }
-            });
+            return await upsertRun(() => auth0Client, run);
         } finally {
             setFormSaving(false);
             setFormSavedTime(moment().format());
+            setRunTimestamp(moment().format());
+            // setNotes(null);
+            // setBlocks(null);
+            // setStatus(null);
         }
     });
 
     const currentNotes = notes || (run && run.notes && deserializeSlate(run.notes)) || initialSlateValue;
     const currentBlocks = blocks || (run && run.blocks) || [];
     const currentStatus = status || (run && run.status) || 'todo';
-
-    console.log("currentNotes = ", currentNotes);
 
     const updateBlock = (block?: Block) => {
         if (block) {

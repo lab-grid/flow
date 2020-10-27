@@ -171,12 +171,12 @@ export function Toolbar() {
     </div>
 }
 
-const HOTKEYS = {
-    'mod+b': 'bold',
-    'mod+i': 'italic',
-    'mod+u': 'underline',
-    'mod+`': 'code',
-}
+// const HOTKEYS = {
+//     'mod+b': 'bold',
+//     'mod+i': 'italic',
+//     'mod+u': 'underline',
+//     'mod+`': 'code',
+// }
 
 export function onHotkeyDown(editor: Editor) {
     return (event: React.KeyboardEvent<HTMLDivElement>) => {

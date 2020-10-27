@@ -8,8 +8,8 @@ import { Slate, Editable, withReact } from 'slate-react';
 import { ProtocolBlockEditor } from '../components/ProtocolBlockEditor';
 import { BlockDefinition } from '../models/block-definition';
 import { Protocol } from '../models/protocol';
-import { auth0State, protocolsState, runsState } from '../state/atoms';
-import { protocolQuery } from '../state/selectors';
+import { auth0State } from '../state/atoms';
+import { protocolQuery, upsertProtocol, upsertRun } from '../state/selectors';
 import * as uuid from 'uuid';
 import { DragSourceMonitor, DropTargetMonitor, useDrag, useDrop, XYCoord } from 'react-dnd';
 import { CheckCircle, Share } from 'react-bootstrap-icons';
@@ -17,8 +17,6 @@ import moment from 'moment';
 import { deserializeSlate, serializeSlate } from '../slate';
 import { Block } from '../models/block';
 import { SharingModal } from '../components/SharingModal';
-import { labflowOptions } from '../config';
-import { apiFetch } from '../state/api';
 import { Run } from '../models/run';
 import { Element, Leaf, onHotkeyDown, Toolbar } from '../components/Slate';
 
@@ -94,6 +92,7 @@ export interface ProtocolEditorPageParams {
 
 export function ProtocolEditorPage() {
     const history = useHistory();
+    const [protocolTimestamp, setProtocolTimestamp] = useState(moment().format());
     const [showSharingModal, setShowSharingModal] = useState(false);
     const [name, setName] = useState<string | null>(null);
     const [description, setDescription] = useState<Node[] | null>(null);
@@ -102,41 +101,24 @@ export function ProtocolEditorPage() {
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
     const editor = React.useMemo(() => withReact(createEditor()), []);
     const { id } = useParams<ProtocolEditorPageParams>();
-    const protocol = useRecoilValue(protocolQuery(parseInt(id)));
-    const protocolUpsert = useRecoilCallback(({ set, snapshot }) => async (protocol: Protocol) => {
+    const protocol = useRecoilValue(protocolQuery({ protocolId: parseInt(id), queryTime: protocolTimestamp }));
+    const protocolUpsert = useRecoilCallback(({ snapshot }) => async (protocol: Protocol) => {
         setFormSaving(true);
         try {
             const { auth0Client } = await snapshot.getPromise(auth0State);
-            const method = protocol.id ? "PUT" : "POST";
-            const path = protocol.id ? `protocol/${protocol.id}` : "protocol";
-            const created: Protocol = await apiFetch(labflowOptions, () => auth0Client, method, path, protocol);
-            set(protocolsState, state => {
-                if (created.id) {
-                    state.protocolCache.set(created.id, created);
-                    return state;
-                } else {
-                    throw new Error("Received a protocol without an ID from server!");
-                }
-            });
+            return await upsertProtocol(() => auth0Client, protocol);
         } finally {
             setFormSaving(false);
             setFormSavedTime(moment().format());
+            setProtocolTimestamp(moment().format());
+            // setName(null);
+            // setDescription(null);
+            // setBlocks(null);
         }
     });
-    const runUpsert = useRecoilCallback(({ set, snapshot }) => async (run: Run) => {
+    const runUpsert = useRecoilCallback(({ snapshot }) => async (run: Run) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
-        const method = run.id ? "PUT" : "POST";
-        const path = run.id ? `run/${run.id}` : "run";
-        const created: Run = await apiFetch(labflowOptions, () => auth0Client, method, path, run);
-        set(runsState, state => {
-            if (created.id) {
-                state.runCache.set(created.id, created);
-                return state;
-            } else {
-                throw new Error("Received a run without an ID from server!");
-            }
-        });
-        return created;
+        return await upsertRun(() => auth0Client, run);
     });
 
     const currentName = name || (protocol && protocol.name) || "";
