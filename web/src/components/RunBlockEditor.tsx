@@ -128,7 +128,7 @@ function RunBlockPlateSamplerEditor({disabled, definition, outputPlateLabel, set
             </td>
         </tr>);
     }
-    const outputRows: JSX.Element[] = [
+    const outputRows: JSX.Element = (
         <tr>
             <th>Output Plate</th>
             <td>
@@ -140,7 +140,7 @@ function RunBlockPlateSamplerEditor({disabled, definition, outputPlateLabel, set
                 />
             </td>
         </tr>
-    ]
+    );
     return <Table>
         <thead>
             <tr>

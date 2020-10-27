@@ -20,6 +20,16 @@ import { SharingModal } from '../components/SharingModal';
 import { labflowOptions } from '../config';
 import { apiFetch } from '../state/api';
 import { Run } from '../models/run';
+import { Element, Leaf, onHotkeyDown, Toolbar } from '../components/Slate';
+
+const initialSlateValue: Node[] = [
+    {
+        type: 'paragraph',
+        children: [
+            { text: '' }
+        ],
+    }
+];
 
 interface DragItem {
     type: 'protocol-block';
@@ -130,7 +140,7 @@ export function ProtocolEditorPage() {
     });
 
     const currentName = name || (protocol && protocol.name) || "";
-    const currentDescription = description || (protocol && protocol.description && deserializeSlate(protocol.description)) || [{text: ''}];
+    const currentDescription = description || (protocol && protocol.description && deserializeSlate(protocol.description)) || initialSlateValue;
     const currentBlocks = blocks || (protocol && protocol.blocks) || [];
 
     const updateBlock = (block?: BlockDefinition) => {
@@ -153,6 +163,10 @@ export function ProtocolEditorPage() {
             setBlocks(currentBlocks.filter(b => b.id !== blockId));
         }
     }
+
+    // Slate helpers.
+    const renderElement = React.useCallback(props => <Element {...props} />, []);
+    const renderLeaf = React.useCallback(props => <Leaf {...props} />, []);
 
     return <>
         <SharingModal
@@ -184,7 +198,14 @@ export function ProtocolEditorPage() {
                     value={currentDescription}
                     onChange={setDescription}
                 >
-                    <Editable />
+                    <Toolbar />
+                    <Editable
+                        renderElement={renderElement}
+                        renderLeaf={renderLeaf}
+                        placeholder="Enter a description here..."
+                        onKeyDown={onHotkeyDown(editor)}
+                        spellCheck
+                    />
                 </Slate>
             </Form.Group>
 
@@ -254,7 +275,7 @@ export function ProtocolEditorPage() {
                 </Button>
                 <div className="col"></div>
                 <div className="col-auto my-auto">
-                    { formSavedTime && <><CheckCircle /> Last saved on: {moment(formSavedTime).format('LLLL')}</> }
+                    {formSavedTime && <><CheckCircle /> Last saved on: {moment(formSavedTime).format('LLLL')}</>}
                 </div>
             </div>
         </Form>

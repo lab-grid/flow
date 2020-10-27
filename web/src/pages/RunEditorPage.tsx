@@ -15,6 +15,16 @@ import { deserializeSlate, serializeSlate } from '../slate';
 import moment from 'moment';
 import { CheckCircle, Share } from 'react-bootstrap-icons';
 import { SharingModal } from '../components/SharingModal';
+import { Element, Leaf, onHotkeyDown, Toolbar } from '../components/Slate';
+
+const initialSlateValue: Node[] = [
+    {
+        type: 'paragraph',
+        children: [
+            { text: '' }
+        ],
+    }
+];
 
 export interface RunEditorPageParams {
     id: string;
@@ -51,9 +61,11 @@ export function RunEditorPage() {
         }
     });
 
-    const currentNotes = notes || (run && run.notes && deserializeSlate(run.notes)) || [];
+    const currentNotes = notes || (run && run.notes && deserializeSlate(run.notes)) || initialSlateValue;
     const currentBlocks = blocks || (run && run.blocks) || [];
     const currentStatus = status || (run && run.status) || 'todo';
+
+    console.log("currentNotes = ", currentNotes);
 
     const updateBlock = (block?: Block) => {
         if (block) {
@@ -64,6 +76,10 @@ export function RunEditorPage() {
     const isSigned = currentStatus === 'signed';
     const isWitnessed = currentStatus === 'witnessed';
     const isTodo = currentStatus === 'todo';
+
+    // Slate helpers.
+    const renderElement = React.useCallback(props => <Element {...props} />, []);
+    const renderLeaf = React.useCallback(props => <Leaf {...props} />, []);
 
     return <>
         <SharingModal
@@ -86,7 +102,14 @@ export function RunEditorPage() {
                     value={currentNotes}
                     onChange={setNotes}
                 >
-                    <Editable />
+                    <Toolbar />
+                    <Editable
+                        renderElement={renderElement}
+                        renderLeaf={renderLeaf}
+                        placeholder="Enter a description here..."
+                        onKeyDown={onHotkeyDown(editor)}
+                        spellCheck
+                    />
                 </Slate>
             </Form.Group>
             {currentBlocks.map(block => {
@@ -143,7 +166,7 @@ export function RunEditorPage() {
                 </ButtonToolbar>
                 <div className="col"></div>
                 <div className="col-auto my-auto">
-                    { formSavedTime && <><CheckCircle /> Last saved on: {moment(formSavedTime).format('LLLL')}</> }
+                    {formSavedTime && <><CheckCircle /> Last saved on: {moment(formSavedTime).format('LLLL')}</>}
                 </div>
             </div>
         </Form>
