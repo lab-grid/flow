@@ -1,11 +1,11 @@
-from flask import request
+from flask import abort, request
 from flask_restx import Resource, fields, Namespace
 
 from functools import wraps
 
-from server import app, db
+from server import db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
-from database import jsonRow2dict, Run
+from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol
 
 from api.utils import success_output
 
@@ -18,6 +18,42 @@ run_output = api.model('RunOutput', { 'id': fields.Integer() })
 runs_output = fields.List(fields.Nested(run_output))
 
 
+run_id_param = {
+    'description': 'Numeric ID for a run',
+    'in': 'path',
+    'type': 'int'
+}
+version_id_param = {
+    'description': 'Specify this query parameter to retrieve a specific run version',
+    'in': 'query',
+    'type': 'int'
+}
+user_id_param = {
+    'description': 'String identifier for a user account',
+    'in': 'path',
+    'type': 'string'
+}
+method_param = {
+    'description': 'Action identifier (GET|POST|PUT|DELETE)',
+    'in': 'path',
+    'type': 'string'
+}
+
+
+def run_to_dict(run, run_version):
+    run_dict = versioned_row_to_dict(run, run_version)
+    run_dict['protocol'] = versioned_row_to_dict(run.protocol_version.protocol, run.protocol_version)
+    return run_dict
+
+
+def extract_protocol_id(run_dict):
+    if 'protocol' in run_dict and 'id' in run_dict['protocol']:
+        return int(run_dict['protocol']['id'])
+    if 'protocol_id' in run_dict:
+        return int(run_dict['protocol_id'])
+    return None
+
+
 @api.route('/run')
 class RunsResource(Resource):
     @api.doc(security='token', model=runs_output)
@@ -25,10 +61,10 @@ class RunsResource(Resource):
     @requires_scope('read:runs')
     def get(self):
         return [
-            jsonRow2dict(record)
-            for record
-            in Run.query.all()
-            if check_access(path=f"/run/{str(record.id)}", method="GET")
+            run_to_dict(run, run.current)
+            for run
+            in Run.query.filter(Run.is_deleted != True).all()
+            if check_access(path=f"/run/{str(run.id)}", method="GET")
         ]
 
     @api.doc(security='token', model=run_output, body=run_input)
@@ -37,26 +73,53 @@ class RunsResource(Resource):
     # @requires_access()
     def post(self):
         run_dict = request.json
-        # Drop the id field if it was provided.
-        run_dict.pop('id', None)
-        run = Run(data=run_dict)
-        db.session.add(run)
+        protocol_id = extract_protocol_id(run_dict)
+        run_dict.pop('protocol', None)
+        if not protocol_id:
+            abort(400)
+            return
+        protocol = Protocol.query.get(protocol_id)
+        if not protocol:
+            abort(400)
+            return
+        run = Run()
+        run_version = RunVersion(data=strip_metadata(run_dict))
+        run_version.run = run
+        run.current = run_version
+        run.protocol_version_id = protocol.version_id
+        db.session.add_all([run, run_version])
         db.session.commit()
         add_policy(path=f"/run/{str(run.id)}", method="GET")
         add_policy(path=f"/run/{str(run.id)}", method="PUT")
         add_policy(path=f"/run/{str(run.id)}", method="DELETE")
-        return jsonRow2dict(run)
+        return run_to_dict(run, run_version)
 
 
 @api.route('/run/<int:run_id>')
+@api.doc(params={'run_id': run_id_param})
 class RunResource(Resource):
-    @api.doc(security='token', model=run_output)
+    @api.doc(security='token', model=run_output, params={'version_id': version_id_param})
     @requires_auth
     @requires_scope('read:runs')
     @requires_access()
     def get(self, run_id):
-        query = Run.query.get(run_id)
-        return jsonRow2dict(query)
+        version_id = int(request.args.get('version_id')) if request.args.get('version_id') else None
+        
+        if version_id:
+            run_version = RunVersion.query\
+                .filter(RunVersion.id == version_id)\
+                .filter(Run.id == run_id)\
+                .first()
+            if (not run_version) or run_version.run.is_deleted:
+                abort(404)
+                return
+            return run_to_dict(run_version.run, run_version)
+        
+        run = Run.query.get(run_id)
+        if (not run) or run.is_deleted:
+            abort(404)
+            return
+        return run_to_dict(run, run.current)
 
     @api.doc(security='token', model=run_output, body=run_input)
     @requires_auth
@@ -64,13 +127,18 @@ class RunResource(Resource):
     @requires_access()
     def put(self, run_id):
         run_dict = request.json
-        # Drop the id field if it was provided.
-        run_dict.pop('id', None)
+        # This field shouldn't be updated by users.
+        run_dict.pop('protocol', None)
         run = Run.query.get(run_id)
-        if run:
-            run.data = run_dict
+        if not run or run.is_deleted:
+            abort(404)
+            return
+        run_version = RunVersion(data=strip_metadata(run_dict))
+        run_version.run = run
+        run.current = run_version
+        db.session.add(run_version)
         db.session.commit()
-        return jsonRow2dict(run)
+        return run_to_dict(run, run.current)
 
     @api.doc(security='token', model=success_output)
     @requires_auth
@@ -78,10 +146,10 @@ class RunResource(Resource):
     @requires_access()
     def delete(self, run_id):
         run = Run.query.get(run_id)
-        if run:
-            Run.query\
-                .filter(Run.id == run_id)\
-                .delete()
+        if not run or run.is_deleted:
+            abort(404)
+            return
+        run.is_deleted = True
         db.session.commit()
         delete_policy(path=f"/run/{str(run.id)}")
         return {
@@ -115,6 +183,7 @@ def requires_permissions_access(method=None):
 
 
 @api.route('/run/<int:run_id>/permission')
+@api.doc(params={'run_id': run_id_param})
 class RunPermissionsResource(Resource):
     @api.doc(security='token', model=run_permissions_output)
     @requires_auth
@@ -125,6 +194,7 @@ class RunPermissionsResource(Resource):
 
 
 @api.route('/run/<int:run_id>/permission/<string:method>/<string:user_id>')
+@api.doc(params={'run_id': run_id_param, 'user_id': user_id_param, 'method': method_param})
 class RunPermissionResource(Resource):
     @api.doc(security='token', model=success_output)
     @requires_auth

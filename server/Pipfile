@@ -4,13 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-click = "*"
 flask = "*"
 flask-cors = "*"
 flask-migrate = "*"
 flask-restx = "*"
 flask-sqlalchemy = "*"
-pylint = "*"
 python-jose = "*"
 pg8000 = "==1.16.5"
 Werkzeug = "*"
@@ -18,6 +16,7 @@ casbin = "*"
 casbin-sqlalchemy-adapter = "*"
 
 [dev-packages]
-
-[requires]
-python_version = "3.7"
+pylint = "*"
+pylint-flask = "*"
+pylint-flask-sqlalchemy = "*"
+pydocstyle = "*"

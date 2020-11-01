@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask
+from flask.json import JSONEncoder
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_restx import Api
@@ -26,6 +27,7 @@ app.config['AUTH0_AUTHORIZATION_URL'] = os.environ.get('AUTH0_AUTHORIZATION_URL'
 app.config['AUTH0_TOKEN_URL'] = os.environ.get('AUTH0_TOKEN_URL', '')
 app.config['CASBIN_MODEL'] = os.environ.get('CASBIN_MODEL', 'casbinmodel.conf')
 app.config['CASBIN_SQLALCHEMY_DATABASE_URI'] = os.environ.get('CASBIN_SQLALCHEMY_DATABASE_URI', app.config['SQLALCHEMY_DATABASE_URI'])
+app.config['RESTX_JSON'] = {'cls': JSONEncoder}  # Add support for serializing datetime/date
 
 
 # API Documentation -----------------------------------------------------------
