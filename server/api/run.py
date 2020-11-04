@@ -1,3 +1,4 @@
+import copy
 from flask import abort, request
 from flask_restx import Resource, fields, Namespace
 
@@ -7,7 +8,9 @@ from server import db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
 from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol
 
-from api.utils import success_output
+from api.utils import change_allowed, success_output
+
+from deepdiff import DeepHash
 
 
 api = Namespace('runs', description='Extra-Simple operations on runs.', path='/')
@@ -132,6 +135,9 @@ class RunResource(Resource):
         run = Run.query.get(run_id)
         if not run or run.is_deleted:
             abort(404)
+            return
+        if not change_allowed(run_to_dict(run, run.current), run_dict):
+            abort(403)
             return
         run_version = RunVersion(data=strip_metadata(run_dict))
         run_version.run = run

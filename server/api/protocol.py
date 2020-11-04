@@ -107,6 +107,9 @@ class ProtocolResource(Resource):
         if not protocol or protocol.is_deleted:
             abort(404)
             return
+        if not change_allowed(versioned_row_to_dict(protocol, protocol.current), protocol_dict):
+            abort(403)
+            return
         protocol_version = ProtocolVersion(data=strip_metadata(protocol_dict))
         protocol_version.protocol = protocol
         protocol.current = protocol_version
