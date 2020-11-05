@@ -9,6 +9,9 @@ export interface Run extends Audited {
     notes?: string;
     status?: RunStatus;
 
+    signature?: string;
+    witness?: string;
+
     blocks?: Block[];
 
     protocol?: Protocol;

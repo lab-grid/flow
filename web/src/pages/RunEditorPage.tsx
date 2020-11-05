@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, ButtonGroup, ButtonToolbar, Form, Spinner } from 'react-bootstrap';
+import { Button, ButtonGroup, ButtonToolbar, Form, InputGroup, Spinner } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { createEditor, Node } from 'slate';
@@ -34,6 +34,8 @@ export function RunEditorPage() {
     const [notes, setNotes] = useState<Node[] | null>(null);
     const [blocks, setBlocks] = useState<Block[] | null>(null);
     const [status, setStatus] = useState<"todo" | "signed" | "witnessed" | null>(null);
+    const [signature, setSignature] = useState<string | null>(null);
+    const [witness, setWitness] = useState<string | null>(null);
     const [formSaving, setFormSaving] = useState<boolean>(false);
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
     const editor = React.useMemo(() => withReact(createEditor()), []);
@@ -54,9 +56,11 @@ export function RunEditorPage() {
         }
     });
 
-    const currentNotes = notes || (run && run.notes && deserializeSlate(run.notes)) || initialSlateValue;
-    const currentBlocks = blocks || (run && run.blocks) || [];
-    const currentStatus = status || (run && run.status) || 'todo';
+    const currentNotes = ((notes !== null) ? notes : (run && run.notes && deserializeSlate(run.notes))) || initialSlateValue;
+    const currentBlocks = ((blocks !== null) ? blocks : (run && run.blocks)) || [];
+    const currentStatus = ((status !== null) ? status : (run && run.status)) || 'todo';
+    const currentSignature = ((signature !== null) ? signature : (run && run.signature)) || '';
+    const currentWitness = ((witness !== null) ? witness : (run && run.witness)) || '';
 
     const updateBlock = (block?: Block) => {
         if (block) {
@@ -66,11 +70,17 @@ export function RunEditorPage() {
 
     const isSigned = currentStatus === 'signed';
     const isWitnessed = currentStatus === 'witnessed';
-    const isTodo = currentStatus === 'todo';
 
     // Slate helpers.
     const renderElement = React.useCallback(props => <Element {...props} />, []);
     const renderLeaf = React.useCallback(props => <Leaf {...props} />, []);
+
+    const syncRun = () => runUpsert({
+        id: parseInt(id),
+        notes: serializeSlate(currentNotes),
+        status: currentStatus,
+        blocks: currentBlocks,
+    });
 
     return <>
         <SharingModal
@@ -100,6 +110,7 @@ export function RunEditorPage() {
                         placeholder="Enter a description here..."
                         onKeyDown={onHotkeyDown(editor)}
                         spellCheck
+                        disabled={isSigned || isWitnessed}
                     />
                 </Slate>
             </Form.Group>
@@ -107,44 +118,70 @@ export function RunEditorPage() {
                 if (!block || !block.definition || !block.definition.id) {
                     return undefined;
                 }
-                return <RunBlockEditor key={block.definition.id} block={block} setBlock={updateBlock} />
+                return <RunBlockEditor
+                    key={block.definition.id}
+                    block={block}
+                    setBlock={updateBlock}
+                    disabled={isSigned || isWitnessed}
+                />
             })}
 
             <div className="row">
+                <Form.Group className="col-3 ml-auto">
+                    <Form.Label>Signature</Form.Label>
+                    <InputGroup>
+                        <Form.Control
+                            className="flow-signature"
+                            type="text"
+                            value={currentSignature}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSignature((e.target as HTMLInputElement).value)}
+                            disabled={isSigned}
+                        />
+                        <InputGroup.Append>
+                            <Button variant="secondary" onClick={() => {
+                                setStatus(isSigned ? 'todo' : 'signed');
+                                setSignature("");
+                                setWitness("");
+                                syncRun();
+                            }}>
+                                {(isSigned || isWitnessed) ? 'Un-sign' : 'Sign'}
+                            </Button>
+                        </InputGroup.Append>
+                    </InputGroup>
+                </Form.Group>
+            </div>
+
+            <div className="row">
+                <Form.Group className="col-3 ml-auto">
+                    <Form.Label>Witness</Form.Label>
+                    <InputGroup>
+                        <Form.Control
+                            className="flow-signature"
+                            type="text"
+                            value={currentWitness}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWitness((e.target as HTMLInputElement).value)}
+                            disabled={isWitnessed || !isSigned}
+                        />
+                        <InputGroup.Append>
+                            <Button variant="secondary" disabled={!isSigned} onClick={() => {
+                                setWitness(isWitnessed ? 'signed' : 'witnessed');
+                                setWitness("");
+                                syncRun();
+                            }}>
+                                {isWitnessed ? 'Un-sign' : 'Sign'}
+                            </Button>
+                        </InputGroup.Append>
+                    </InputGroup>
+                </Form.Group>
+            </div>
+
+            <div className="row">
                 <ButtonToolbar className="col-auto">
-                    <ButtonGroup className="mr-2">
-                        <Button
-                            variant={isTodo ? 'success' : 'secondary'}
-                            onClick={() => setStatus('todo')}
-                            disabled={formSaving}
-                        >
-                            {isTodo ? 'To Do' : 'Done'}
-                        </Button>
-                        <Button
-                            variant={isSigned ? 'success' : 'secondary'}
-                            onClick={() => setStatus('signed')}
-                            disabled={isSigned || formSaving}
-                        >
-                            {(isSigned || isWitnessed) ? 'Signed' : 'Sign'}
-                        </Button>
-                        <Button
-                            variant={isWitnessed ? 'success' : 'secondary'}
-                            onClick={() => setStatus('witnessed')}
-                            disabled={isWitnessed || !isSigned || formSaving}
-                        >
-                            {isWitnessed ? 'Witnessed' : 'Witness'}
-                        </Button>
-                    </ButtonGroup>
                     <ButtonGroup>
                         <Button
                             className="col-auto"
                             variant="primary"
-                            onClick={() => runUpsert({
-                                id: parseInt(id),
-                                notes: serializeSlate(currentNotes),
-                                status: currentStatus,
-                                blocks: currentBlocks,
-                            })}
+                            onClick={() => syncRun()}
                             disabled={formSaving}
                         >
                             {

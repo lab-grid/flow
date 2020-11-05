@@ -37,7 +37,8 @@ interface DragResult {
     isDragging: boolean;
 }
 
-export function ProtocolDraggableBlock({ index, block, setBlock, moveBlock, deleteBlock }: {
+export function ProtocolDraggableBlock({ disabled, index, block, setBlock, moveBlock, deleteBlock }: {
+    disabled?: boolean;
     index: number;
     block?: BlockDefinition;
     setBlock: (block?: BlockDefinition) => void;
@@ -81,7 +82,7 @@ export function ProtocolDraggableBlock({ index, block, setBlock, moveBlock, dele
     drag(drop(ref));
     return (
         <div ref={ref} style={{ opacity }} className="mt-5 mb-5">
-            <ProtocolBlockEditor index={index} block={block} setBlock={setBlock} deleteBlock={() => deleteBlock(block && block.id)} />
+            <ProtocolBlockEditor disabled={disabled} index={index} block={block} setBlock={setBlock} deleteBlock={() => deleteBlock(block && block.id)} />
         </div>
     );
 }
@@ -97,6 +98,9 @@ export function ProtocolEditorPage() {
     const [name, setName] = useState<string | null>(null);
     const [description, setDescription] = useState<Node[] | null>(null);
     const [blocks, setBlocks] = useState<BlockDefinition[] | null>(null);
+    const [status, setStatus] = useState<"todo" | "signed" | "witnessed" | null>(null);
+    const [signature, setSignature] = useState<string | null>(null);
+    const [witness, setWitness] = useState<string | null>(null);
     const [formSaving, setFormSaving] = useState<boolean>(false);
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
     const editor = React.useMemo(() => withReact(createEditor()), []);
@@ -121,9 +125,12 @@ export function ProtocolEditorPage() {
         return await upsertRun(() => auth0Client, run);
     });
 
-    const currentName = name || (protocol && protocol.name) || "";
-    const currentDescription = description || (protocol && protocol.description && deserializeSlate(protocol.description)) || initialSlateValue;
-    const currentBlocks = blocks || (protocol && protocol.blocks) || [];
+    const currentName = ((name !== null) ? name : (protocol && protocol.name)) || '';
+    const currentDescription = ((description !== null) ? description : (protocol && protocol.description && deserializeSlate(protocol.description))) || initialSlateValue;
+    const currentBlocks = ((blocks !== null) ? blocks : (protocol && protocol.blocks)) || [];
+    const currentStatus = ((status !== null) ? status : (protocol && protocol.status)) || 'todo';
+    const currentSignature = ((signature !== null) ? signature : (protocol && protocol.signature)) || '';
+    const currentWitness = ((witness !== null) ? witness : (protocol && protocol.witness)) || '';
 
     const updateBlock = (block?: BlockDefinition) => {
         if (block) {
@@ -146,9 +153,19 @@ export function ProtocolEditorPage() {
         }
     }
 
+    const isSigned = currentStatus === 'signed';
+    const isWitnessed = currentStatus === 'witnessed';
+
     // Slate helpers.
     const renderElement = React.useCallback(props => <Element {...props} />, []);
     const renderLeaf = React.useCallback(props => <Leaf {...props} />, []);
+
+    const syncProtocol = () => protocolUpsert({
+        id: parseInt(id),
+        name: currentName,
+        description: serializeSlate(currentDescription),
+        blocks: currentBlocks,
+    });
 
     return <>
         <SharingModal
@@ -165,6 +182,7 @@ export function ProtocolEditorPage() {
                         type="text"
                         value={currentName}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
+                        disabled={isSigned || isWitnessed}
                     />
                     <InputGroup.Append>
                         <Button variant="secondary" onClick={() => setShowSharingModal(true)}>
@@ -187,6 +205,7 @@ export function ProtocolEditorPage() {
                         placeholder="Enter a description here..."
                         onKeyDown={onHotkeyDown(editor)}
                         spellCheck
+                        disabled={isSigned || isWitnessed}
                     />
                 </Slate>
             </Form.Group>
@@ -202,8 +221,74 @@ export function ProtocolEditorPage() {
                     block={block}
                     setBlock={updateBlock}
                     deleteBlock={deleteBlock}
+                    disabled={isSigned || isWitnessed}
                 />;
             })}
+
+            <div className="row">
+                <Dropdown className="col-auto my-3 mx-auto">
+                    <Dropdown.Toggle variant="success" id="block-add">
+                        Add a new section
+                    </Dropdown.Toggle>
+
+                    <Dropdown.Menu>
+                        <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'text-question' }])}>Text Question</Dropdown.Item>
+                        <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'options-question' }])}>Options Question</Dropdown.Item>
+                        <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'plate-sampler' }])}>Run Plate Sampler</Dropdown.Item>
+                        <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'plate-add-reagent' }])}>Add Reagent to Plate</Dropdown.Item>
+                        <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'plate-sequencer' }])}>Run Plate Sequencer</Dropdown.Item>
+                    </Dropdown.Menu>
+                </Dropdown>
+            </div>
+
+            <div className="row">
+                <Form.Group className="col-3 ml-auto">
+                    <Form.Label>Signature</Form.Label>
+                    <InputGroup>
+                        <Form.Control
+                            className="flow-signature"
+                            type="text"
+                            value={currentSignature}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSignature((e.target as HTMLInputElement).value)}
+                            disabled={isSigned}
+                        />
+                        <InputGroup.Append>
+                            <Button variant="secondary" onClick={() => {
+                                setStatus(isSigned ? 'todo' : 'signed');
+                                setSignature("");
+                                setWitness("");
+                                syncProtocol();
+                            }}>
+                                {(isSigned || isWitnessed) ? 'Un-sign' : 'Sign'}
+                            </Button>
+                        </InputGroup.Append>
+                    </InputGroup>
+                </Form.Group>
+            </div>
+
+            <div className="row">
+                <Form.Group className="col-3 ml-auto">
+                    <Form.Label>Witness</Form.Label>
+                    <InputGroup>
+                        <Form.Control
+                            className="flow-signature"
+                            type="text"
+                            value={currentWitness}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWitness((e.target as HTMLInputElement).value)}
+                            disabled={isWitnessed || !isSigned}
+                        />
+                        <InputGroup.Append>
+                            <Button variant="secondary" disabled={!isSigned} onClick={() => {
+                                setWitness(isWitnessed ? 'signed' : 'witnessed');
+                                setWitness("");
+                                syncProtocol();
+                            }}>
+                                {isWitnessed ? 'Un-sign' : 'Sign'}
+                            </Button>
+                        </InputGroup.Append>
+                    </InputGroup>
+                </Form.Group>
+            </div>
 
             <div className="row">
                 <Button
@@ -225,28 +310,10 @@ export function ProtocolEditorPage() {
                 >
                     Create Run
                 </Button>
-                <Dropdown className="col-auto">
-                    <Dropdown.Toggle variant="success" id="block-add">
-                        Add a new section
-                    </Dropdown.Toggle>
-
-                    <Dropdown.Menu>
-                        <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'text-question' }])}>Text Question</Dropdown.Item>
-                        <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'options-question' }])}>Options Question</Dropdown.Item>
-                        <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'plate-sampler' }])}>Run Plate Sampler</Dropdown.Item>
-                        <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'plate-add-reagent' }])}>Add Reagent to Plate</Dropdown.Item>
-                        <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'plate-sequencer' }])}>Run Plate Sequencer</Dropdown.Item>
-                    </Dropdown.Menu>
-                </Dropdown>
                 <Button
                     className="col-auto ml-3"
                     variant="primary"
-                    onClick={() => protocolUpsert({
-                        id: parseInt(id),
-                        name: currentName,
-                        description: serializeSlate(currentDescription),
-                        blocks: currentBlocks,
-                    })}
+                    onClick={() => syncProtocol()}
                     disabled={formSaving}
                 >
                     {
