@@ -80,6 +80,8 @@ export function RunEditorPage() {
         notes: serializeSlate(currentNotes),
         status: currentStatus,
         blocks: currentBlocks,
+        signature: currentSignature,
+        witness: currentWitness,
     });
 
     return <>

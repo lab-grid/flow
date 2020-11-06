@@ -7,7 +7,7 @@ from server import db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
 from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Protocol, ProtocolVersion
 
-from api.utils import success_output
+from api.utils import change_allowed, success_output
 
 
 api = Namespace('protocols', description='Extra-Simple operations on protocols.', path='/')

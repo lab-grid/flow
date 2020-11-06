@@ -45,7 +45,7 @@ export function SharingModal(props: SharingModalProps) {
         }
     }
 
-    return <Modal show={props.show} onHide={props.setShow} size="lg">
+    return <Modal show={props.show} onHide={props.setShow} size="lg" animation={false}>
         <Modal.Header closeButton>
             <Modal.Title>Share {props.targetName ? props.targetName : "an Item"}</Modal.Title>
         </Modal.Header>

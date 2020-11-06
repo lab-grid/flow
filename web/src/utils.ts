@@ -12,3 +12,21 @@ export function trimEmpty<T=string>(arr?: T[], get?: (input: T) => string): T[] 
     }
     return trimmed.reverse();
 }
+
+export function objectsToCSV<T=any>(objects: T[], objToLine: (obj: T) => string): string {
+    return objects.map(objToLine).join('\n');
+}
+
+export function exportAsDownload(filename: string, contents: string) {
+    const link = document.createElement('a');
+    try {
+        link.style.display = 'none';
+        link.setAttribute('target', '_blank');
+        link.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(contents));
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+    } finally {
+        document.body.removeChild(link);
+    }
+}

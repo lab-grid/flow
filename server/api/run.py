@@ -10,8 +10,6 @@ from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Ru
 
 from api.utils import change_allowed, success_output
 
-from deepdiff import DeepHash
-
 
 api = Namespace('runs', description='Extra-Simple operations on runs.', path='/')
 

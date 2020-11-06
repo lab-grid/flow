@@ -28,8 +28,8 @@ export function ProtocolsTable({ protocols }: ProtocolsProps) {
                         </td>
                         <td>{protocol.name}</td>
                         <td>{protocol.createdBy}</td>
-                        <td>{protocol.createdOn ? moment(protocol.createdOn).format("LLLL") : undefined}</td>
-                        <td>{(protocol.updatedOn || protocol.createdOn) ? moment(protocol.updatedOn || protocol.createdOn).format("LLLL") : undefined}</td>
+                        <td>{(protocol.createdOn && moment(protocol.createdOn).format("LLLL")) || ''}</td>
+                        <td>{((protocol.updatedOn || protocol.createdOn) && moment(protocol.updatedOn || protocol.createdOn).format("LLLL")) || ''}</td>
                     </tr>
                 ))}
             </tbody>

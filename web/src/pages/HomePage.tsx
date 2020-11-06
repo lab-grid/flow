@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Button, Dropdown, Spinner } from 'react-bootstrap';
+import { Button, Dropdown } from 'react-bootstrap';
 import { useHistory } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { ProtocolsTable } from '../components/ProtocolsTable';
@@ -10,6 +10,7 @@ import { Run } from '../models/run';
 import { auth0State } from '../state/atoms';
 import { protocolsQuery, runsQuery, upsertProtocol, upsertRun } from '../state/selectors';
 import moment from 'moment';
+import { LoadingPage } from '../components/LoadingPage';
 
 export function HomePage() {
     const [runsTimestamp, setRunsTimestamp] = React.useState(moment().format());
@@ -27,15 +28,7 @@ export function HomePage() {
     });
     return <div>
         <div className="row mt-4">
-            <Suspense
-                fallback={<Spinner
-                    as="span"
-                    animation="border"
-                    size="sm"
-                    role="status"
-                    aria-hidden="true"
-                />}
-            >
+            <Suspense fallback={<LoadingPage />}>
                 <ProtocolsTable protocols={protocols} />
             </Suspense>
         </div>
@@ -65,15 +58,7 @@ export function HomePage() {
             </div>
         </div>
         <div className="row mt-4">
-            <Suspense
-                fallback={<Spinner
-                    as="span"
-                    animation="border"
-                    size="sm"
-                    role="status"
-                    aria-hidden="true"
-                />}
-            >
+            <Suspense fallback={<LoadingPage />}>
                 <RunsTable runs={runs} />
             </Suspense>
         </div>

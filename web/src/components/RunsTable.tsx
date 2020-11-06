@@ -30,8 +30,8 @@ export function RunsTable({ runs }: RunsProps) {
                         <td>{humanizeRunName(run)}</td>
                         <td>{run.createdBy}</td>
                         <td>{run.status}</td>
-                        <td>{run.createdOn ? moment(run.createdOn).format("LLLL") : undefined}</td>
-                        <td>{(run.updatedOn || run.createdOn) ? moment(run.updatedOn || run.createdOn).format("LLLL") : undefined}</td>
+                        <td>{(run.createdOn && moment(run.createdOn).format("LLLL")) || ''}</td>
+                        <td>{((run.updatedOn || run.createdOn) && moment(run.updatedOn || run.createdOn).format("LLLL")) || ''}</td>
                     </tr>
                 ))}
             </tbody>

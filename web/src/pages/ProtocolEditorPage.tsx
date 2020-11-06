@@ -98,7 +98,7 @@ export function ProtocolEditorPage() {
     const [name, setName] = useState<string | null>(null);
     const [description, setDescription] = useState<Node[] | null>(null);
     const [blocks, setBlocks] = useState<BlockDefinition[] | null>(null);
-    const [status, setStatus] = useState<"todo" | "signed" | "witnessed" | null>(null);
+    const [status] = useState<"todo" | "signed" | "witnessed" | null>(null);
     const [signature, setSignature] = useState<string | null>(null);
     const [witness, setWitness] = useState<string | null>(null);
     const [formSaving, setFormSaving] = useState<boolean>(false);
@@ -160,12 +160,17 @@ export function ProtocolEditorPage() {
     const renderElement = React.useCallback(props => <Element {...props} />, []);
     const renderLeaf = React.useCallback(props => <Leaf {...props} />, []);
 
-    const syncProtocol = () => protocolUpsert({
+    const syncProtocol = (override?: Protocol) => protocolUpsert(Object.assign({
         id: parseInt(id),
         name: currentName,
         description: serializeSlate(currentDescription),
         blocks: currentBlocks,
-    });
+        status: currentStatus,
+        signature: currentSignature,
+        witness: currentWitness,
+    }, override));
+
+    console.log('currentStatus === ', currentStatus);
 
     return <>
         <SharingModal
@@ -254,10 +259,14 @@ export function ProtocolEditorPage() {
                         />
                         <InputGroup.Append>
                             <Button variant="secondary" onClick={() => {
-                                setStatus(isSigned ? 'todo' : 'signed');
-                                setSignature("");
-                                setWitness("");
-                                syncProtocol();
+                                const override: Protocol = {
+                                    status: isSigned ? 'todo' : 'signed',
+                                };
+                                if (isSigned) {
+                                    override.signature = "";
+                                    override.witness = "";
+                                }
+                                syncProtocol(override);
                             }}>
                                 {(isSigned || isWitnessed) ? 'Un-sign' : 'Sign'}
                             </Button>
@@ -279,9 +288,13 @@ export function ProtocolEditorPage() {
                         />
                         <InputGroup.Append>
                             <Button variant="secondary" disabled={!isSigned} onClick={() => {
-                                setWitness(isWitnessed ? 'signed' : 'witnessed');
-                                setWitness("");
-                                syncProtocol();
+                                const override: Protocol = {
+                                    status: isWitnessed ? 'signed' : 'witnessed',
+                                };
+                                if (isWitnessed) {
+                                    override.witness = "";
+                                }
+                                syncProtocol(override);
                             }}>
                                 {isWitnessed ? 'Un-sign' : 'Sign'}
                             </Button>

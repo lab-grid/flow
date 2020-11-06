@@ -5,15 +5,15 @@ import App from './App';
 import * as serviceWorker from './serviceWorker';
 import { RecoilRoot } from 'recoil';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { Spinner } from 'react-bootstrap';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { LoadingPage } from './components/LoadingPage';
 
 ReactDOM.render(
   <React.StrictMode>
     <RecoilRoot>
       <DndProvider backend={HTML5Backend}>
-        <Suspense fallback={<Spinner animation="border" />}>
+        <Suspense fallback={<LoadingPage />}>
           <App />
         </Suspense>
       </DndProvider>

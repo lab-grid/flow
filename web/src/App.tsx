@@ -1,8 +1,9 @@
 import React, { Suspense } from 'react';
-import { Button, Form, InputGroup, Navbar, Spinner } from 'react-bootstrap';
+import { Button, Form, InputGroup, Navbar } from 'react-bootstrap';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import { BrowserRouter, Route, Link, Switch } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
+import { LoadingPage } from './components/LoadingPage';
 import { ProfileMenu, ProfileMenuLoading } from './components/ProfileMenu';
 import { labflowOptions } from './config';
 import { HomePage } from './pages/HomePage';
@@ -11,22 +12,6 @@ import { ProtocolEditorPage } from './pages/ProtocolEditorPage';
 import { RunEditorPage } from './pages/RunEditorPage';
 import { SearchResultsPage } from './pages/SearchResultsPage';
 import { auth0State } from './state/atoms';
-
-function LoadingPage() {
-  return <div className="row mt-5">
-    <div className="col"></div>
-    <div className="col-auto">
-      <Spinner
-        as="span"
-        animation="border"
-        size="sm"
-        role="status"
-        aria-hidden="true"
-      />
-    </div>
-    <div className="col"></div>
-  </div>
-}
 
 export default function App() {
   const { auth0Client, isAuthenticated } = useRecoilValue(auth0State);
@@ -59,6 +44,7 @@ export default function App() {
         <Form.Group className="my-auto mr-3 ml-auto">
           <InputGroup>
             <Typeahead
+              id="quick-search"
               // multiple
               // flip
               // onChange={selections => {
