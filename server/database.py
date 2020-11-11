@@ -95,13 +95,13 @@ class BaseModel(db.Model):
         return pprint.pformat(self.__dict__)
 
     is_deleted = db.Column(db.Boolean, default=False)
-    created_on = db.Column(db.DateTime, server_default=db.func.now())
+    created_on = db.Column(db.DateTime, default=db.func.now())
     created_by = db.Column(db.String(64))
 
 class BaseVersionModel(db.Model):
     __abstract__ = True
 
-    updated_on = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
+    updated_on = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
     updated_by = db.Column(db.String(64))
 
 class UserVersion(BaseVersionModel):
