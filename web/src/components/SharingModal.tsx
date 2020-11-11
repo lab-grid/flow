@@ -75,7 +75,7 @@ export function SharingModal(props: SharingModalProps) {
                         <option value="DELETE">Delete</option>
                     </Form.Control>
                 </Form.Group>
-                <Button className="col-auto mt-auto mb-3" onClick={handleAddPerm}>
+                <Button className="col-auto mt-auto mb-3 mr-3 ml-3" onClick={handleAddPerm}>
                     Add Policy
                 </Button>
             </Form>

@@ -49,7 +49,7 @@ export function HomePage() {
     }
 
     return <div className="container">
-        <div className="row mt-4 overflow-y-scroll">
+        <div className="row mt-4">
             <Suspense fallback={<LoadingPage />}>
                 <ProtocolsTable protocols={protocols} />
             </Suspense>
@@ -60,7 +60,7 @@ export function HomePage() {
                 <Button variant="success" onClick={createProtocol}>Create Protocol</Button>
             </div>
         </div>
-        <div className="row mt-4 overflow-y-scroll">
+        <div className="row mt-4">
             <Suspense fallback={<LoadingPage />}>
                 <RunsTable runs={runs} />
             </Suspense>

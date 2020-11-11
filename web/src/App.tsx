@@ -31,8 +31,6 @@ export default function App() {
     }
   }
 
-  // TODO: Redirect user to the onboarding page if they haven't created a user profile yet.
-
   return (
     <BrowserRouter>
       <Navbar bg="dark" variant="dark">
@@ -84,8 +82,15 @@ export default function App() {
               <RunEditorPage />
             </Suspense>
           </Route>
+          <Route path="/profile">
+            <Suspense fallback={<LoadingPage />}>
+              <ProfilePage />
+            </Suspense>
+          </Route>
           <Route path="/profile/:id">
-            <ProfilePage />
+            <Suspense fallback={<LoadingPage />}>
+              <ProfilePage />
+            </Suspense>
           </Route>
           <Route path="/">
             <HomePage />

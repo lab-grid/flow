@@ -1,3 +1,6 @@
+import sys
+import urllib.parse
+
 from flask import abort, request
 from flask_restx import Resource, fields, Namespace
 
@@ -32,6 +35,7 @@ version_id_param = {
 
 def add_role(d):
     d['role'] = get_roles()
+    return d
 
 
 @api.route('/user')
@@ -74,6 +78,8 @@ class UserResource(Resource):
     # @requires_scope('read:users')
     @requires_access()
     def get(self, user_id):
+        user_id = urllib.parse.unquote(user_id)
+        print('user_id = ' + user_id, file=sys.stderr)
         version_id = int(request.args.get('version_id')) if request.args.get('version_id') else None
 
         if version_id:
@@ -97,6 +103,8 @@ class UserResource(Resource):
     # @requires_scope('write:users')
     @requires_access()
     def put(self, user_id):
+        user_id = urllib.parse.unquote(user_id)
+
         user_dict = request.json
         # Drop the roles field if it was provided.
         user_dict.pop('roles', None)

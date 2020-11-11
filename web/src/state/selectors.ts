@@ -3,7 +3,7 @@ import { labflowOptions } from "../config";
 import { Protocol } from "../models/protocol";
 import { Run } from "../models/run";
 import { auth0State } from "./atoms";
-import { apiFetch } from "./api";
+import { apiFetch, apiGetOne } from "./api";
 import { User } from "../models/user";
 import { Policy } from "../models/policy";
 import { SearchResults } from "../models/search-results";
@@ -30,7 +30,7 @@ export const protocolQuery = selectorFamily<Protocol | undefined, {
   queryTime: string;
 }>({
   key: "protocolQuery",
-  get: ({ protocolId }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `protocol/${protocolId}`)
+  get: ({ protocolId }) => ({ get }) => apiGetOne(labflowOptions, () => get(auth0State).auth0Client, `protocol/${protocolId}`)
 });
 
 export const runQuery = selectorFamily<Run | undefined, {
@@ -38,7 +38,7 @@ export const runQuery = selectorFamily<Run | undefined, {
   queryTime: string;
 }>({
   key: "runQuery",
-  get: ({ runId }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `run/${runId}`)
+  get: ({ runId }) => ({ get }) => apiGetOne(labflowOptions, () => get(auth0State).auth0Client, `run/${runId}`)
 });
 
 export const userQuery = selectorFamily<User | undefined, {
@@ -46,8 +46,8 @@ export const userQuery = selectorFamily<User | undefined, {
   queryTime: string;
 }>({
   key: "userQuery",
-  get: ({ userId }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `user/${userId}`),
-})
+  get: ({ userId }) => ({ get }) => apiGetOne(labflowOptions, () => get(auth0State).auth0Client, `user/${userId}`),
+});
 
 
 // ----------------------------------------------------------------------------
