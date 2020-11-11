@@ -26,75 +26,54 @@ export function HomePage() {
         const { auth0Client } = await snapshot.getPromise(auth0State);
         return await upsertRun(() => auth0Client, run);
     });
-    return <div>
-        <div className="row mt-4">
+
+    const createProtocol = async () => {
+        // Create new protocol
+        const created = await protocolUpsert({});
+        // Redirect to the new protocol page editor
+        history.push(`/protocol/${created.id}`);
+    };
+    const createRun = (protocol: Protocol) => async () => {
+        // Create new run
+        const created = await runUpsert({
+            status: 'todo',
+            blocks: protocol.blocks && protocol.blocks.map(definition => ({ type: definition.type, definition } as Block)),
+            protocol,
+        });
+        // Redirect to the new run page editor
+        history.push(`/run/${created.id}`);
+    };
+    const refresh = () => {
+        setRunsTimestamp(moment().format());
+        setProtocolsTimestamp(moment().format());
+    }
+
+    return <div className="container">
+        <div className="row mt-4 overflow-y-scroll">
             <Suspense fallback={<LoadingPage />}>
                 <ProtocolsTable protocols={protocols} />
             </Suspense>
         </div>
         <div className="row">
             <div className="col text-center">
-                <Button
-                    className="mr-3"
-                    variant="primary"
-                    onClick={() => {
-                        setRunsTimestamp(moment().format());
-                        setProtocolsTimestamp(moment().format());
-                    }}
-                >
-                    Refresh
-                </Button>
-                <Button
-                    variant="success"
-                    onClick={async () => {
-                        // Create new protocol
-                        const created = await protocolUpsert({});
-                        // Redirect to the new protocol page editor
-                        history.push(`/protocol/${created.id}`);
-                    }}
-                >
-                    Create Protocol
-                </Button>
+                <Button className="mr-3" variant="primary" onClick={refresh}>Refresh</Button>
+                <Button variant="success" onClick={createProtocol}>Create Protocol</Button>
             </div>
         </div>
-        <div className="row mt-4">
+        <div className="row mt-4 overflow-y-scroll">
             <Suspense fallback={<LoadingPage />}>
                 <RunsTable runs={runs} />
             </Suspense>
         </div>
         <div className="row">
             <div className="col text-center">
-                <Button
-                    className="mr-3"
-                    variant="primary"
-                    onClick={() => {
-                        setRunsTimestamp(moment().format());
-                        setProtocolsTimestamp(moment().format());
-                    }}
-                >
-                    Refresh
-                </Button>
+                <Button className="mr-3" variant="primary" onClick={refresh}>Refresh</Button>
                 <Dropdown className="d-inline">
-                    <Dropdown.Toggle variant="success">
-                        Create Run
-                    </Dropdown.Toggle>
-
+                    <Dropdown.Toggle variant="success">Create Run</Dropdown.Toggle>
                     <Dropdown.Menu>
                         {
                             protocols.map(protocol =>
-                                <Dropdown.Item
-                                    key={protocol.id}
-                                    onClick={async () => {
-                                        // Create new run
-                                        const created = await runUpsert({
-                                            status: 'todo',
-                                            blocks: protocol.blocks && protocol.blocks.map(definition => ({ type: definition.type, definition } as Block)),
-                                            protocol,
-                                        });
-                                        // Redirect to the new run page editor
-                                        history.push(`/run/${created.id}`);
-                                    }}
-                                >
+                                <Dropdown.Item key={protocol.id} onClick={createRun(protocol)}>
                                     {protocol.name || <i>Untitled Protocol</i>}
                                 </Dropdown.Item>
                             )
@@ -106,5 +85,5 @@ export function HomePage() {
                 </Dropdown>
             </div>
         </div>
-    </div>
+    </div>;
 }
