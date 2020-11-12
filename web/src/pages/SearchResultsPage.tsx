@@ -6,11 +6,9 @@ import { RunsTable } from "../components/RunsTable";
 import { searchQuery } from "../state/selectors";
 import moment from 'moment';
 import { ResultsTable } from "../components/ResultsTable";
-import { exportProtocolsToCSV, ProtocolStatus } from "../models/protocol";
-import { exportRunsToCSV, RunStatus } from "../models/run";
+import { exportProtocolsToCSV } from "../models/protocol";
+import { exportRunsToCSV } from "../models/run";
 import { exportSampleResultsToCSV } from "../models/sample-result";
-
-type Status = ProtocolStatus | RunStatus | "none";
 
 function ParametricSearch({
     filterPlateId,
@@ -18,34 +16,27 @@ function ParametricSearch({
     filterReagentId,
     filterRunId,
     filterProtocolId,
-    filterStatus,
     setFilterPlateId,
     setFilterSampleId,
     setFilterReagentId,
     setFilterRunId,
     setFilterProtocolId,
-    setFilterStatus
 }: {
     filterPlateId: string;
     filterSampleId: string;
     filterReagentId: string;
     filterRunId: string;
     filterProtocolId: string;
-    filterStatus: Status;
     setFilterPlateId: (plateId: string) => void;
     setFilterSampleId: (sampleId: string) => void;
     setFilterReagentId: (reagentId: string) => void;
     setFilterRunId: (runId: string) => void;
     setFilterProtocolId: (protocolId: string) => void;
-    setFilterStatus: (status: Status) => void;
 }) {
-
-    console.log(filterStatus);
     return <>
         <Form.Group className="col-2 mt-auto">
             <Form.Label>Plate ID <i>(Coming soon...)</i></Form.Label>
             <Form.Control
-                disabled={true}
                 value={filterPlateId}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterPlateId((e.target as HTMLInputElement).value)}
             />
@@ -53,7 +44,6 @@ function ParametricSearch({
         <Form.Group className="col-2 mt-auto">
             <Form.Label>Sample ID <i>(Coming soon...)</i></Form.Label>
             <Form.Control
-                disabled={true}
                 value={filterSampleId}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterSampleId((e.target as HTMLInputElement).value)}
             />
@@ -61,7 +51,6 @@ function ParametricSearch({
         <Form.Group className="col-2 mt-auto">
             <Form.Label>Reagent ID <i>(Coming soon...)</i></Form.Label>
             <Form.Control
-                disabled={true}
                 value={filterReagentId}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterReagentId((e.target as HTMLInputElement).value)}
             />
@@ -80,20 +69,6 @@ function ParametricSearch({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterProtocolId((e.target as HTMLInputElement).value)}
             />
         </Form.Group>
-        <Form.Group className="col-2 mt-auto">
-            <Form.Label>Status (Run or Protocol) <i>(Coming soon...)</i></Form.Label>
-            <Form.Control
-                disabled={true}
-                as="select"
-                value={filterStatus}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterStatus((e.target as HTMLSelectElement).value as Status)}
-            >
-                <option value="none">Any Status</option>
-                <option value="todo">TODO</option>
-                <option value="signed">Signed</option>
-                <option value="witnessed">Witnessed</option>
-            </Form.Control>
-        </Form.Group>
     </>
 }
 
@@ -105,7 +80,6 @@ export function SearchResultsPage() {
     const [filterReagentId, setFilterReagentId] = useState("");
     const [filterRunId, setFilterRunId] = useState("");
     const [filterProtocolId, setFilterProtocolId] = useState("");
-    const [filterStatus, setFilterStatus] = useState<Status>("none");
 
     const results = useRecoilValue(searchQuery({ queryTime, filterParams }));
 
@@ -136,13 +110,11 @@ export function SearchResultsPage() {
                 filterReagentId={filterReagentId}
                 filterRunId={filterRunId}
                 filterProtocolId={filterProtocolId}
-                filterStatus={filterStatus}
                 setFilterPlateId={setFilterPlateId}
                 setFilterSampleId={setFilterSampleId}
                 setFilterReagentId={setFilterReagentId}
                 setFilterRunId={setFilterRunId}
                 setFilterProtocolId={setFilterProtocolId}
-                setFilterStatus={setFilterStatus}
             />
             {/* TODO: General text search */}
             <Button
@@ -163,9 +135,6 @@ export function SearchResultsPage() {
                     }
                     if (filterProtocolId) {
                         params['protocol'] = filterProtocolId;
-                    }
-                    if (filterStatus) {
-                        params['status'] = filterStatus;
                     }
                     setFilterParams(params);
                     setQueryTime(moment().format());

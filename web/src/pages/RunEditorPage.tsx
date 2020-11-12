@@ -5,7 +5,7 @@ import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { createEditor, Node } from 'slate';
 import { Slate, Editable, withReact } from 'slate-react';
 import { RunBlockEditor } from '../components/RunBlockEditor';
-import { humanizeRunName, Run } from '../models/run';
+import { calculateRunStatus, humanizeRunName, Run, Section } from '../models/run';
 import { auth0State } from '../state/atoms';
 import { runQuery, upsertRun } from '../state/selectors';
 import { Block } from '../models/block';
@@ -24,6 +24,138 @@ const initialSlateValue: Node[] = [
     }
 ];
 
+export function RunSectionEditor({disabled, index, section, setSection, syncSection}: {
+    disabled?: boolean;
+    index: number;
+    section?: Section;
+    setSection: (section?: Section) => void;
+    syncSection: (section?: Section) => void;
+}) {
+    const currentBlocks = (section && section.blocks) || [];
+    const currentSignature = (section && section.signature) || '';
+    const currentWitness = (section && section.witness) || '';
+
+    const isSigned = (section && !!section.signedOn) || false;
+    const isWitnessed = (section && !!section.witnessedOn) || false;
+    
+    console.log(section && section.witnessedOn, isWitnessed);
+
+    const updateBlock = (block?: Block) => {
+        if (block && section) {
+            setSection({
+                ...section,
+                blocks: currentBlocks.map(b => (b.definition.id === block.definition.id) ? block : b),
+            });
+        }
+    };
+
+    return <>
+        <h1 className="row">
+            Section {index}: {(section && section.definition.name) || 'Untitled Section'}
+        </h1>
+
+        {currentBlocks.map(block => {
+            if (!block || !block.definition || !block.definition.id) {
+                return undefined;
+            }
+            return <RunBlockEditor
+                key={block.definition.id}
+                block={block}
+                setBlock={updateBlock}
+                disabled={isSigned || isWitnessed}
+            />
+        })}
+
+        <div className="row">
+            <Form.Group className="col-3 ml-auto">
+                <Form.Label>Signature</Form.Label>
+                <InputGroup>
+                    <Form.Control
+                        className="flow-signature"
+                        type="text"
+                        value={currentSignature}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            if (section) {
+                                setSection({
+                                    ...section,
+                                    signature: (e.target as HTMLInputElement).value,
+                                })
+                            }
+                        }}
+                        disabled={isSigned}
+                    />
+                    <InputGroup.Append>
+                        <Button variant="secondary" onClick={() => {
+                            if (section) {
+                                if (isSigned || isWitnessed) {
+                                    const { signature, witness, signedOn, witnessedOn, ...newSection} = section;
+                                    syncSection(newSection);
+                                } else {
+                                    syncSection({...section, signedOn: moment().format()});
+                                }
+                            }
+                        }}>
+                            {(isSigned || isWitnessed) ? 'Un-sign' : 'Sign'}
+                        </Button>
+                    </InputGroup.Append>
+                </InputGroup>
+            </Form.Group>
+        </div>
+
+        {
+            section && section.signedOn && <div className="row">
+                <div className="col-3 ml-auto">
+                    Signed On: {moment(section && section.signedOn).format('LLL')}
+                </div>
+            </div>
+        }
+
+        <div className="row">
+            <Form.Group className="col-3 ml-auto">
+                <Form.Label>Witness</Form.Label>
+                <InputGroup>
+                    <Form.Control
+                        className="flow-signature"
+                        type="text"
+                        value={currentWitness}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            if (section) {
+                                setSection({
+                                    ...section,
+                                    witness: (e.target as HTMLInputElement).value,
+                                });
+                            }
+                        }}
+                        disabled={isWitnessed || !isSigned}
+                    />
+                    <InputGroup.Append>
+                        <Button variant="secondary" disabled={!isSigned} onClick={() => {
+                            if (section) {
+                                if (isWitnessed) {
+                                    const { witness, witnessedOn, ...newSection} = section;
+                                    syncSection(newSection)
+                                } else {
+                                    syncSection({...section, witnessedOn: moment().format()})
+                                }
+                            }
+                        }}>
+                            {isWitnessed ? 'Un-sign' : 'Sign'}
+                        </Button>
+                    </InputGroup.Append>
+                </InputGroup>
+            </Form.Group>
+        </div>
+
+        {
+            section && section.witnessedOn && <div className="row">
+                <div className="col-3 ml-auto">
+                    Witnessed On: {moment(section && section.witnessedOn).format('LLL')}
+                </div>
+            </div>
+        }
+    </>
+}
+
 export interface RunEditorPageParams {
     id: string;
 }
@@ -32,10 +164,7 @@ export function RunEditorPage() {
     const [runTimestamp, setRunTimestamp] = useState(moment().format());
     const [showSharingModal, setShowSharingModal] = useState(false);
     const [notes, setNotes] = useState<Node[] | null>(null);
-    const [blocks, setBlocks] = useState<Block[] | null>(null);
-    const [status, setStatus] = useState<"todo" | "signed" | "witnessed" | null>(null);
-    const [signature, setSignature] = useState<string | null>(null);
-    const [witness, setWitness] = useState<string | null>(null);
+    const [sections, setSections] = useState<Section[] | null>(null);
     const [formSaving, setFormSaving] = useState<boolean>(false);
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
     const editor = React.useMemo(() => withReact(createEditor()), []);
@@ -57,32 +186,38 @@ export function RunEditorPage() {
     });
 
     const currentNotes = ((notes !== null) ? notes : (run && run.notes && deserializeSlate(run.notes))) || initialSlateValue;
-    const currentBlocks = ((blocks !== null) ? blocks : (run && run.blocks)) || [];
-    const currentStatus = ((status !== null) ? status : (run && run.status)) || 'todo';
-    const currentSignature = ((signature !== null) ? signature : (run && run.signature)) || '';
-    const currentWitness = ((witness !== null) ? witness : (run && run.witness)) || '';
+    const currentSections = ((sections !== null) ? sections : (run && run.sections)) || [];
 
-    const updateBlock = (block?: Block) => {
-        if (block) {
-            setBlocks(currentBlocks.map(b => (b.definition.id === block.definition.id) ? block : b));
+    const updateSection = (section?: Section) => {
+        if (section) {
+            setSections(currentSections.map(b => (b.definition.id === section.definition.id) ? section : b));
         }
     };
 
-    const isSigned = currentStatus === 'signed';
-    const isWitnessed = currentStatus === 'witnessed';
+    const isCompleted = (run && run.status) === 'completed';
 
     // Slate helpers.
     const renderElement = React.useCallback(props => <Element {...props} />, []);
     const renderLeaf = React.useCallback(props => <Leaf {...props} />, []);
 
-    const syncRun = () => runUpsert({
-        id: parseInt(id),
-        notes: serializeSlate(currentNotes),
-        status: currentStatus,
-        blocks: currentBlocks,
-        signature: currentSignature,
-        witness: currentWitness,
-    });
+    const syncRun = (override?: Run) => {
+        const run: Run = Object.assign({
+            id: parseInt(id),
+            notes: serializeSlate(currentNotes),
+            sections: currentSections,
+        }, override);
+        run.status = calculateRunStatus(run);
+        runUpsert(run);
+    };
+    const syncSection = (index: number) => (override?: Section) => {
+        if (override) {
+            syncRun({
+                sections: currentSections.map((s, i) => i === index ? override : s),
+            })
+        } else {
+            syncRun();
+        }
+    }
 
     return <>
         <SharingModal
@@ -112,70 +247,22 @@ export function RunEditorPage() {
                         placeholder="Enter a description here..."
                         onKeyDown={onHotkeyDown(editor)}
                         spellCheck
-                        disabled={isSigned || isWitnessed}
+                        disabled={isCompleted}
                     />
                 </Slate>
             </Form.Group>
-            {currentBlocks.map(block => {
-                if (!block || !block.definition || !block.definition.id) {
+            {currentSections.map((section, i) => {
+                if (!section || !section.definition || !section.definition.id) {
                     return undefined;
                 }
-                return <RunBlockEditor
-                    key={block.definition.id}
-                    block={block}
-                    setBlock={updateBlock}
-                    disabled={isSigned || isWitnessed}
+                return <RunSectionEditor
+                    key={section.definition.id}
+                    index={i}
+                    section={section}
+                    setSection={updateSection}
+                    syncSection={syncSection(i)}
                 />
             })}
-
-            <div className="row">
-                <Form.Group className="col-3 ml-auto">
-                    <Form.Label>Signature</Form.Label>
-                    <InputGroup>
-                        <Form.Control
-                            className="flow-signature"
-                            type="text"
-                            value={currentSignature}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSignature((e.target as HTMLInputElement).value)}
-                            disabled={isSigned}
-                        />
-                        <InputGroup.Append>
-                            <Button variant="secondary" onClick={() => {
-                                setStatus(isSigned ? 'todo' : 'signed');
-                                setSignature("");
-                                setWitness("");
-                                syncRun();
-                            }}>
-                                {(isSigned || isWitnessed) ? 'Un-sign' : 'Sign'}
-                            </Button>
-                        </InputGroup.Append>
-                    </InputGroup>
-                </Form.Group>
-            </div>
-
-            <div className="row">
-                <Form.Group className="col-3 ml-auto">
-                    <Form.Label>Witness</Form.Label>
-                    <InputGroup>
-                        <Form.Control
-                            className="flow-signature"
-                            type="text"
-                            value={currentWitness}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWitness((e.target as HTMLInputElement).value)}
-                            disabled={isWitnessed || !isSigned}
-                        />
-                        <InputGroup.Append>
-                            <Button variant="secondary" disabled={!isSigned} onClick={() => {
-                                setWitness(isWitnessed ? 'signed' : 'witnessed');
-                                setWitness("");
-                                syncRun();
-                            }}>
-                                {isWitnessed ? 'Un-sign' : 'Sign'}
-                            </Button>
-                        </InputGroup.Append>
-                    </InputGroup>
-                </Form.Group>
-            </div>
 
             <div className="row">
                 <ButtonToolbar className="col-auto">

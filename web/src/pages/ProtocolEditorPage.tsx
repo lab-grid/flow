@@ -7,7 +7,7 @@ import { createEditor, Node } from 'slate';
 import { Slate, Editable, withReact } from 'slate-react';
 import { ProtocolBlockEditor } from '../components/ProtocolBlockEditor';
 import { BlockDefinition } from '../models/block-definition';
-import { Protocol } from '../models/protocol';
+import { Protocol, SectionDefinition } from '../models/protocol';
 import { auth0State } from '../state/atoms';
 import { protocolQuery, upsertProtocol, upsertRun } from '../state/selectors';
 import * as uuid from 'uuid';
@@ -17,7 +17,7 @@ import moment from 'moment';
 import { deserializeSlate, serializeSlate } from '../slate';
 import { Block } from '../models/block';
 import { SharingModal } from '../components/SharingModal';
-import { Run } from '../models/run';
+import { Run, Section } from '../models/run';
 import { Element, Leaf, onHotkeyDown, Toolbar } from '../components/Slate';
 
 const initialSlateValue: Node[] = [
@@ -30,7 +30,7 @@ const initialSlateValue: Node[] = [
 ];
 
 interface DragItem {
-    type: 'protocol-block';
+    type: 'protocol-block' | 'protocol-section';
     index: number;
 }
 interface DragResult {
@@ -87,6 +87,144 @@ export function ProtocolDraggableBlock({ disabled, index, block, setBlock, moveB
     );
 }
 
+export function ProtocolDraggableSection({ disabled, index, section, setSection, moveSection, deleteSection }: {
+    disabled?: boolean;
+    index: number;
+    section?: SectionDefinition;
+    setSection: (section?: SectionDefinition) => void;
+    moveSection: (dragIndex: number, hoverIndex: number) => void;
+    deleteSection: (sectionId?: string) => void;
+}) {
+    const ref = React.useRef<HTMLDivElement>(null);
+    const [, drop] = useDrop({
+        accept: 'protocol-section',
+        hover(item: DragItem, monitor: DropTargetMonitor) {
+            if (!ref.current || item.index === index) {
+                return;
+            }
+
+            const hoverBoundingRect = ref.current.getBoundingClientRect();
+            const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+            const clientOffset = monitor.getClientOffset()
+            const hoverClientY = (clientOffset as XYCoord).y - hoverBoundingRect.top
+
+            if (item.index < index && hoverClientY < hoverMiddleY) {
+                // Dragging downwards
+                return
+            }
+            if (item.index > index && hoverClientY > hoverMiddleY) {
+                // Dragging upwards
+                return
+            }
+
+            // Time to actually perform the action
+            moveSection(item.index, index)
+            item.index = index
+        },
+    });
+
+    const [{ isDragging }, drag] = useDrag<DragItem, unknown, DragResult>({
+        item: { type: 'protocol-section', index },
+        collect: (monitor: DragSourceMonitor) => ({ isDragging: monitor.isDragging() }),
+    });
+
+    const opacity = isDragging ? 0 : 1;
+    drag(drop(ref));
+    return (
+        <div ref={ref} style={{ opacity }} className="mt-5 mb-5">
+            <ProtocolSectionEditor disabled={disabled} index={index} section={section} setSection={setSection} deleteSection={() => deleteSection(section && section.id)} />
+        </div>
+    );
+}
+
+export function ProtocolSectionEditor({disabled, index, section, setSection}: {
+    disabled?: boolean;
+    index: number;
+    section?: SectionDefinition;
+    setSection: (section?: SectionDefinition) => void;
+    deleteSection: (sectionId?: string) => void;
+}) {
+    const currentBlocks = (section && section.blocks) || [];
+
+    const addBlock = (block?: BlockDefinition) => {
+        if (block) {
+            setSection({
+                ...section,
+                blocks: [...currentBlocks, block],
+            });
+        }
+    }
+    const updateBlock = (block?: BlockDefinition) => {
+        if (block) {
+            setSection({
+                ...section,
+                blocks: currentBlocks.map(b => (b.id === block.id) ? block : b)
+            });
+        }
+    };
+    const moveBlock = React.useCallback(
+        (dragIndex: number, hoverIndex: number) => {
+            const dragBlock = currentBlocks[dragIndex]
+            const newBlocks = [...currentBlocks];
+            newBlocks.splice(dragIndex, 1);
+            newBlocks.splice(hoverIndex, 0, dragBlock);
+            setSection({
+                ...section,
+                blocks: newBlocks
+            });
+        },
+        [currentBlocks],
+    )
+    const deleteBlock = (blockId?: string) => {
+        if (blockId) {
+            setSection({
+                ...section,
+                blocks: currentBlocks.filter(b => b.id !== blockId)
+            });
+        }
+    }
+
+    return <>
+        <h1 className="row">
+            Section {index + 1}: {(section && section.name) || 'Untitled Section'}
+        </h1>
+
+        {currentBlocks.map((block, index) => {
+            if (!block || !block.id) {
+                return undefined;
+            }
+            return <ProtocolDraggableBlock
+                key={block.id}
+                index={index}
+                moveBlock={moveBlock}
+                block={block}
+                setBlock={updateBlock}
+                deleteBlock={deleteBlock}
+                disabled={disabled}
+            />;
+        })}
+        
+
+        {
+            !disabled && <div className="row">
+                <Dropdown className="col-auto my-3 mx-auto">
+                    <Dropdown.Toggle variant="success" id="block-add">
+                        Add a new block
+                    </Dropdown.Toggle>
+
+                    <Dropdown.Menu>
+                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'text-question' })}>Text Question</Dropdown.Item>
+                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'options-question' })}>Options Question</Dropdown.Item>
+                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'plate-sampler' })}>Run Plate Sampler</Dropdown.Item>
+                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'plate-add-reagent' })}>Add Reagent to Plate</Dropdown.Item>
+                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'plate-sequencer' })}>Run Plate Sequencer</Dropdown.Item>
+                    </Dropdown.Menu>
+                </Dropdown>
+            </div>
+        }
+    </>
+}
+
 export interface ProtocolEditorPageParams {
     id: string;
 }
@@ -97,8 +235,7 @@ export function ProtocolEditorPage() {
     const [showSharingModal, setShowSharingModal] = useState(false);
     const [name, setName] = useState<string | null>(null);
     const [description, setDescription] = useState<Node[] | null>(null);
-    const [blocks, setBlocks] = useState<BlockDefinition[] | null>(null);
-    const [status] = useState<"todo" | "signed" | "witnessed" | null>(null);
+    const [sections, setSections] = useState<SectionDefinition[] | null>(null);
     const [signature, setSignature] = useState<string | null>(null);
     const [witness, setWitness] = useState<string | null>(null);
     const [formSaving, setFormSaving] = useState<boolean>(false);
@@ -127,50 +264,60 @@ export function ProtocolEditorPage() {
 
     const currentName = ((name !== null) ? name : (protocol && protocol.name)) || '';
     const currentDescription = ((description !== null) ? description : (protocol && protocol.description && deserializeSlate(protocol.description))) || initialSlateValue;
-    const currentBlocks = ((blocks !== null) ? blocks : (protocol && protocol.blocks)) || [];
-    const currentStatus = ((status !== null) ? status : (protocol && protocol.status)) || 'todo';
+    const currentSections = ((sections !== null) ? sections : (protocol && protocol.sections)) || [];
     const currentSignature = ((signature !== null) ? signature : (protocol && protocol.signature)) || '';
     const currentWitness = ((witness !== null) ? witness : (protocol && protocol.witness)) || '';
 
-    const updateBlock = (block?: BlockDefinition) => {
-        if (block) {
-            setBlocks(currentBlocks.map(b => (b.id === block.id) ? block : b));
+    const addSection = (section?: SectionDefinition) => {
+        if (section) {
+            setSections([...currentSections, section]);
+        }
+    }
+    const updateSection = (section?: SectionDefinition) => {
+        if (section) {
+            setSections(currentSections.map(b => (b.id === section.id) ? section : b));
         }
     };
-    const moveBlock = React.useCallback(
+    const moveSection = React.useCallback(
         (dragIndex: number, hoverIndex: number) => {
-            const dragBlock = currentBlocks[dragIndex]
-            const newBlocks = [...currentBlocks];
-            newBlocks.splice(dragIndex, 1);
-            newBlocks.splice(hoverIndex, 0, dragBlock);
-            setBlocks(newBlocks);
+            const dragSection = currentSections[dragIndex]
+            const newSections = [...currentSections];
+            newSections.splice(dragIndex, 1);
+            newSections.splice(hoverIndex, 0, dragSection);
+            setSections(newSections);
         },
-        [currentBlocks],
+        [currentSections],
     )
-    const deleteBlock = (blockId?: string) => {
-        if (blockId) {
-            setBlocks(currentBlocks.filter(b => b.id !== blockId));
+    const deleteSection = (sectionId?: string) => {
+        if (sectionId) {
+            setSections(currentSections.filter(b => b.id !== sectionId));
         }
     }
 
-    const isSigned = currentStatus === 'signed';
-    const isWitnessed = currentStatus === 'witnessed';
+    const isSigned = (protocol && !!protocol.signedOn) || false;
+    const isWitnessed = (protocol && !!protocol.witnessedOn) || false;
 
     // Slate helpers.
     const renderElement = React.useCallback(props => <Element {...props} />, []);
     const renderLeaf = React.useCallback(props => <Leaf {...props} />, []);
 
-    const syncProtocol = (override?: Protocol) => protocolUpsert(Object.assign({
-        id: parseInt(id),
-        name: currentName,
-        description: serializeSlate(currentDescription),
-        blocks: currentBlocks,
-        status: currentStatus,
-        signature: currentSignature,
-        witness: currentWitness,
-    }, override));
-
-    console.log('currentStatus === ', currentStatus);
+    const syncProtocol = (override?: Protocol) => {
+        const newProtocol: Protocol = Object.assign({
+            id: parseInt(id),
+            name: currentName,
+            description: serializeSlate(currentDescription),
+            sections: currentSections,
+            signature: currentSignature,
+            witness: currentWitness,
+        }, override);
+        if (protocol && protocol.signedOn) {
+            newProtocol.signedOn = protocol.signedOn;
+        }
+        if (protocol && protocol.witnessedOn) {
+            newProtocol.witnessedOn = protocol.witnessedOn;
+        }
+        protocolUpsert(newProtocol);
+    }
 
     return <>
         <SharingModal
@@ -215,36 +362,24 @@ export function ProtocolEditorPage() {
                 </Slate>
             </Form.Group>
 
-            {currentBlocks.map((block, index) => {
-                if (!block || !block.id) {
+            {currentSections.map((section, index) => {
+                if (!section || !section.id) {
                     return undefined;
                 }
-                return <ProtocolDraggableBlock
-                    key={block.id}
+                return <ProtocolDraggableSection
+                    key={section.id}
                     index={index}
-                    moveBlock={moveBlock}
-                    block={block}
-                    setBlock={updateBlock}
-                    deleteBlock={deleteBlock}
+                    moveSection={moveSection}
+                    section={section}
+                    setSection={updateSection}
+                    deleteSection={deleteSection}
                     disabled={isSigned || isWitnessed}
                 />;
             })}
 
             {
                 !isSigned && !isWitnessed && <div className="row">
-                    <Dropdown className="col-auto my-3 mx-auto">
-                        <Dropdown.Toggle variant="success" id="block-add">
-                            Add a new section
-                        </Dropdown.Toggle>
-
-                        <Dropdown.Menu>
-                            <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'text-question' }])}>Text Question</Dropdown.Item>
-                            <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'options-question' }])}>Options Question</Dropdown.Item>
-                            <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'plate-sampler' }])}>Run Plate Sampler</Dropdown.Item>
-                            <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'plate-add-reagent' }])}>Add Reagent to Plate</Dropdown.Item>
-                            <Dropdown.Item onClick={() => setBlocks([...currentBlocks, { id: uuid.v4(), type: 'plate-sequencer' }])}>Run Plate Sequencer</Dropdown.Item>
-                        </Dropdown.Menu>
-                    </Dropdown>
+                    <Button className="col-auto my-3 mx-auto" onClick={() => addSection({ id: uuid.v4() })}>Add a new section</Button>
                 </div>
             }
 
@@ -261,9 +396,7 @@ export function ProtocolEditorPage() {
                         />
                         <InputGroup.Append>
                             <Button variant="secondary" onClick={() => {
-                                const override: Protocol = {
-                                    status: isSigned ? 'todo' : 'signed',
-                                };
+                                const override: Protocol = {};
                                 if (isSigned) {
                                     override.signature = "";
                                     override.witness = "";
@@ -276,6 +409,14 @@ export function ProtocolEditorPage() {
                     </InputGroup>
                 </Form.Group>
             </div>
+
+            {
+                protocol && protocol.signedOn && <div className="row">
+                    <div className="col-3 ml-auto">
+                        Signed On: {moment(protocol && protocol.signedOn).format('LLLL')}
+                    </div>
+                </div>
+            }
 
             <div className="row">
                 <Form.Group className="col-3 ml-auto">
@@ -290,9 +431,7 @@ export function ProtocolEditorPage() {
                         />
                         <InputGroup.Append>
                             <Button variant="secondary" disabled={!isSigned} onClick={() => {
-                                const override: Protocol = {
-                                    status: isWitnessed ? 'signed' : 'witnessed',
-                                };
+                                const override: Protocol = {};
                                 if (isWitnessed) {
                                     override.witness = "";
                                 }
@@ -305,6 +444,14 @@ export function ProtocolEditorPage() {
                 </Form.Group>
             </div>
 
+            {
+                protocol && protocol.witnessedOn && <div className="row">
+                    <div className="col-3 ml-auto">
+                        Witnessed On: {moment(protocol && protocol.witnessedOn).format('LLLL')}
+                    </div>
+                </div>
+            }
+
             <div className="row">
                 <Button
                     className="col-auto"
@@ -316,7 +463,13 @@ export function ProtocolEditorPage() {
                         // Create new run
                         const created = await runUpsert({
                             status: 'todo',
-                            blocks: protocol.blocks && protocol.blocks.map(definition => ({ type: definition.type, definition } as Block)),
+                            sections: protocol.sections && protocol.sections.map(section => ({
+                                definition: section,
+                                blocks: section.blocks && section.blocks.map(definition => ({
+                                    type: definition.type,
+                                    definition,
+                                } as Block)),
+                            } as Section)),
                             protocol,
                         });
                         // Redirect to the new run page editor

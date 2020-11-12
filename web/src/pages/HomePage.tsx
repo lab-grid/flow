@@ -6,7 +6,7 @@ import { ProtocolsTable } from '../components/ProtocolsTable';
 import { RunsTable } from '../components/RunsTable';
 import { Protocol } from '../models/protocol';
 import { Block } from '../models/block';
-import { Run } from '../models/run';
+import { Run, Section } from '../models/run';
 import { auth0State } from '../state/atoms';
 import { protocolsQuery, runsQuery, upsertProtocol, upsertRun } from '../state/selectors';
 import moment from 'moment';
@@ -37,7 +37,13 @@ export function HomePage() {
         // Create new run
         const created = await runUpsert({
             status: 'todo',
-            blocks: protocol.blocks && protocol.blocks.map(definition => ({ type: definition.type, definition } as Block)),
+            sections: protocol.sections && protocol.sections.map(section => ({
+                definition: section,
+                blocks: section.blocks && section.blocks.map(definition => ({
+                    type: definition.type,
+                    definition,
+                } as Block)),
+            } as Section)),
             protocol,
         });
         // Redirect to the new run page editor
