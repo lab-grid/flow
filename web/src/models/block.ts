@@ -1,4 +1,4 @@
-import { OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, TextQuestionBlockDefinition } from "./block-definition";
+import { EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from "./block-definition";
 
 export type Block = TextQuestionBlock | OptionsQuestionBlock | PlateSamplerBlock | PlateAddReagentBlock | PlateSequencerBlock;
 
@@ -20,11 +20,9 @@ export interface PlateSamplerBlock {
     type: 'plate-sampler';
     definition: PlateSamplerBlockDefinition;
 
-    plateLabels?: string[];
-    outputPlateLabel?: string;
+    plateMappings?: {[label: string]: PlateCoordinate[]};
 
-    // TODO:
-    // plateMappings?: Map<PlateLocation, string>[];
+    outputPlateLabel?: string;
 }
 
 export interface PlateAddReagentBlock {
@@ -32,25 +30,35 @@ export interface PlateAddReagentBlock {
     definition: PlateAddReagentBlockDefinition;
 
     plateLabel?: string;
+
+    // TODO: lotId, etc.
+}
+
+export interface StartThermocyclerBlock {
+    type: 'start-thermocycler';
+    definition: StartThermocyclerBlockDefinition;
+}
+
+export interface EndThermocyclerBlock {
+    type: 'end-thermocycler';
+    definition: EndThermocyclerBlockDefinition;
 }
 
 export interface PlateSequencerBlock {
     type: 'plate-sequencer';
     definition: PlateSequencerBlockDefinition;
 
-    plateLabel?: string;
-
-    // TODO:
-    // plateSequencingResults?: Map<PlateLocation, string>;
+    plateSequencingResults?: {[label: string]: PlateResult};
 }
 
-export interface PlateLocation {
+export interface PlateResult {
     row?: number;
     col?: number;
+    result?: string;
 }
 
 export interface PlateCoordinate {
     row?: number;
     col?: number;
-    plateLabel?: number;
+    sampleLabel?: number;
 }

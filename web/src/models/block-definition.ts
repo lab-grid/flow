@@ -41,6 +41,26 @@ export interface PlateAddReagentBlockDefinition {
     reagentLabel?: string;
 }
 
+export interface StartThermocyclerBlockDefinition {
+    type: 'start-thermocycler';
+
+    id?: string;
+    name?: string;
+
+    thermocyclerLabel?: string;
+    startedOn?: string;
+}
+
+export interface EndThermocyclerBlockDefinition {
+    type: 'end-thermocycler';
+
+    id?: string;
+    name?: string;
+
+    thermocyclerLabel?: string;
+    endedOn?: string;
+}
+
 export interface PlateSequencerBlockDefinition {
     type: 'plate-sequencer';
 

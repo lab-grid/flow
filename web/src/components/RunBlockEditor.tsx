@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
 import { UpcScan } from 'react-bootstrap-icons';
-import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block } from '../models/block';
+import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block, PlateCoordinate } from '../models/block';
 import { OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { TableUploadModal } from './TableUploadModal';
 
 function RunBlockTextQuestion({disabled, definition, answer, setAnswer}: {
     disabled?: boolean;
@@ -75,6 +76,96 @@ function cloneArrayToSize<T>(size: number, defaultValue: T, original?: T[]): T[]
     return newPlateLabels;
 }
 
+interface plateLabelRow {
+    plate?: string;
+    cell?: string;
+    sample?: string | number;
+}
+
+const cellRegex = /^([A-Za-z]+)([0-9]+)$/;
+
+function cellToCoordinate(cell?: string): PlateCoordinate {
+    if (!cell) {
+        return {};
+    }
+
+    const [, rowRaw, columnRaw] = cell.match(cellRegex);
+
+    let row = 0;
+    const lowerRowRaw = rowRaw.toLocaleLowerCase();
+    for (let i = 0; i < lowerRowRaw.length; i++) {
+        row += (lowerRowRaw.charCodeAt(i) - 97) * Math.pow(10, lowerRowRaw.length - 1 - i);
+    }
+
+    return {
+        row,
+        col: parseInt(columnRaw),
+    };
+}
+
+function RunBlockPlateLabelUploader({disabled, wells, plateLabel, setCoordinates}: {
+    disabled?: boolean;
+    wells?: number;
+    plateLabel?: string;
+    setCoordinates: (plateLabel: string, coordinates: PlateCoordinate[]) => void;
+}) {
+    const [showUploader, setShowUploader] = useState(false);
+
+    const parseAndSetCoordinates = (data: plateLabelRow[]) => {
+        const results: {[label: string]: PlateCoordinate[]} = {};
+        for (const row of data) {
+            if (!row.plate) {
+                console.warn('Found a row with no plate!', row);
+                return;
+            }
+            if (!results[row.plate]) {
+                results[row.plate] = [];
+            }
+            const coordinate = cellToCoordinate(row.cell);
+            coordinate.sampleLabel = typeof row.sample === 'string' ? undefined : row.sample;
+            results[row.plate].push(coordinate);
+        }
+        const labels = Object.keys(results);
+        if (labels.length === 0) {
+            console.warn('Uploaded table contained no plate data', data, results);
+            return;
+        }
+        if (labels.length > 1) {
+            console.warn('Uploaded barcode data from multiple plates! Only using first plate...', data, results);
+        }
+        setCoordinates(labels[0], results[labels[0]]);
+        setShowUploader(false);
+    }
+
+    return <>
+        <TableUploadModal
+            columns={{
+                'plate': 0,
+                'cell': 1,
+                'sample': 2,
+            }}
+            show={showUploader}
+            setShow={setShowUploader}
+            setTable={parseAndSetCoordinates}
+        />
+        <InputGroup>
+            <InputGroup.Prepend>
+                <InputGroup.Text>{wells || 96}-well</InputGroup.Text>
+            </InputGroup.Prepend>
+            <Form.Control
+                disabled={true}
+                placeholder={plateLabel ? `Plate ID: ${plateLabel}. Mappings saved...` : "Upload plate mapping csv"}
+                aria-label={plateLabel ? `Plate ID: ${plateLabel}. Mappings saved...` : "Upload plate mapping csv"}
+            />
+            <InputGroup.Append>
+                <Button variant="secondary" disabled={disabled} onClick={() => setShowUploader(true)}>
+                    <UpcScan /> Scan
+                </Button>
+            </InputGroup.Append>
+        </InputGroup>
+    </>
+}
+
 function RunBlockPlateLabelEditor({disabled, wells, label, setLabel}: {
     disabled?: boolean;
     wells?: number;
@@ -100,29 +191,29 @@ function RunBlockPlateLabelEditor({disabled, wells, label, setLabel}: {
     </InputGroup>
 }
 
-function RunBlockPlateSamplerEditor({disabled, definition, outputPlateLabel, setOutputPlateLabel, plateLabels, setPlateLabels}: {
+function RunBlockPlateSamplerEditor({disabled, definition, outputPlateLabel, setOutputPlateLabel, mappings, setMappings}: {
     disabled?: boolean;
     definition: PlateSamplerBlockDefinition;
     outputPlateLabel?: string;
     setOutputPlateLabel: (outputPlateLabel?: string) => void;
-    plateLabels?: string[];
-    setPlateLabels: (plateLabels?: string[]) => void;
+    mappings?: {[label: string]: PlateCoordinate[]};
+    setMappings: (mappings: {[label: string]: PlateCoordinate[]}) => void;
 }) {
+    const plates = mappings && Object.keys(mappings);
     const inputRows: JSX.Element[] = [];
     for (let i = 0; i < (definition.plateCount || 0); i++) {
+        const label = plates && plates[i];
         inputRows.push(<tr key={i}>
             <th>Input Plate {i}</th>
             <td>
-                <RunBlockPlateLabelEditor
+                <RunBlockPlateLabelUploader
                     disabled={disabled}
                     wells={definition.plateSize}
-                    label={plateLabels ? plateLabels[i] : undefined}
-                    setLabel={label => {
-                        if (label !== undefined) {
-                            const newPlateLabels = cloneArrayToSize(definition.plateCount || 0, '', plateLabels);
-                            newPlateLabels[i] = label;
-                            setPlateLabels(newPlateLabels);
-                        }
+                    plateLabel={label}
+                    setCoordinates={(label, coordinates) => {
+                        const newMappings = {...mappings};
+                        newMappings[label] = coordinates;
+                        setMappings(newMappings);
                     }}
                 />
             </td>
@@ -174,21 +265,21 @@ function RunBlockPlateAddReagentEditor({disabled, definition, plateLabel, setPla
     );
 }
 
-function RunBlockPlateSequencerEditor({disabled, definition, plateLabel, setPlateLabel}: {
+function RunBlockPlateSequencerEditor({disabled, definition/* , plateLabel, setPlateLabel */}: {
     disabled?: boolean;
     definition: PlateSequencerBlockDefinition;
-    plateLabel?: string;
-    setPlateLabel: (plateLabel?: string) => void;
+    // plateLabel?: string;
+    // setPlateLabel: (plateLabel?: string) => void;
 }) {
     return (
         <Form.Group>
             <Form.Label>Sequenced plate</Form.Label>
-            <RunBlockPlateLabelEditor
+            {/* <RunBlockPlateLabelEditor
                 disabled={disabled}
                 wells={definition.plateSize}
                 label={plateLabel}
                 setLabel={setPlateLabel}
-            />
+            /> */}
         </Form.Group>
     );
 }
@@ -241,8 +332,8 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                     definition={block.definition}
                     outputPlateLabel={block.outputPlateLabel}
                     setOutputPlateLabel={outputPlateLabel => props.setBlock({ ...block, type: 'plate-sampler', outputPlateLabel })}
-                    plateLabels={block.plateLabels}
-                    setPlateLabels={plateLabels => props.setBlock({ ...block, type: 'plate-sampler', plateLabels })}
+                    mappings={props.block && props.block.plateMappings}
+                    setMappings={mappings => props.setBlock({ ...block, type: 'plate-sampler', plateMappings: mappings })}
                 />
             );
         }
@@ -263,8 +354,8 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                 <RunBlockPlateSequencerEditor
                     disabled={props.disabled}
                     definition={block.definition}
-                    plateLabel={block.plateLabel}
-                    setPlateLabel={plateLabel => props.setBlock({ ...block, type: 'plate-sequencer', plateLabel })}
+                    // plateLabel={block.plateLabel}
+                    // setPlateLabel={plateLabel => props.setBlock({ ...block, type: 'plate-sequencer', plateLabel })}
                 />
             );
         }
