@@ -50,9 +50,6 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
     };
 
     return <>
-        <h1 className="row">
-            Section: {(section && section.definition.name) || 'Untitled Section'}
-        </h1>
 
         {currentBlocks.map(block => {
             if (!block || !block.definition || !block.definition.id) {

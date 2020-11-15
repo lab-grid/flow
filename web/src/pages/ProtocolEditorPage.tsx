@@ -192,7 +192,7 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
 
     return <>
         <Form.Group>
-          <Form.Label>Run signature section:</Form.Label>
+          <h3 className="row"><Form.Label>Run signature section title:</Form.Label></h3>
           <Form.Control
             disabled={disabled}
             type="text"
@@ -201,9 +201,6 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSectionTitle((e.target as HTMLInputElement).value)}
           />
         </Form.Group>
-        <h1 className="row">
-            Run signature section: {(section && section.name) || 'Untitled Section'}
-        </h1>
 
         {currentBlocks.map((block, index) => {
             if (!block || !block.id) {
@@ -344,7 +341,7 @@ export function ProtocolEditorPage() {
         />
         <Form className="mt-4">
             <Form.Group>
-                <Form.Label>Protocol Title</Form.Label>
+                <h2 className="row"><Form.Label>Protocol Title</Form.Label></h2>
                 <InputGroup>
                     <Form.Control
                         type="text"
