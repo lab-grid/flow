@@ -53,7 +53,7 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
         <h1 className="row">
             Section {index}: {(section && section.definition.name) || 'Untitled Section'}
         </h1>
-        
+
         {currentBlocks.map(block => {
             if (!block || !block.definition || !block.definition.id) {
                 return undefined;
