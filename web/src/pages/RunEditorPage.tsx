@@ -51,7 +51,7 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
 
     return <>
         <h1 className="row">
-            Section {index}: {(section && section.definition.name) || 'Untitled Section'}
+            Section: {(section && section.definition.name) || 'Untitled Section'}
         </h1>
 
         {currentBlocks.map(block => {
