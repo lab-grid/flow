@@ -183,11 +183,24 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
             });
         }
     }
+    const updateSectionTitle = (sectionTitle?: string) => {
+      setSection({
+        ...section,
+        name: sectionTitle
+      });
+    }
 
     return <>
-        <h1 className="row">
-            Section {index + 1}: {(section && section.name) || 'Untitled Section'}
-        </h1>
+        <Form.Group>
+          <h3 className="row"><Form.Label>Run signature section title:</Form.Label></h3>
+          <Form.Control
+            disabled={disabled}
+            type="text"
+            placeholder="Enter the title"
+            value={(section && section.name)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSectionTitle((e.target as HTMLInputElement).value)}
+          />
+        </Form.Group>
 
         {currentBlocks.map((block, index) => {
             if (!block || !block.id) {
@@ -328,7 +341,7 @@ export function ProtocolEditorPage() {
         />
         <Form className="mt-4">
             <Form.Group>
-                <Form.Label>Protocol Title</Form.Label>
+                <h2 className="row"><Form.Label>Protocol Title</Form.Label></h2>
                 <InputGroup>
                     <Form.Control
                         type="text"
@@ -385,7 +398,7 @@ export function ProtocolEditorPage() {
 
             <div className="row">
                 <Form.Group className="col-3 ml-auto">
-                    <Form.Label>Signature</Form.Label>
+                    <Form.Label>Protocol Signature</Form.Label>
                     <InputGroup>
                         <Form.Control
                             className="flow-signature"
@@ -420,7 +433,7 @@ export function ProtocolEditorPage() {
 
             <div className="row">
                 <Form.Group className="col-3 ml-auto">
-                    <Form.Label>Witness</Form.Label>
+                    <Form.Label>Protocol Witness</Form.Label>
                     <InputGroup>
                         <Form.Control
                             className="flow-signature"
