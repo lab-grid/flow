@@ -35,7 +35,7 @@ export default function App() {
     <BrowserRouter>
       <Navbar bg="dark" variant="dark">
         <Navbar.Brand>
-          <Link to="/">
+          <Link className="product-name" to="/">
             Flow by LabGrid
             </Link>
         </Navbar.Brand>
