@@ -191,11 +191,13 @@ function RunBlockPlateLabelEditor({disabled, wells, label, setLabel}: {
     </InputGroup>
 }
 
-function RunBlockPlateSamplerEditor({disabled, definition, outputPlateLabel, setOutputPlateLabel, mappings, setMappings}: {
+function RunBlockPlateSamplerEditor({disabled, definition, outputPlateLabel, outputPlateType, setOutputPlateLabel, setOutputPlateType, mappings, setMappings}: {
     disabled?: boolean;
     definition: PlateSamplerBlockDefinition;
     outputPlateLabel?: string;
+    outputPlateType?: string;
     setOutputPlateLabel: (outputPlateLabel?: string) => void;
+    setOutputPlateType: (outputPlateType?: string) => void;
     mappings?: {[label: string]: PlateCoordinate[]};
     setMappings: (mappings: {[label: string]: PlateCoordinate[]}) => void;
 }) {
@@ -331,7 +333,9 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                     disabled={props.disabled}
                     definition={block.definition}
                     outputPlateLabel={block.outputPlateLabel}
+                    outputPlateType={block.type}
                     setOutputPlateLabel={outputPlateLabel => props.setBlock({ ...block, type: 'plate-sampler', outputPlateLabel })}
+                    setOutputPlateType={outputPlateType => props.setBlock({ ...block, type: 'plate-sampler', outputPlateType })}
                     mappings={props.block && props.block.plateMappings}
                     setMappings={mappings => props.setBlock({ ...block, type: 'plate-sampler', plateMappings: mappings })}
                 />
