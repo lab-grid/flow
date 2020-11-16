@@ -140,9 +140,9 @@ function RunBlockPlateLabelUploader({disabled, wells, plateLabel, setCoordinates
     return <>
         <TableUploadModal
             columns={{
-                'plate': 0,
-                'cell': 1,
-                'sample': 2,
+                'plate': 1,
+                'cell': 2,
+                'sample': 3,
             }}
             show={showUploader}
             setShow={setShowUploader}
@@ -159,7 +159,7 @@ function RunBlockPlateLabelUploader({disabled, wells, plateLabel, setCoordinates
             />
             <InputGroup.Append>
                 <Button variant="secondary" disabled={disabled} onClick={() => setShowUploader(true)}>
-                    <UpcScan /> Scan
+                    Upload
                 </Button>
             </InputGroup.Append>
         </InputGroup>
@@ -253,8 +253,8 @@ function RunBlockPlateLabelEditor({disabled, wells, label, setLabel}: {
         </InputGroup.Prepend>
         <FormControl
             disabled={disabled}
-            placeholder="Enter a plate label"
-            aria-label="Enter a plate label"
+            placeholder="Scan the plate barcode"
+            aria-label="Scan the plate barcode"
             value={label}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLabel((e.target as HTMLInputElement).value)}
         />
@@ -264,6 +264,27 @@ function RunBlockPlateLabelEditor({disabled, wells, label, setLabel}: {
             </Button>
         </InputGroup.Append>
     </InputGroup>
+}
+
+function RunBlockPlateLotEditor({disabled, lot, setLot}: {
+  disabled?: boolean;
+  lot?: string;
+  setLot: (lot?: string) => void;
+}) {
+  return <InputGroup>
+      <FormControl
+          disabled={disabled}
+          placeholder="Enter or scan the lot number"
+          aria-label="Enter or scan the lot number"
+          value={lot}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLot((e.target as HTMLInputElement).value)}
+      />
+      <InputGroup.Append>
+          <Button variant="secondary" disabled={true}>
+              <UpcScan /> Scan
+          </Button>
+      </InputGroup.Append>
+  </InputGroup>
 }
 
 function RunBlockPlateSamplerEditor({disabled, definition, outputPlateLabel, setOutputPlateLabel, mappings, setMappings}: {
@@ -308,7 +329,7 @@ function RunBlockPlateSamplerEditor({disabled, definition, outputPlateLabel, set
         </tr>
     );
     return <>
-        <h3 className="row">{definition.name}</h3>
+        <h4 className="row">{definition.name}</h4>
         <Table>
             <thead>
                 <tr>
@@ -324,22 +345,33 @@ function RunBlockPlateSamplerEditor({disabled, definition, outputPlateLabel, set
     </>
 }
 
-function RunBlockPlateAddReagentEditor({disabled, definition, plateLabel, setPlateLabel}: {
+function RunBlockPlateAddReagentEditor({disabled, definition, plateLabel, setPlateLabel, plateLot, setPlateLot}: {
     disabled?: boolean;
     definition: PlateAddReagentBlockDefinition;
     plateLabel?: string;
+    plateLot?: string;
     setPlateLabel: (plateLabel?: string) => void;
+    setPlateLot: (plateLot?: string) => void;
 }) {
     return (
+      <InputGroup>
         <Form.Group>
-            <Form.Label>Plate with reagent ({definition.reagentLabel}) added</Form.Label>
+            <h4 className="row">{definition.name}</h4>
+            <Form.Label>Adding reagent ({definition.reagentLabel}) to plate</Form.Label>
             <RunBlockPlateLabelEditor
                 disabled={disabled}
                 wells={definition.plateSize}
                 label={plateLabel}
                 setLabel={setPlateLabel}
             />
+            <Form.Label>Reagent lot number</Form.Label>
+            <RunBlockPlateLotEditor
+                disabled={disabled}
+                lot={plateLot}
+                setLot={setPlateLot}
+            />
         </Form.Group>
+      </InputGroup>
     );
 }
 
@@ -372,7 +404,7 @@ function RunBlockPlateSequencerEditor({disabled, definition, plateLabels, setPla
         </tr>);
     }
     return <>
-        <h3 className="row">{definition.name}</h3>
+        <h4 className="row">{definition.name}</h4>
         <Table>
             <thead>
                 <tr>
@@ -452,7 +484,9 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                     disabled={props.disabled}
                     definition={block.definition}
                     plateLabel={block.plateLabel}
+                    plateLot={block.plateLot}
                     setPlateLabel={plateLabel => props.setBlock({ ...block, type: 'plate-add-reagent', plateLabel })}
+                    setPlateLot={plateLot => props.setBlock({ ...block, type: 'plate-add-reagent', plateLot })}
                 />
             );
         }

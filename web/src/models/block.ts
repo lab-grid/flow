@@ -30,6 +30,7 @@ export interface PlateAddReagentBlock {
     definition: PlateAddReagentBlockDefinition;
 
     plateLabel?: string;
+    plateLot?: string;
 
     // TODO: lotId, etc.
 }
