@@ -59,9 +59,6 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
                 return undefined;
             }
             return <div>
-              <h4 className="row">
-                Step: {(block && block.definition.name) || 'Untitled Step'}
-              </h4>
               <RunBlockEditor
                 key={block.definition.id}
                 block={block}

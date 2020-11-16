@@ -329,7 +329,7 @@ function RunBlockPlateSamplerEditor({disabled, definition, outputPlateLabel, set
         </tr>
     );
     return <>
-        <h3 className="row">{definition.name}</h3>
+        <h4 className="row">{definition.name}</h4>
         <Table>
             <thead>
                 <tr>
@@ -356,7 +356,8 @@ function RunBlockPlateAddReagentEditor({disabled, definition, plateLabel, setPla
     return (
       <InputGroup>
         <Form.Group>
-            <Form.Label>Plate with reagent ({definition.reagentLabel}) added</Form.Label>
+            <h4 className="row">{definition.name}</h4>
+            <Form.Label>Adding reagent ({definition.reagentLabel}) to plate</Form.Label>
             <RunBlockPlateLabelEditor
                 disabled={disabled}
                 wells={definition.plateSize}
@@ -403,7 +404,7 @@ function RunBlockPlateSequencerEditor({disabled, definition, plateLabels, setPla
         </tr>);
     }
     return <>
-        <h3 className="row">{definition.name}</h3>
+        <h4 className="row">{definition.name}</h4>
         <Table>
             <thead>
                 <tr>
