@@ -37,7 +37,7 @@ export interface PlateAddReagentBlockDefinition {
     id?: string;
     name?: string;
     plateName?: string;
-    plateSize?: 96 | 384;
+    plateSize?: 384 | 96;
     reagentLabel?: string;
 }
 
@@ -67,5 +67,6 @@ export interface PlateSequencerBlockDefinition {
     id?: string;
     name?: string;
     plateName?: string;
-    plateSize?: 96 | 384;
+    plateSize?: 384 | 96;
+    plateCount?: number;
 }

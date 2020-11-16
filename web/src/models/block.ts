@@ -30,6 +30,7 @@ export interface PlateAddReagentBlock {
     definition: PlateAddReagentBlockDefinition;
 
     plateLabel?: string;
+    plateLot?: string;
 
     // TODO: lotId, etc.
 }
@@ -48,13 +49,15 @@ export interface PlateSequencerBlock {
     type: 'plate-sequencer';
     definition: PlateSequencerBlockDefinition;
 
-    plateSequencingResults?: {[label: string]: PlateResult};
+    plateLabels?: string[];
+    plateSequencingResults?: PlateResult[];
 }
 
 export interface PlateResult {
     row?: number;
     col?: number;
     result?: string;
+    plateLabel?: string;
 }
 
 export interface PlateCoordinate {

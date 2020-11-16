@@ -11,7 +11,7 @@ import { runQuery, upsertRun } from '../state/selectors';
 import { Block } from '../models/block';
 import { deserializeSlate, serializeSlate } from '../slate';
 import moment from 'moment';
-import { CheckCircle, Share } from 'react-bootstrap-icons';
+import { BlockquoteLeft, CheckCircle, Share } from 'react-bootstrap-icons';
 import { SharingModal } from '../components/SharingModal';
 import { Element, Leaf, onHotkeyDown, Toolbar } from '../components/Slate';
 
@@ -50,20 +50,22 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
     };
 
     return <>
-        <h1 className="row">
-            Section {index}: {(section && section.definition.name) || 'Untitled Section'}
-        </h1>
+        <h2 className="row">
+            <i>Section: {(section && section.definition.name) || 'Untitled Section'}</i>
+        </h2>
 
         {currentBlocks.map(block => {
             if (!block || !block.definition || !block.definition.id) {
                 return undefined;
             }
-            return <RunBlockEditor
+            return <div>
+              <RunBlockEditor
                 key={block.definition.id}
                 block={block}
                 setBlock={updateBlock}
                 disabled={isSigned || isWitnessed}
-            />
+              />
+            </div>
         })}
 
         <div className="row">
@@ -233,6 +235,7 @@ export function RunEditorPage() {
                     <Share /> Share
                 </Button>
             </div>
+            <br></br>
             <Form.Group>
                 <Form.Label>Notes</Form.Label>
                 <Slate
@@ -244,7 +247,7 @@ export function RunEditorPage() {
                     <Editable
                         renderElement={renderElement}
                         renderLeaf={renderLeaf}
-                        placeholder="Enter a description here..."
+                        placeholder="Enter run notes here..."
                         onKeyDown={onHotkeyDown(editor)}
                         spellCheck
                         disabled={isCompleted}

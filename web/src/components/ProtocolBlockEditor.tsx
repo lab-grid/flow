@@ -157,8 +157,8 @@ function ProtocolBlockPlateEditor<T extends number = number>({ disabled, label, 
             </DropdownButton>
             <FormControl
                 disabled={disabled}
-                placeholder="Enter a plate label"
-                aria-label="Enter a plate label"
+                placeholder="Enter a plate type"
+                aria-label="Enter a plate type"
                 value={plateName}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
             />
@@ -169,14 +169,14 @@ function ProtocolBlockPlateEditor<T extends number = number>({ disabled, label, 
 function ProtocolBlockPlateCountEditor({ disabled, plateCount, setPlateCount }: {
     disabled?: boolean;
     plateCount?: number;
-    setPlateCount: (plateCount?: number) => void;
+    setPlateCount: (plateCount?: string) => void;
 }) {
     return <Form.Group>
-        <Form.Label>Number of plates</Form.Label>
+        <Form.Label>Number of plates to transfer</Form.Label>
         <Form.Control
             disabled={disabled}
             type="number"
-            placeholder="Enter a number"
+            placeholder="Enter a number: 4"
             value={plateCount}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPlateCount(parseInt((e.target as HTMLInputElement).value))}
         />
@@ -295,7 +295,7 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     label="Plate to add reagent to"
                     plateName={block.plateName}
                     plateSize={block.plateSize}
-                    plateSizes={[96, 384]}
+                    plateSizes={[384, 96]}
                     setPlateName={plateName => props.setBlock({ ...block, type: 'plate-add-reagent', plateName })}
                     setPlateSize={plateSize => props.setBlock({ ...block, type: 'plate-add-reagent', plateSize })}
                 />
@@ -324,6 +324,11 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     plateSizes={[96, 384]}
                     setPlateName={plateName => props.setBlock({ ...block, type: 'plate-sequencer', plateName })}
                     setPlateSize={plateSize => props.setBlock({ ...block, type: 'plate-sequencer', plateSize })}
+                />
+                <ProtocolBlockPlateCountEditor
+                    disabled={props.disabled}
+                    plateCount={block.plateCount}
+                    setPlateCount={plateCount => props.setBlock({ ...block, type: 'plate-sequencer', plateCount })}
                 />
             </>;
         }
