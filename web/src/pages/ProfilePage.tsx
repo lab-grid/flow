@@ -72,7 +72,7 @@ export function ProfilePage() {
     const currentFullName = ((fullName !== null) ? fullName : (user && user.fullName)) || (isFirstLogin && auth0User && auth0User.name) || '';
     const currentEmail = (user && user.email) || (isFirstLogin && auth0User && auth0User.email) || '';
     const currentAvatar = (user && user.avatar) || (isFirstLogin && auth0User && auth0User.picture) || '';
-    const currentRoles = (user && user.roles) || [];
+    // const currentRoles = (user && user.roles) || [];
 
     const syncUser = (override?: User) => userUpsert(Object.assign({
         id,

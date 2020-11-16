@@ -325,6 +325,11 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     setPlateName={plateName => props.setBlock({ ...block, type: 'plate-sequencer', plateName })}
                     setPlateSize={plateSize => props.setBlock({ ...block, type: 'plate-sequencer', plateSize })}
                 />
+                <ProtocolBlockPlateCountEditor
+                    disabled={props.disabled}
+                    plateCount={block.plateCount}
+                    setPlateCount={plateCount => props.setBlock({ ...block, type: 'plate-sequencer', plateCount })}
+                />
             </>;
         }
         default:

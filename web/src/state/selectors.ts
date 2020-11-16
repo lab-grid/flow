@@ -121,8 +121,8 @@ export function upsertRun(auth0ClientFn: () => Auth0Client | undefined, run: Run
   return apiFetch(labflowOptions, auth0ClientFn, method, path, run);
 }
 
-export function upsertUser(auth0ClientFn: () => Auth0Client | undefined, user: User): Promise<User> {
-  const method = user.id ? "PUT" : "POST";
+export function upsertUser(auth0ClientFn: () => Auth0Client | undefined, user: User, put?: boolean): Promise<User> {
+  const method = put ? "PUT" : "POST";
   const path = user.id ? `user/${user.id}` : "user";
   return apiFetch(labflowOptions, auth0ClientFn, method, path, user);
 }

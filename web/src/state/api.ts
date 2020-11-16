@@ -36,7 +36,6 @@ export async function apiFetch(options: LabflowOptions, auth0ClientFn: () => Aut
                 const token = await auth0Client.getTokenSilently();
                 const response = await fetchWithBearerToken(method, `${options.apiURL}/${path}`, token, newBody);
                 if (!response.ok) {
-                    // console.error('Response body:', await response.text());
                     throw new FetchError(
                         `Request to ${options.apiURL}/${path} failed: ${response.status} ${response.statusText}`,
                         response,

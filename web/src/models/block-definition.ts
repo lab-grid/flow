@@ -68,4 +68,5 @@ export interface PlateSequencerBlockDefinition {
     name?: string;
     plateName?: string;
     plateSize?: 384 | 96;
+    plateCount?: number;
 }
