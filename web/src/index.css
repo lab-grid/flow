@@ -1,14 +1,5 @@
 @import url('https://fonts.googleapis.com/css?family=Cedarville+Cursive');
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
@@ -16,7 +7,7 @@ code {
 
 .flow-signature {
   font-family: 'Cedarville Cursive', cursive;
-  font-size: 1.8em;
+  font-size: 1.5em;
 }
 
 .overflow-y-scroll {
@@ -33,17 +24,10 @@ code {
 
 .avatar {
   vertical-align: middle;
-  width: 50px;
+  width: 80px;
   height: 50px;
   border-radius: 50%;
 }
 
-.product-name {
-  color: #1dc0ae;
-}
-
-.product-name:hover {
-  color: #1dc0ae;
-}
 
 
