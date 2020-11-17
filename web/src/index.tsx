@@ -9,6 +9,7 @@ import { RecoilRoot } from 'recoil';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { LoadingPage } from './components/LoadingPage';
+import 'bootstrap-daterangepicker/daterangepicker.css';
 
 ReactDOM.render(
   <React.StrictMode>
