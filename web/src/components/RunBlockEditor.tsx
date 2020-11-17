@@ -111,8 +111,9 @@ function cellToCoordinate(cell?: string): PlateCoordinate {
     };
 }
 
-function RunBlockPlateLabelUploader({ disabled, wells, plateLabel, setCoordinates, platePrimers, platePrimer, setPlatePrimer }: {
+function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, setCoordinates, platePrimers, platePrimer, setPlatePrimer }: {
     disabled?: boolean;
+    name?: string;
     wells?: number;
     plateLabel?: string;
     setCoordinates: (plateLabel: string, coordinates: PlateCoordinate[]) => void;
@@ -175,6 +176,7 @@ function RunBlockPlateLabelUploader({ disabled, wells, plateLabel, setCoordinate
                 aria-label={plateLabel ? `Plate ID: ${plateLabel}. Mappings saved...` : "Upload plate mapping csv"}
             />
             <InputGroup.Append>
+                {name && <InputGroup.Text>{name}</InputGroup.Text>}
                 <InputGroup.Text>{wells || 96}-well</InputGroup.Text>
                 <Button variant="secondary" disabled={disabled} onClick={() => setShowUploader(true)}>
                     Upload
@@ -259,16 +261,14 @@ function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
     </>
 }
 
-function RunBlockPlateLabelEditor({ disabled, wells, label, setLabel }: {
+function RunBlockPlateLabelEditor({ disabled, name, wells, label, setLabel }: {
     disabled?: boolean;
+    name?: string;
     wells?: number;
     label?: string;
     setLabel: (label?: string) => void;
 }) {
     return <InputGroup>
-        <InputGroup.Prepend>
-            <InputGroup.Text>{wells || 96}-well</InputGroup.Text>
-        </InputGroup.Prepend>
         <FormControl
             disabled={disabled}
             placeholder="Scan the plate barcode"
@@ -277,6 +277,8 @@ function RunBlockPlateLabelEditor({ disabled, wells, label, setLabel }: {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLabel((e.target as HTMLInputElement).value)}
         />
         <InputGroup.Append>
+            {name && <InputGroup.Text>{name}</InputGroup.Text>}
+            <InputGroup.Text>{wells || 96}-well</InputGroup.Text>
             <Button variant="secondary" disabled={true}>
                 <UpcScan /> Scan
             </Button>
@@ -324,7 +326,8 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
             <td>
                 <RunBlockPlateLabelUploader
                     disabled={disabled}
-                    wells={definition.plateSize}
+                    wells={definition.plates && definition.plates[i].size}
+                    name={definition.plates && definition.plates[i].name}
                     plateLabel={label}
                     setCoordinates={(label, coordinates) => {
                         const newMappings = { ...mappings };
@@ -421,7 +424,8 @@ function RunBlockPlateSequencerEditor({ disabled, definition, plateLabels, setPl
             <td>
                 <RunBlockPlateLabelEditor
                     disabled={disabled}
-                    wells={definition.plateSize}
+                    wells={definition.plates && definition.plates[i].size}
+                    name={definition.plates && definition.plates[i].name}
                     label={plateLabels ? plateLabels[i] : undefined}
                     setLabel={label => {
                         if (label !== undefined) {

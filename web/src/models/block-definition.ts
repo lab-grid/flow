@@ -10,6 +10,12 @@ export interface BlockPrimer {
     primer: string;
 }
 
+export interface BlockPlate<T extends number = number>{
+    id: string;
+    name?: string;
+    size?: T;
+}
+
 export interface TextQuestionBlockDefinition {
     type: 'text-question';
 
@@ -31,9 +37,8 @@ export interface PlateSamplerBlockDefinition {
 
     id?: string;
     name?: string;
-    plateName?: string;
+    plates?: BlockPlate[];
     plateCount?: number;
-    plateSize?: 96;
     platePrimers?: BlockPrimer[];
 }
 
@@ -66,7 +71,6 @@ export interface PlateSequencerBlockDefinition {
 
     id?: string;
     name?: string;
-    plateName?: string;
-    plateSize?: 384 | 96;
+    plates?: BlockPlate[];
     plateCount?: number;
 }

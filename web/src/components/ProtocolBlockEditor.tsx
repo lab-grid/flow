@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup } from 'react-bootstrap';
 import { GripHorizontal, Trash } from 'react-bootstrap-icons';
-import { BlockDefinition, BlockOption, BlockPrimer, EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { BlockDefinition, BlockOption, BlockPlate, BlockPrimer, EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { trimEmpty } from '../utils';
 import * as uuid from 'uuid';
 
@@ -203,26 +203,62 @@ function ProtocolBlockPlateEditor<T extends number = number>({ disabled, label, 
     setPlateName: (name?: string) => void;
     setPlateSize: (plateSize?: T) => void;
 }) {
+    return <InputGroup>
+        <DropdownButton
+            disabled={disabled}
+            as={InputGroup.Prepend}
+            variant="outline-secondary"
+            title={`${plateSize || (plateSizes && plateSizes[0])}-well`}
+            id="block-plate-size"
+        >
+            {(plateSizes || []).map(s => <Dropdown.Item key={s} onClick={() => setPlateSize(s)}>{s}-well</Dropdown.Item>)}
+        </DropdownButton>
+        <FormControl
+            disabled={disabled}
+            placeholder="Enter a plate type"
+            aria-label="Enter a plate type"
+            value={plateName}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
+        />
+    </InputGroup>
+}
+
+function ProtocolBlockPlatesEditor<T extends number = number>({ disabled, label, plateSizes, plates, setPlates }: {
+    disabled?: boolean;
+    label?: string;
+    plateSizes?: T[];
+    plates?: BlockPlate<T>[];
+    setPlates: (plates?: BlockPlate<T>[]) => void;
+}) {
     return <Form.Group>
         {label && <Form.Label>{label}</Form.Label>}
-        <InputGroup>
-            <DropdownButton
-                disabled={disabled}
-                as={InputGroup.Prepend}
-                variant="outline-secondary"
-                title={`${plateSize || (plateSizes && plateSizes[0])}-well`}
-                id="block-plate-size"
-            >
-                {(plateSizes || []).map(s => <Dropdown.Item key={s} onClick={() => setPlateSize(s)}>{s}-well</Dropdown.Item>)}
-            </DropdownButton>
-            <FormControl
-                disabled={disabled}
-                placeholder="Enter a plate type"
-                aria-label="Enter a plate type"
-                value={plateName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
-            />
-        </InputGroup>
+        {plates && plates.map((plate, i) => <ProtocolBlockPlateEditor
+            key={plate.id}
+            disabled={disabled}
+            plateName={plate.name}
+            plateSize={plate.size}
+            plateSizes={plateSizes}
+            setPlateName={name => {
+                if (plates) {
+                    const newPlates = [...plates];
+                    if (!newPlates[i]) {
+                        newPlates[i] = { id: uuid.v4() };
+                    }
+                    newPlates[i].name = name;
+                    setPlates(newPlates);
+                }
+            }}
+            setPlateSize={size => {
+                if (plates) {
+                    const newPlates = [...plates];
+                    if (!newPlates[i]) {
+                        newPlates[i] = { id: uuid.v4() };
+                    }
+                    newPlates[i].size = size;
+                    setPlates(newPlates);
+                }
+            }}
+        />)}
     </Form.Group>
 }
 
@@ -324,19 +360,26 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     setName={name => props.setBlock({ ...block, type: 'plate-sampler', name })}
                     deleteStep={props.deleteBlock}
                 />
-                <ProtocolBlockPlateEditor
+                <ProtocolBlockPlatesEditor
                     disabled={props.disabled}
                     label="Plate to sample"
-                    plateName={block.plateName}
-                    plateSize={block.plateSize}
                     plateSizes={[96]}
-                    setPlateName={plateName => props.setBlock({ ...block, type: 'plate-sampler', plateName })}
-                    setPlateSize={plateSize => props.setBlock({ ...block, type: 'plate-sampler', plateSize })}
+                    setPlates={plates => props.setBlock({ ...block, type: 'plate-sampler', plates })}
                 />
                 <ProtocolBlockPlateCountEditor
                     disabled={props.disabled}
                     plateCount={block.plateCount}
-                    setPlateCount={plateCount => props.setBlock({ ...block, type: 'plate-sampler', plateCount })}
+                    setPlateCount={plateCount => {
+                        let plates = block.plates || Array(plateCount).map(() => ({id: uuid.v4()}));
+                        if (plates.length != plateCount) {
+                            const newPlates: BlockPlate[] = [];
+                            for (let i = 0; i < (plateCount || 0); i++) {
+                                newPlates.push(plates[i] || {id: uuid.v4()});
+                            }
+                            plates = newPlates;
+                        }
+                        props.setBlock({ ...block, type: 'plate-sampler', plateCount, plates });
+                    }}
                 />
             </>;
         }
@@ -376,19 +419,26 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     setName={name => props.setBlock({ ...block, type: 'plate-sequencer', name })}
                     deleteStep={props.deleteBlock}
                 />
-                <ProtocolBlockPlateEditor
+                <ProtocolBlockPlatesEditor
                     disabled={props.disabled}
                     label="Plate to sequence"
-                    plateName={block.plateName}
-                    plateSize={block.plateSize}
-                    plateSizes={[96, 384]}
-                    setPlateName={plateName => props.setBlock({ ...block, type: 'plate-sequencer', plateName })}
-                    setPlateSize={plateSize => props.setBlock({ ...block, type: 'plate-sequencer', plateSize })}
+                    plateSizes={[96]}
+                    setPlates={plates => props.setBlock({ ...block, type: 'plate-sequencer', plates })}
                 />
                 <ProtocolBlockPlateCountEditor
                     disabled={props.disabled}
                     plateCount={block.plateCount}
-                    setPlateCount={plateCount => props.setBlock({ ...block, type: 'plate-sequencer', plateCount })}
+                    setPlateCount={plateCount => {
+                        let plates = block.plates || Array(plateCount).map(() => ({id: uuid.v4()}));
+                        if (plates.length != plateCount) {
+                            const newPlates: BlockPlate[] = [];
+                            for (let i = 0; i < (plateCount || 0); i++) {
+                                newPlates.push(plates[i] || {id: uuid.v4()});
+                            }
+                            plates = newPlates;
+                        }
+                        props.setBlock({ ...block, type: 'plate-sequencer', plateCount, plates });
+                    }}
                 />
             </>;
         }
