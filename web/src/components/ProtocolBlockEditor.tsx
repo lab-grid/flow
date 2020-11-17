@@ -1,11 +1,11 @@
 import React from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup } from 'react-bootstrap';
 import { GripHorizontal, Trash } from 'react-bootstrap-icons';
-import { BlockDefinition, BlockOption, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { BlockDefinition, BlockOption, EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { trimEmpty } from '../utils';
 import * as uuid from 'uuid';
 
-export function humanizeBlockType(blockType: "text-question" | "options-question" | "plate-sampler" | "plate-add-reagent" | "plate-sequencer" | undefined): string {
+export function humanizeBlockType(blockType: "text-question" | "options-question" | "plate-sampler" | "plate-add-reagent" | "start-thermocycler" | "end-thermocycler" | "plate-sequencer" | undefined): string {
     switch (blockType) {
         case 'text-question':
             return 'Answer Question';
@@ -15,8 +15,12 @@ export function humanizeBlockType(blockType: "text-question" | "options-question
             return 'Run Plate Sampler';
         case 'plate-add-reagent':
             return 'Add Reagent to Plate';
+        case 'start-thermocycler':
+            return 'Start Thermocycler';
+        case 'end-thermocycler':
+            return 'End Thermocycler';
         case 'plate-sequencer':
-            return 'Run Plate Sequencer'
+            return 'Run Plate Sequencer';
         default:
             return `Error: Unrecognized block type: ${blockType}`;
     }
@@ -24,7 +28,7 @@ export function humanizeBlockType(blockType: "text-question" | "options-question
 
 function BlockLabel({ index, blockType }: {
     index: number;
-    blockType?: "text-question" | "options-question" | "plate-sampler" | "plate-add-reagent" | "plate-sequencer";
+    blockType?: "text-question" | "options-question" | "plate-sampler" | "plate-add-reagent" | "start-thermocycler" | "end-thermocycler" | "plate-sequencer";
 }) {
     return <div className="mb-2">
         <GripHorizontal /> Step {index+1} - {humanizeBlockType(blockType)}
@@ -169,7 +173,7 @@ function ProtocolBlockPlateEditor<T extends number = number>({ disabled, label, 
 function ProtocolBlockPlateCountEditor({ disabled, plateCount, setPlateCount }: {
     disabled?: boolean;
     plateCount?: number;
-    setPlateCount: (plateCount?: string) => void;
+    setPlateCount: (plateCount?: number) => void;
 }) {
     return <Form.Group>
         <Form.Label>Number of plates to transfer</Form.Label>
@@ -329,6 +333,30 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     disabled={props.disabled}
                     plateCount={block.plateCount}
                     setPlateCount={plateCount => props.setBlock({ ...block, type: 'plate-sequencer', plateCount })}
+                />
+            </>;
+        }
+        case 'start-thermocycler': {
+            const block: StartThermocyclerBlockDefinition = props.block;
+            return <>
+                <BlockLabel index={props.index} blockType={block.type} />
+                <ProtocolBlockNameEditor
+                    disabled={props.disabled}
+                    name={block.name}
+                    setName={name => props.setBlock({ ...block, type: 'start-thermocycler', name })}
+                    deleteStep={props.deleteBlock}
+                />
+            </>;
+        }
+        case 'end-thermocycler': {
+            const block: EndThermocyclerBlockDefinition = props.block;
+            return <>
+                <BlockLabel index={props.index} blockType={block.type} />
+                <ProtocolBlockNameEditor
+                    disabled={props.disabled}
+                    name={block.name}
+                    setName={name => props.setBlock({ ...block, type: 'end-thermocycler', name })}
+                    deleteStep={props.deleteBlock}
                 />
             </>;
         }

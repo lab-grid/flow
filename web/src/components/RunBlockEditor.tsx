@@ -1,11 +1,19 @@
+import moment from 'moment';
 import React, { useState } from 'react';
 import { Button, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
 import { UpcScan } from 'react-bootstrap-icons';
-import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block, PlateCoordinate, PlateResult } from '../models/block';
-import { OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block, PlateCoordinate, PlateResult, StartThermocyclerBlock, EndThermocyclerBlock } from '../models/block';
+import { EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { TableUploadModal } from './TableUploadModal';
+import DateRangePicker from 'react-bootstrap-daterangepicker';
 
-function RunBlockTextQuestion({disabled, definition, answer, setAnswer}: {
+function RunBlockLabel({ name }: {
+    name?: string;
+}) {
+    return <h4 className="row">{name}</h4>
+}
+
+function RunBlockTextQuestion({ disabled, definition, answer, setAnswer }: {
     disabled?: boolean;
     definition: TextQuestionBlockDefinition;
     answer?: string;
@@ -18,13 +26,13 @@ function RunBlockTextQuestion({disabled, definition, answer, setAnswer}: {
                 disabled={disabled}
                 type="text"
                 value={answer}
-                onInput={(e: React.FormEvent<HTMLInputElement>) => setAnswer((e.target as HTMLInputElement).value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAnswer((e.target as HTMLInputElement).value)}
             />
         </Form.Group>
     );
 }
 
-function RunBlockOptionsQuestion({disabled, definition, answer, setAnswer}: {
+function RunBlockOptionsQuestion({ disabled, definition, answer, setAnswer }: {
     disabled?: boolean;
     definition: OptionsQuestionBlockDefinition;
     answer?: string;
@@ -103,7 +111,7 @@ function cellToCoordinate(cell?: string): PlateCoordinate {
     };
 }
 
-function RunBlockPlateLabelUploader({disabled, wells, plateLabel, setCoordinates}: {
+function RunBlockPlateLabelUploader({ disabled, wells, plateLabel, setCoordinates }: {
     disabled?: boolean;
     wells?: number;
     plateLabel?: string;
@@ -112,7 +120,7 @@ function RunBlockPlateLabelUploader({disabled, wells, plateLabel, setCoordinates
     const [showUploader, setShowUploader] = useState(false);
 
     const parseAndSetCoordinates = (data: plateLabelRow[]) => {
-        const results: {[label: string]: PlateCoordinate[]} = {};
+        const results: { [label: string]: PlateCoordinate[] } = {};
         for (const row of data) {
             if (!row.plate) {
                 console.warn('Found a row with no plate!', row);
@@ -191,7 +199,7 @@ function cellToResult(cell?: string): PlateResult {
     };
 }
 
-function RunBlockSequencerResultsUploader({disabled, results, setResults}: {
+function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
     disabled?: boolean;
     results?: PlateResult[];
     setResults: (results?: PlateResult[]) => void;
@@ -241,7 +249,7 @@ function RunBlockSequencerResultsUploader({disabled, results, setResults}: {
     </>
 }
 
-function RunBlockPlateLabelEditor({disabled, wells, label, setLabel}: {
+function RunBlockPlateLabelEditor({ disabled, wells, label, setLabel }: {
     disabled?: boolean;
     wells?: number;
     label?: string;
@@ -266,34 +274,34 @@ function RunBlockPlateLabelEditor({disabled, wells, label, setLabel}: {
     </InputGroup>
 }
 
-function RunBlockPlateLotEditor({disabled, lot, setLot}: {
-  disabled?: boolean;
-  lot?: string;
-  setLot: (lot?: string) => void;
+function RunBlockPlateLotEditor({ disabled, lot, setLot }: {
+    disabled?: boolean;
+    lot?: string;
+    setLot: (lot?: string) => void;
 }) {
-  return <InputGroup>
-      <FormControl
-          disabled={disabled}
-          placeholder="Enter or scan the lot number"
-          aria-label="Enter or scan the lot number"
-          value={lot}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLot((e.target as HTMLInputElement).value)}
-      />
-      <InputGroup.Append>
-          <Button variant="secondary" disabled={true}>
-              <UpcScan /> Scan
+    return <InputGroup>
+        <FormControl
+            disabled={disabled}
+            placeholder="Enter or scan the lot number"
+            aria-label="Enter or scan the lot number"
+            value={lot}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLot((e.target as HTMLInputElement).value)}
+        />
+        <InputGroup.Append>
+            <Button variant="secondary" disabled={true}>
+                <UpcScan /> Scan
           </Button>
-      </InputGroup.Append>
-  </InputGroup>
+        </InputGroup.Append>
+    </InputGroup>
 }
 
-function RunBlockPlateSamplerEditor({disabled, definition, outputPlateLabel, setOutputPlateLabel, mappings, setMappings}: {
+function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, setOutputPlateLabel, mappings, setMappings }: {
     disabled?: boolean;
     definition: PlateSamplerBlockDefinition;
     outputPlateLabel?: string;
     setOutputPlateLabel: (outputPlateLabel?: string) => void;
-    mappings?: {[label: string]: PlateCoordinate[]};
-    setMappings: (mappings: {[label: string]: PlateCoordinate[]}) => void;
+    mappings?: { [label: string]: PlateCoordinate[] };
+    setMappings: (mappings: { [label: string]: PlateCoordinate[] }) => void;
 }) {
     const plates = mappings && Object.keys(mappings);
     const inputRows: JSX.Element[] = [];
@@ -307,7 +315,7 @@ function RunBlockPlateSamplerEditor({disabled, definition, outputPlateLabel, set
                     wells={definition.plateSize}
                     plateLabel={label}
                     setCoordinates={(label, coordinates) => {
-                        const newMappings = {...mappings};
+                        const newMappings = { ...mappings };
                         newMappings[label] = coordinates;
                         setMappings(newMappings);
                     }}
@@ -345,7 +353,7 @@ function RunBlockPlateSamplerEditor({disabled, definition, outputPlateLabel, set
     </>
 }
 
-function RunBlockPlateAddReagentEditor({disabled, definition, plateLabel, setPlateLabel, plateLot, setPlateLot}: {
+function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPlateLabel, plateLot, setPlateLot }: {
     disabled?: boolean;
     definition: PlateAddReagentBlockDefinition;
     plateLabel?: string;
@@ -354,28 +362,28 @@ function RunBlockPlateAddReagentEditor({disabled, definition, plateLabel, setPla
     setPlateLot: (plateLot?: string) => void;
 }) {
     return (
-      <InputGroup>
-        <Form.Group>
-            <h4 className="row">{definition.name}</h4>
-            <Form.Label>Adding reagent ({definition.reagentLabel}) to plate</Form.Label>
-            <RunBlockPlateLabelEditor
-                disabled={disabled}
-                wells={definition.plateSize}
-                label={plateLabel}
-                setLabel={setPlateLabel}
-            />
-            <Form.Label>Reagent lot number</Form.Label>
-            <RunBlockPlateLotEditor
-                disabled={disabled}
-                lot={plateLot}
-                setLot={setPlateLot}
-            />
-        </Form.Group>
-      </InputGroup>
+        <InputGroup>
+            <Form.Group>
+                <h4 className="row">{definition.name}</h4>
+                <Form.Label>Adding reagent ({definition.reagentLabel}) to plate</Form.Label>
+                <RunBlockPlateLabelEditor
+                    disabled={disabled}
+                    wells={definition.plateSize}
+                    label={plateLabel}
+                    setLabel={setPlateLabel}
+                />
+                <Form.Label>Reagent lot number</Form.Label>
+                <RunBlockPlateLotEditor
+                    disabled={disabled}
+                    lot={plateLot}
+                    setLot={setPlateLot}
+                />
+            </Form.Group>
+        </InputGroup>
     );
 }
 
-function RunBlockPlateSequencerEditor({disabled, definition, plateLabels, setPlateLabels, results, setResults}: {
+function RunBlockPlateSequencerEditor({ disabled, definition, plateLabels, setPlateLabels, results, setResults }: {
     disabled?: boolean;
     definition: PlateSequencerBlockDefinition;
     plateLabels?: string[];
@@ -424,6 +432,100 @@ function RunBlockPlateSequencerEditor({disabled, definition, plateLabels, setPla
     </>
 }
 
+function RunBlockStartThermocyclerEditor({disabled, definition, thermocyclerLabel, setThermocyclerLabel, startedOn, setStartedOn}: {
+    disabled?: boolean;
+    definition: StartThermocyclerBlockDefinition;
+    thermocyclerLabel?: string;
+    setThermocyclerLabel: (thermocyclerLabel?: string) => void;
+    startedOn?: string;
+    setStartedOn: (startedOn?: string) => void;
+}) {
+    return <>
+        <RunBlockLabel name={definition.name} />
+        <div className="row">
+            <Form.Group className="col">
+                <Form.Label>Thermocycler ID/Label</Form.Label>
+                <Form.Control
+                    disabled={disabled}
+                    type="text"
+                    placeholder="Enter a label or ID here..."
+                    aria-placeholder="Enter a label or ID here..."
+                    value={thermocyclerLabel}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setThermocyclerLabel((e.target as HTMLInputElement).value)}
+                />
+            </Form.Group>
+            <Form.Group className="col">
+                <Form.Label>Started On</Form.Label>
+                <DateRangePicker
+                    initialSettings={{
+                        timePicker: true,
+                        singleDatePicker: true,
+                        showDropdowns: true,
+                        startDate: startedOn ? moment(startedOn) : undefined,
+                        minYear: 1901,
+                        maxYear: parseInt(moment().format('YYYY'), 10),
+                        locale: { format: 'LLLL' },
+                    }}
+                    onCallback={start => setStartedOn(start.format()) }
+                >
+                    <Form.Control
+                        type="text"
+                        placeholder="Set a date/time here..."
+                        aria-placeholder="Set a date/time here..."
+                    />
+                </DateRangePicker>
+            </Form.Group>
+        </div>
+    </>;
+}
+
+function RunBlockEndThermocyclerEditor({disabled, definition, thermocyclerLabel, setThermocyclerLabel, endedOn, setEndedOn}: {
+    disabled?: boolean;
+    definition: EndThermocyclerBlockDefinition;
+    thermocyclerLabel?: string;
+    setThermocyclerLabel: (thermocyclerLabel?: string) => void;
+    endedOn?: string;
+    setEndedOn: (startedOn?: string) => void;
+}) {
+    return <>
+        <RunBlockLabel name={definition.name} />
+        <div className="row">
+            <Form.Group className="col">
+                <Form.Label>Thermocycler ID/Label</Form.Label>
+                <Form.Control
+                    disabled={disabled}
+                    type="text"
+                    placeholder="Enter a label or ID here..."
+                    aria-placeholder="Enter a label or ID here..."
+                    value={thermocyclerLabel}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setThermocyclerLabel((e.target as HTMLInputElement).value)}
+                />
+            </Form.Group>
+            <Form.Group className="col">
+                <Form.Label>Ended On</Form.Label>
+                <DateRangePicker
+                    initialSettings={{
+                        timePicker: true,
+                        singleDatePicker: true,
+                        showDropdowns: true,
+                        startDate: endedOn ? moment(endedOn) : undefined,
+                        minYear: 1901,
+                        maxYear: parseInt(moment().format('YYYY'), 10),
+                        locale: { format: 'LLLL' },
+                    }}
+                    onCallback={end => setEndedOn(end.format()) }
+                >
+                    <Form.Control
+                        type="text"
+                        placeholder="Thermocycler ended on..."
+                        aria-placeholder="Thermocycler ended on..."
+                    />
+                </DateRangePicker>
+            </Form.Group>
+        </div>
+    </>;
+}
+
 export interface RunBlockEditorProps {
     disabled?: boolean;
     block?: Block;
@@ -440,7 +542,7 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
             </div>
         );
     }
-    
+
     switch (props.block.type) {
         case 'text-question': {
             const block: TextQuestionBlock = props.block;
@@ -500,6 +602,32 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                     setPlateLabels={plateLabels => props.setBlock({ ...block, type: 'plate-sequencer', plateLabels })}
                     results={props.block && props.block.plateSequencingResults}
                     setResults={plateSequencingResults => props.setBlock({ ...block, type: 'plate-sequencer', plateSequencingResults })}
+                />
+            );
+        }
+        case 'start-thermocycler': {
+            const block: StartThermocyclerBlock = props.block;
+            return (
+                <RunBlockStartThermocyclerEditor
+                    disabled={props.disabled}
+                    definition={block.definition}
+                    thermocyclerLabel={block.thermocyclerLabel}
+                    setThermocyclerLabel={thermocyclerLabel => props.setBlock({ ...block, type: 'start-thermocycler', thermocyclerLabel })}
+                    startedOn={block.startedOn}
+                    setStartedOn={startedOn => props.setBlock({ ...block, type: 'start-thermocycler', startedOn })}
+                />
+            );
+        }
+        case 'end-thermocycler': {
+            const block: EndThermocyclerBlock = props.block;
+            return (
+                <RunBlockEndThermocyclerEditor
+                    disabled={props.disabled}
+                    definition={block.definition}
+                    thermocyclerLabel={block.thermocyclerLabel}
+                    setThermocyclerLabel={thermocyclerLabel => props.setBlock({ ...block, type: 'end-thermocycler', thermocyclerLabel })}
+                    endedOn={block.endedOn}
+                    setEndedOn={endedOn => props.setBlock({ ...block, type: 'end-thermocycler', endedOn })}
                 />
             );
         }

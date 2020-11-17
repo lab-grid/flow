@@ -1,4 +1,4 @@
-export type BlockDefinition = TextQuestionBlockDefinition | OptionsQuestionBlockDefinition | PlateSamplerBlockDefinition | PlateAddReagentBlockDefinition | PlateSequencerBlockDefinition;
+export type BlockDefinition = TextQuestionBlockDefinition | OptionsQuestionBlockDefinition | PlateSamplerBlockDefinition | PlateAddReagentBlockDefinition | PlateSequencerBlockDefinition | StartThermocyclerBlockDefinition | EndThermocyclerBlockDefinition;
 
 export interface BlockOption {
     id: string;
@@ -46,9 +46,6 @@ export interface StartThermocyclerBlockDefinition {
 
     id?: string;
     name?: string;
-
-    thermocyclerLabel?: string;
-    startedOn?: string;
 }
 
 export interface EndThermocyclerBlockDefinition {
@@ -56,9 +53,6 @@ export interface EndThermocyclerBlockDefinition {
 
     id?: string;
     name?: string;
-
-    thermocyclerLabel?: string;
-    endedOn?: string;
 }
 
 export interface PlateSequencerBlockDefinition {

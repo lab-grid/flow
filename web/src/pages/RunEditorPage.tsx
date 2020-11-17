@@ -38,8 +38,6 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
     const isSigned = (section && !!section.signedOn) || false;
     const isWitnessed = (section && !!section.witnessedOn) || false;
     
-    console.log(section && section.witnessedOn, isWitnessed);
-
     const updateBlock = (block?: Block) => {
         if (block && section) {
             setSection({
@@ -58,7 +56,7 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
             if (!block || !block.definition || !block.definition.id) {
                 return undefined;
             }
-            return <div>
+            return <div key={block.definition.id}>
               <RunBlockEditor
                 key={block.definition.id}
                 block={block}

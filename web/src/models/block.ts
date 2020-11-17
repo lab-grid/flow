@@ -1,6 +1,6 @@
 import { EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from "./block-definition";
 
-export type Block = TextQuestionBlock | OptionsQuestionBlock | PlateSamplerBlock | PlateAddReagentBlock | PlateSequencerBlock;
+export type Block = TextQuestionBlock | OptionsQuestionBlock | PlateSamplerBlock | PlateAddReagentBlock | PlateSequencerBlock | StartThermocyclerBlock | EndThermocyclerBlock;
 
 export interface TextQuestionBlock {
     type: 'text-question';
@@ -38,11 +38,17 @@ export interface PlateAddReagentBlock {
 export interface StartThermocyclerBlock {
     type: 'start-thermocycler';
     definition: StartThermocyclerBlockDefinition;
+
+    thermocyclerLabel?: string;
+    startedOn?: string;
 }
 
 export interface EndThermocyclerBlock {
     type: 'end-thermocycler';
     definition: EndThermocyclerBlockDefinition;
+
+    thermocyclerLabel?: string;
+    endedOn?: string;
 }
 
 export interface PlateSequencerBlock {
