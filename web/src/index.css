@@ -16,7 +16,7 @@ code {
 
 .flow-signature {
   font-family: 'Cedarville Cursive', cursive;
-  font-size: 1.8em;
+  font-size: 1.5em;
 }
 
 .overflow-y-scroll {
@@ -33,17 +33,9 @@ code {
 
 .avatar {
   vertical-align: middle;
-  width: 50px;
+  width: 80px;
   height: 50px;
   border-radius: 50%;
-}
-
-.product-name {
-  color: #1dc0ae;
-}
-
-.product-name:hover {
-  color: #1dc0ae;
 }
 
 
