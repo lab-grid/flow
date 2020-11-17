@@ -21,6 +21,7 @@ export interface PlateSamplerBlock {
     definition: PlateSamplerBlockDefinition;
 
     plateMappings?: {[label: string]: PlateCoordinate[]};
+    platePrimers?: {[label: string]: string};
 
     outputPlateLabel?: string;
 }
