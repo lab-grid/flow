@@ -169,7 +169,7 @@ function ProtocolBlockPlateEditor<T extends number = number>({ disabled, label, 
 function ProtocolBlockPlateCountEditor({ disabled, plateCount, setPlateCount }: {
     disabled?: boolean;
     plateCount?: number;
-    setPlateCount: (plateCount?: string) => void;
+    setPlateCount: (plateCount?: number) => void;
 }) {
     return <Form.Group>
         <Form.Label>Number of plates to transfer</Form.Label>

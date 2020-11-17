@@ -25,6 +25,7 @@
     "bootstrap": "^4.5.3",
     "jquery": "^3.5.1",
     "moment": "^2.29.1",
+    "node-sass": "^4.14.1",
     "react": "^16.14.0",
     "react-bootstrap": "^1.4.0",
     "react-bootstrap-icons": "^1.1.0",
@@ -42,6 +43,8 @@
     "xlsx": "^0.16.8"
   },
   "scripts": {
+    "build:css": "node-sass src/ -o src/ ",
+    "watch:css": "npm run build:css && node-sass src/ -o src/ -w -r",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",

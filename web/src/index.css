@@ -37,3 +37,13 @@ code {
   height: 50px;
   border-radius: 50%;
 }
+
+.product-name {
+  color: #1dc0ae;
+}
+
+.product-name:hover {
+  color: #1dc0ae;
+}
+
+

@@ -1,10 +1,10 @@
 import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom';
-import './index.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import './custom-theme.scss'
 import App from './App';
 import * as serviceWorker from './serviceWorker';
 import { RecoilRoot } from 'recoil';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { LoadingPage } from './components/LoadingPage';
