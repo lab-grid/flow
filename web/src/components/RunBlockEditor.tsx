@@ -1,9 +1,9 @@
 import moment from 'moment';
 import React, { useState } from 'react';
-import { Button, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
+import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
 import { UpcScan } from 'react-bootstrap-icons';
 import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block, PlateCoordinate, PlateResult, StartThermocyclerBlock, EndThermocyclerBlock } from '../models/block';
-import { EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { BlockPrimer, EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { TableUploadModal } from './TableUploadModal';
 import DateRangePicker from 'react-bootstrap-daterangepicker';
 
@@ -111,11 +111,14 @@ function cellToCoordinate(cell?: string): PlateCoordinate {
     };
 }
 
-function RunBlockPlateLabelUploader({ disabled, wells, plateLabel, setCoordinates }: {
+function RunBlockPlateLabelUploader({ disabled, wells, plateLabel, setCoordinates, platePrimers, platePrimer, setPlatePrimer }: {
     disabled?: boolean;
     wells?: number;
     plateLabel?: string;
     setCoordinates: (plateLabel: string, coordinates: PlateCoordinate[]) => void;
+    platePrimers?: BlockPrimer[];
+    platePrimer?: string;
+    setPlatePrimer: (platePrimer?: string) => void;
 }) {
     const [showUploader, setShowUploader] = useState(false);
 
@@ -157,15 +160,22 @@ function RunBlockPlateLabelUploader({ disabled, wells, plateLabel, setCoordinate
             setTable={parseAndSetCoordinates}
         />
         <InputGroup>
-            <InputGroup.Prepend>
-                <InputGroup.Text>{wells || 96}-well</InputGroup.Text>
-            </InputGroup.Prepend>
+            <DropdownButton
+                as={InputGroup.Prepend}
+                variant="outline-secondary"
+                title={platePrimer ? `Primer: ${platePrimer}` : 'Select Primer'}
+            >
+                {platePrimers && platePrimers.map(primer =>
+                    <Dropdown.Item key={primer.id} onClick={() => setPlatePrimer(primer.primer)}>{primer.primer}</Dropdown.Item>
+                )}
+            </DropdownButton>
             <Form.Control
                 disabled={true}
                 placeholder={plateLabel ? `Plate ID: ${plateLabel}. Mappings saved...` : "Upload plate mapping csv"}
                 aria-label={plateLabel ? `Plate ID: ${plateLabel}. Mappings saved...` : "Upload plate mapping csv"}
             />
             <InputGroup.Append>
+                <InputGroup.Text>{wells || 96}-well</InputGroup.Text>
                 <Button variant="secondary" disabled={disabled} onClick={() => setShowUploader(true)}>
                     Upload
                 </Button>
@@ -295,13 +305,15 @@ function RunBlockPlateLotEditor({ disabled, lot, setLot }: {
     </InputGroup>
 }
 
-function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, setOutputPlateLabel, mappings, setMappings }: {
+function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, setOutputPlateLabel, mappings, setMappings, platePrimers, setPlatePrimers }: {
     disabled?: boolean;
     definition: PlateSamplerBlockDefinition;
     outputPlateLabel?: string;
     setOutputPlateLabel: (outputPlateLabel?: string) => void;
     mappings?: { [label: string]: PlateCoordinate[] };
     setMappings: (mappings: { [label: string]: PlateCoordinate[] }) => void;
+    platePrimers?: { [label: string]: string };
+    setPlatePrimers: (platePrimers: { [label: string]: string }) => void;
 }) {
     const plates = mappings && Object.keys(mappings);
     const inputRows: JSX.Element[] = [];
@@ -318,6 +330,15 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
                         const newMappings = { ...mappings };
                         newMappings[label] = coordinates;
                         setMappings(newMappings);
+                    }}
+                    platePrimers={definition.platePrimers}
+                    platePrimer={platePrimers && label && platePrimers[label]}
+                    setPlatePrimer={primer => {
+                        if (label && primer) {
+                            const newPrimers = { ...platePrimers };
+                            newPrimers[label] = primer;
+                            setPlatePrimers(newPrimers);
+                        }
                     }}
                 />
             </td>
@@ -361,10 +382,10 @@ function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPl
     setPlateLabel: (plateLabel?: string) => void;
     setPlateLot: (plateLot?: string) => void;
 }) {
-    return (
-        <InputGroup>
-            <Form.Group>
-                <h4 className="row">{definition.name}</h4>
+    return <>
+        <h4 className="row">{definition.name}</h4>
+        <div className="row">
+            <Form.Group className="col">
                 <Form.Label>Adding reagent ({definition.reagentLabel}) to plate</Form.Label>
                 <RunBlockPlateLabelEditor
                     disabled={disabled}
@@ -372,6 +393,8 @@ function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPl
                     label={plateLabel}
                     setLabel={setPlateLabel}
                 />
+            </Form.Group>
+            <Form.Group className="col">
                 <Form.Label>Reagent lot number</Form.Label>
                 <RunBlockPlateLotEditor
                     disabled={disabled}
@@ -379,8 +402,8 @@ function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPl
                     setLot={setPlateLot}
                 />
             </Form.Group>
-        </InputGroup>
-    );
+        </div>
+    </>;
 }
 
 function RunBlockPlateSequencerEditor({ disabled, definition, plateLabels, setPlateLabels, results, setResults }: {
@@ -432,7 +455,7 @@ function RunBlockPlateSequencerEditor({ disabled, definition, plateLabels, setPl
     </>
 }
 
-function RunBlockStartThermocyclerEditor({disabled, definition, thermocyclerLabel, setThermocyclerLabel, startedOn, setStartedOn}: {
+function RunBlockStartThermocyclerEditor({ disabled, definition, thermocyclerLabel, setThermocyclerLabel, startedOn, setStartedOn }: {
     disabled?: boolean;
     definition: StartThermocyclerBlockDefinition;
     thermocyclerLabel?: string;
@@ -466,7 +489,7 @@ function RunBlockStartThermocyclerEditor({disabled, definition, thermocyclerLabe
                         maxYear: parseInt(moment().format('YYYY'), 10),
                         locale: { format: 'LLLL' },
                     }}
-                    onCallback={start => setStartedOn(start.format()) }
+                    onCallback={start => setStartedOn(start.format())}
                 >
                     <Form.Control
                         type="text"
@@ -479,7 +502,7 @@ function RunBlockStartThermocyclerEditor({disabled, definition, thermocyclerLabe
     </>;
 }
 
-function RunBlockEndThermocyclerEditor({disabled, definition, thermocyclerLabel, setThermocyclerLabel, endedOn, setEndedOn}: {
+function RunBlockEndThermocyclerEditor({ disabled, definition, thermocyclerLabel, setThermocyclerLabel, endedOn, setEndedOn }: {
     disabled?: boolean;
     definition: EndThermocyclerBlockDefinition;
     thermocyclerLabel?: string;
@@ -513,7 +536,7 @@ function RunBlockEndThermocyclerEditor({disabled, definition, thermocyclerLabel,
                         maxYear: parseInt(moment().format('YYYY'), 10),
                         locale: { format: 'LLLL' },
                     }}
-                    onCallback={end => setEndedOn(end.format()) }
+                    onCallback={end => setEndedOn(end.format())}
                 >
                     <Form.Control
                         type="text"
@@ -575,7 +598,9 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                     outputPlateLabel={block.outputPlateLabel}
                     setOutputPlateLabel={outputPlateLabel => props.setBlock({ ...block, type: 'plate-sampler', outputPlateLabel })}
                     mappings={props.block && props.block.plateMappings}
-                    setMappings={mappings => props.setBlock({ ...block, type: 'plate-sampler', plateMappings: mappings })}
+                    setMappings={plateMappings => props.setBlock({ ...block, type: 'plate-sampler', plateMappings })}
+                    platePrimers={props.block && props.block.platePrimers}
+                    setPlatePrimers={platePrimers => props.setBlock({ ...block, type: 'plate-sampler', platePrimers })}
                 />
             );
         }

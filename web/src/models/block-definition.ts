@@ -5,6 +5,11 @@ export interface BlockOption {
     option: string;
 }
 
+export interface BlockPrimer {
+    id: string;
+    primer: string;
+}
+
 export interface TextQuestionBlockDefinition {
     type: 'text-question';
 
@@ -29,6 +34,7 @@ export interface PlateSamplerBlockDefinition {
     plateName?: string;
     plateCount?: number;
     plateSize?: 96;
+    platePrimers?: BlockPrimer[];
 }
 
 export interface PlateAddReagentBlockDefinition {

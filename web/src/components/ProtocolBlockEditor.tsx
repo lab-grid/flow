@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup } from 'react-bootstrap';
 import { GripHorizontal, Trash } from 'react-bootstrap-icons';
-import { BlockDefinition, BlockOption, EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { BlockDefinition, BlockOption, BlockPrimer, EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { trimEmpty } from '../utils';
 import * as uuid from 'uuid';
 
@@ -135,6 +135,62 @@ function ProtocolBlockOptionTypeEditor({ disabled, optionType, setOptionType }: 
             <option value="menu-item">Dropdown Menu</option>
             <option value="user">User</option>
         </Form.Control>
+    </Form.Group>
+}
+
+function ProtocolBlockPrimersEditor({ disabled, primers, setPrimers }: {
+    disabled?: boolean;
+    primers?: BlockPrimer[];
+    setPrimers: (primers?: BlockPrimer[]) => void;
+}) {
+    const currentPrimers = trimEmpty(primers, primer => primer.primer);
+    currentPrimers.push({ id: uuid.v4(), primer: "" });
+    return <>
+        <Form.Label>
+            Primers
+        </Form.Label>
+        {currentPrimers.map((primer, i) => <ProtocolBlockPrimerEditor
+            disabled={disabled}
+            deletable={currentPrimers.length - 1 !== i}
+            key={primer.id}
+            primer={primer.primer}
+            setPrimer={primer => {
+                const newPrimers = [...currentPrimers];
+                newPrimers[i].primer = primer || "";
+                setPrimers(newPrimers);
+            }}
+            deletePrimer={() => {
+                const newPrimers = [...currentPrimers];
+                newPrimers.splice(i, 1);
+                setPrimers(newPrimers);
+            }}
+            placeholder={(currentPrimers.length - 1 === i) ? "Start typing here to add an primer..." : "Blank primer (will be ignored)"}
+        />)}
+    </>
+}
+
+function ProtocolBlockPrimerEditor({ disabled, deletable, placeholder, primer, setPrimer, deletePrimer }: {
+    disabled?: boolean;
+    deletable?: boolean;
+    placeholder?: string;
+    primer?: string;
+    setPrimer: (primer: string | undefined) => void;
+    deletePrimer: () => void;
+}) {
+    return <Form.Group>
+        <InputGroup>
+            <FormControl
+                disabled={disabled}
+                placeholder={placeholder}
+                value={primer}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPrimer((e.target as HTMLInputElement).value)}
+            />
+            {!disabled && deletable &&
+                <InputGroup.Append>
+                    <Button variant="secondary" onClick={deletePrimer}><Trash /></Button>
+                </InputGroup.Append>
+            }
+        </InputGroup>
     </Form.Group>
 }
 
