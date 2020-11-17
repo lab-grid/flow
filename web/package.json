@@ -25,6 +25,7 @@
     "bootstrap": "^4.5.3",
     "jquery": "^3.5.1",
     "moment": "^2.29.1",
+    "node-sass": "^4.14.1",
     "react": "^16.14.0",
     "react-bootstrap": "^1.4.0",
     "react-bootstrap-icons": "^1.1.0",

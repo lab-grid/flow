@@ -46,19 +46,4 @@ code {
   color: #1dc0ae;
 }
 
-.btn-primary, .btn-primary:hover, .btn-primary:active, .btn-primary:visited {
-    background-color: #1dc0ae !important;
-    border-color: #1dc0ae !important;
-}
-
-.btn-success, .btn-success:hover, .btn-success:active, .btn-success:visited {
-    background-color: #5463d2 !important;
-    border-color: #5463d2 !important;
-}
-
-.container a:last-child {
-  color: #5463d2 !important;
-}
-
-
 
