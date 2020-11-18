@@ -371,7 +371,7 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     plateCount={block.plateCount}
                     setPlateCount={plateCount => {
                         let plates = block.plates || Array(plateCount).map(() => ({id: uuid.v4()}));
-                        if (plates.length != plateCount) {
+                        if (plates.length !== plateCount) {
                             const newPlates: BlockPlate[] = [];
                             for (let i = 0; i < (plateCount || 0); i++) {
                                 newPlates.push(plates[i] || {id: uuid.v4()});
@@ -380,6 +380,11 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                         }
                         props.setBlock({ ...block, type: 'plate-sampler', plateCount, plates });
                     }}
+                />
+                <ProtocolBlockPrimersEditor
+                    disabled={props.disabled}
+                    primers={block.platePrimers}
+                    setPrimers={platePrimers => props.setBlock({ ...block, type: 'plate-sampler', platePrimers })}
                 />
             </>;
         }
@@ -430,7 +435,7 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     plateCount={block.plateCount}
                     setPlateCount={plateCount => {
                         let plates = block.plates || Array(plateCount).map(() => ({id: uuid.v4()}));
-                        if (plates.length != plateCount) {
+                        if (plates.length !== plateCount) {
                             const newPlates: BlockPlate[] = [];
                             for (let i = 0; i < (plateCount || 0); i++) {
                                 newPlates.push(plates[i] || {id: uuid.v4()});

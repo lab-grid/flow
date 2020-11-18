@@ -11,7 +11,7 @@ import { runQuery, upsertRun } from '../state/selectors';
 import { Block } from '../models/block';
 import { deserializeSlate, serializeSlate } from '../slate';
 import moment from 'moment';
-import { BlockquoteLeft, CheckCircle, Share } from 'react-bootstrap-icons';
+import { CheckCircle, Share } from 'react-bootstrap-icons';
 import { SharingModal } from '../components/SharingModal';
 import { Element, Leaf, onHotkeyDown, Toolbar } from '../components/Slate';
 

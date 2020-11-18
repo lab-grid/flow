@@ -144,7 +144,7 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
     setSection: (section?: SectionDefinition) => void;
     deleteSection: (sectionId?: string) => void;
 }) {
-    const currentBlocks = (section && section.blocks) || [];
+    const currentBlocks = React.useMemo(() => (section && section.blocks) || [], [section]);
 
     const addBlock = (block?: BlockDefinition) => {
         if (block) {
@@ -173,7 +173,7 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
                 blocks: newBlocks
             });
         },
-        [currentBlocks],
+        [currentBlocks, section, setSection],
     )
     const deleteBlock = (blockId?: string) => {
         if (blockId) {
@@ -278,11 +278,11 @@ export function ProtocolEditorPage() {
         return await upsertRun(() => auth0Client, run);
     });
 
-    const currentName = ((name !== null) ? name : (protocol && protocol.name)) || '';
-    const currentDescription = ((description !== null) ? description : (protocol && protocol.description && deserializeSlate(protocol.description))) || initialSlateValue;
-    const currentSections = ((sections !== null) ? sections : (protocol && protocol.sections)) || [];
-    const currentSignature = ((signature !== null) ? signature : (protocol && protocol.signature)) || '';
-    const currentWitness = ((witness !== null) ? witness : (protocol && protocol.witness)) || '';
+    const currentName = React.useMemo(() => ((name !== null) ? name : (protocol && protocol.name)) || '', [name, protocol]);
+    const currentDescription = React.useMemo(() => ((description !== null) ? description : (protocol && protocol.description && deserializeSlate(protocol.description))) || initialSlateValue, [description, protocol]);
+    const currentSections = React.useMemo(() => ((sections !== null) ? sections : (protocol && protocol.sections)) || [], [sections, protocol]);
+    const currentSignature = React.useMemo(() => ((signature !== null) ? signature : (protocol && protocol.signature)) || '', [signature, protocol]);
+    const currentWitness = React.useMemo(() => ((witness !== null) ? witness : (protocol && protocol.witness)) || '', [witness, protocol]);
 
     const addSection = (section?: SectionDefinition) => {
         if (section) {
