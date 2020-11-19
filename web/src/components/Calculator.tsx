@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Form, InputGroup } from 'react-bootstrap';
-import { Parser, ParserResponse } from 'hot-formula-parser';
+import { Parser } from 'hot-formula-parser';
 import { BlockVariable } from '../models/block-definition';
 
 

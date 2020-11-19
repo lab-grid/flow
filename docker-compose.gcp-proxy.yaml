@@ -7,7 +7,7 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - ./cloud-sql-dev-proxy.json:/credentials.json
+      - ${CLOUD_SQL_PROXY_CREDENTIALS}:/credentials.json
     command:
       - "/cloud_sql_proxy"
       - "-instances=${POSTGRES_INSTANCE}=tcp:0.0.0.0:5432"
