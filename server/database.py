@@ -39,7 +39,7 @@ def json_row_to_dict(row):
 
     return d
 
-def versioned_row_to_dict(row, row_version):
+def versioned_row_to_dict(api, row, row_version):
     """Convert a sqlalchemy row object into a plain python dictionary.
 
     Assumes that row object contains the following columns:
@@ -64,7 +64,7 @@ def versioned_row_to_dict(row, row_version):
     if row.created_by:
         try:
             d['created_by'] = row.owner.current.data["email"]
-        except ex:
+        except Exception as ex:
             api.logger.error("Failed to get user email: %s", ex)
     if row_version.id:
         d['version_id'] = row_version.id
@@ -73,7 +73,7 @@ def versioned_row_to_dict(row, row_version):
     if row_version.updated_by:
         try:
             d['updated_by'] = row_version.updator.current.data["email"]
-        except ex:
+        except Exception as ex:
             api.logger.error("Failed to get user email: %s", ex)
 
     return d

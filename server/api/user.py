@@ -45,7 +45,7 @@ class UsersResource(Resource):
     # @requires_scope('read:users')
     def get(self):
         return [
-            add_role(versioned_row_to_dict(user, user.current))
+            add_role(versioned_row_to_dict(api, user, user.current))
             for user
             in User.query.filter(User.is_deleted != True).all()
             if check_access(path=f"/user/{user.id}", method="GET")
@@ -68,7 +68,7 @@ class UsersResource(Resource):
         db.session.commit()
         add_policy(path=f"/user/{str(user.id)}", method="GET")
         add_policy(path=f"/user/{str(user.id)}", method="PUT")
-        return add_role(versioned_row_to_dict(user, user_version))
+        return add_role(versioned_row_to_dict(api, user, user_version))
 
 
 @api.route('/user/<string:user_id>')
@@ -91,13 +91,13 @@ class UserResource(Resource):
             if (not user_version) or user_version.user.is_deleted:
                 abort(404)
                 return
-            return add_role(versioned_row_to_dict(user_version.user, user_version))
+            return add_role(versioned_row_to_dict(api, user_version.user, user_version))
         
         user = User.query.get(user_id)
         if (not user) or user.is_deleted:
             abort(404)
             return
-        return add_role(versioned_row_to_dict(user, user.current))
+        return add_role(versioned_row_to_dict(api, user, user.current))
 
     @api.doc(security='token', model=user_output, body=user_input)
     @requires_auth
@@ -120,4 +120,4 @@ class UserResource(Resource):
         user.current = user_version
         db.session.add(user_version)
         db.session.commit()
-        return add_role(versioned_row_to_dict(user, user.current))
+        return add_role(versioned_row_to_dict(api, user, user.current))

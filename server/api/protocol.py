@@ -47,7 +47,7 @@ class ProtocolsResource(Resource):
     @requires_scope('read:protocols')
     def get(self):
         return [
-            versioned_row_to_dict(protocol, protocol.current)
+            versioned_row_to_dict(api, protocol, protocol.current)
             for protocol
             in Protocol.query.filter(Protocol.is_deleted != True).all()
             if check_access(path=f"/protocol/{str(protocol.id)}", method="GET")
@@ -69,7 +69,7 @@ class ProtocolsResource(Resource):
         add_policy(path=f"/protocol/{str(protocol.id)}", method="GET")
         add_policy(path=f"/protocol/{str(protocol.id)}", method="PUT")
         add_policy(path=f"/protocol/{str(protocol.id)}", method="DELETE")
-        return versioned_row_to_dict(protocol, protocol_version)
+        return versioned_row_to_dict(api, protocol, protocol_version)
 
 
 @api.route('/protocol/<int:protocol_id>')
@@ -90,13 +90,13 @@ class ProtocolResource(Resource):
             if (not protocol_version) or protocol_version.protocol.is_deleted:
                 abort(404)
                 return
-            return versioned_row_to_dict(protocol_version.protocol, protocol_version)
+            return versioned_row_to_dict(api, protocol_version.protocol, protocol_version)
         
         protocol = Protocol.query.get(protocol_id)
         if (not protocol) or protocol.is_deleted:
             abort(404)
             return
-        return versioned_row_to_dict(protocol, protocol.current)
+        return versioned_row_to_dict(api, protocol, protocol.current)
 
     @api.doc(security='token', model=protocol_output, body=protocol_input)
     @requires_auth
@@ -108,7 +108,7 @@ class ProtocolResource(Resource):
         if not protocol or protocol.is_deleted:
             abort(404)
             return
-        if not change_allowed(versioned_row_to_dict(protocol, protocol.current), protocol_dict):
+        if not change_allowed(versioned_row_to_dict(api, protocol, protocol.current), protocol_dict):
             abort(403)
             return
         protocol_version = ProtocolVersion(data=strip_metadata(protocol_dict))
@@ -117,7 +117,7 @@ class ProtocolResource(Resource):
         protocol.current = protocol_version
         db.session.add(protocol_version)
         db.session.commit()
-        return versioned_row_to_dict(protocol, protocol.current)
+        return versioned_row_to_dict(api, protocol, protocol.current)
 
     @api.doc(security='token', model=success_output)
     @requires_auth

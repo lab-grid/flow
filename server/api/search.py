@@ -66,13 +66,13 @@ class ProtocolsResource(Resource):
             pass
 
         protocols = [
-            versioned_row_to_dict(protocol, protocol.current)
+            versioned_row_to_dict(api, protocol, protocol.current)
             for protocol
             in protocolsQuery.distinct()
             if check_access(path=f"/protocol/{str(protocol.id)}", method="GET")
         ]
         runs = [
-            versioned_row_to_dict(run, run.current)
+            versioned_row_to_dict(api, run, run.current)
             for run
             in runsQuery.distinct()
             if check_access(path=f"/run/{str(run.id)}", method="GET")

@@ -42,8 +42,8 @@ method_param = {
 
 
 def run_to_dict(run, run_version):
-    run_dict = versioned_row_to_dict(run, run_version)
-    run_dict['protocol'] = versioned_row_to_dict(run.protocol_version.protocol, run.protocol_version)
+    run_dict = versioned_row_to_dict(api, run, run_version)
+    run_dict['protocol'] = versioned_row_to_dict(api, run.protocol_version.protocol, run.protocol_version)
     return run_dict
 
 
