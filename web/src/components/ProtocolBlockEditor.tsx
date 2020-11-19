@@ -344,17 +344,21 @@ function ProtocolBlockVariableEditor({ disabled, deletable, placeholder, variabl
             <FormControl
                 disabled={disabled}
                 placeholder={placeholder}
-                // as={InputGroup.Prepend}
                 value={variable}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVariable((e.target as HTMLInputElement).value)}
             />
-            {/* <FormControl
-                type="number"
-                disabled={disabled}
-                placeholder="Default value"
-                value={defaultValue}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDefaultValue(parseInt((e.target as HTMLInputElement).value))}
-            /> */}
+            {deletable &&
+                <FormControl
+                    style={{
+                        'maxWidth': '240px',
+                    }}
+                    type="number"
+                    disabled={disabled}
+                    placeholder="Default value"
+                    value={defaultValue}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDefaultValue(parseInt((e.target as HTMLInputElement).value))}
+                />
+            }
             {!disabled && deletable &&
                 <InputGroup.Append>
                     <Button variant="secondary" onClick={deleteVariable}><Trash /></Button>
