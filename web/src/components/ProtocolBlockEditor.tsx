@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup } from 'react-bootstrap';
 import { GripHorizontal, Trash } from 'react-bootstrap-icons';
-import { BlockDefinition, BlockOption, BlockPlate, BlockPrimer, EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { BlockDefinition, BlockOption, BlockPlate, BlockPrimer, BlockVariable, EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { trimEmpty } from '../utils';
 import * as uuid from 'uuid';
 
@@ -296,6 +296,103 @@ function ProtocolBlockReagentLabelEditor({ disabled, reagentLabel, setReagentLab
     </Form.Group>
 }
 
+function ProtocolBlockVariablesEditor({ disabled, variables, setVariables }: {
+    disabled?: boolean;
+    variables?: BlockVariable[];
+    setVariables: (variables?: BlockVariable[]) => void;
+}) {
+    const currentVariables = trimEmpty(variables, variable => variable.name);
+    currentVariables.push({ id: uuid.v4(), name: "" });
+    return <>
+        {currentVariables.map((variable, i) => <ProtocolBlockVariableEditor
+            disabled={disabled}
+            deletable={currentVariables.length - 1 !== i}
+            key={variable.id}
+            variable={variable.name}
+            setVariable={variable => {
+                const newVariables = [...currentVariables];
+                newVariables[i].name = variable || "";
+                setVariables(newVariables);
+            }}
+            setDefaultValue={defaultValue => {
+                const newVariables = [...currentVariables];
+                newVariables[i].defaultValue = defaultValue;
+                setVariables(newVariables);
+            }}
+            deleteVariable={() => {
+                const newVariables = [...currentVariables];
+                newVariables.splice(i, 1);
+                setVariables(newVariables);
+            }}
+            placeholder={(currentVariables.length - 1 === i) ? "Start typing here to add an variable..." : "Blank variable (will be ignored)"}
+        />)}
+    </>
+}
+
+function ProtocolBlockVariableEditor({ disabled, deletable, placeholder, variable, defaultValue, setVariable, setDefaultValue, deleteVariable }: {
+    disabled?: boolean;
+    deletable?: boolean;
+    placeholder?: string;
+    variable?: string;
+    defaultValue?: number;
+    setVariable: (variable: string | undefined) => void;
+    setDefaultValue: (d?: number) => void;
+    deleteVariable: () => void;
+}) {
+    return <Form.Group>
+        <InputGroup>
+            <FormControl
+                disabled={disabled}
+                placeholder={placeholder}
+                // as={InputGroup.Prepend}
+                value={variable}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVariable((e.target as HTMLInputElement).value)}
+            />
+            {/* <FormControl
+                type="number"
+                disabled={disabled}
+                placeholder="Default value"
+                value={defaultValue}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDefaultValue(parseInt((e.target as HTMLInputElement).value))}
+            /> */}
+            {!disabled && deletable &&
+                <InputGroup.Append>
+                    <Button variant="secondary" onClick={deleteVariable}><Trash /></Button>
+                </InputGroup.Append>
+            }
+        </InputGroup>
+    </Form.Group>
+}
+
+function ProtocolBlockFormulaEditor({ disabled, formula, setFormula, variables, setVariables }: {
+    disabled?: boolean;
+    formula?: string;
+    setFormula: (formula?: string) => void;
+    variables?: BlockVariable[];
+    setVariables: (variables?: BlockVariable[]) => void;
+}) {
+    return <>
+        <Form.Group>
+            <Form.Label>Formula (<a href="https://formulajs.info/functions/">Supported Functions</a>)</Form.Label>
+            <Form.Control
+                disabled={disabled}
+                type="text"
+                placeholder="Enter a formula. Leave blank to omit"
+                value={formula}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormula((e.target as HTMLInputElement).value)}
+            />
+        </Form.Group>
+        <Form.Group>
+            <Form.Label>Formula Variables</Form.Label>
+            <ProtocolBlockVariablesEditor
+                disabled={disabled}
+                variables={variables}
+                setVariables={setVariables}
+            />
+        </Form.Group>
+    </>
+}
+
 export interface ProtocolBlockEditorProps {
     disabled?: boolean;
     index: number;
@@ -411,6 +508,13 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     disabled={props.disabled}
                     reagentLabel={block.reagentLabel}
                     setReagentLabel={reagentLabel => props.setBlock({ ...block, type: 'plate-add-reagent', reagentLabel })}
+                />
+                <ProtocolBlockFormulaEditor
+                    disabled={props.disabled}
+                    formula={block.formula}
+                    setFormula={formula => props.setBlock({ ...block, type: 'plate-add-reagent', formula })}
+                    variables={block.variables}
+                    setVariables={variables => props.setBlock({ ...block, type: 'plate-add-reagent', variables })}
                 />
             </>;
         }

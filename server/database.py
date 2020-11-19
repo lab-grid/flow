@@ -3,6 +3,7 @@
 import copy
 import pprint
 from server import db
+from sqlalchemy.ext.declarative import declared_attr
 
 
 # Helpers ---------------------------------------------------------------------
@@ -61,13 +62,19 @@ def versioned_row_to_dict(row, row_version):
     if row.created_on:
         d['created_on'] = row.created_on
     if row.created_by:
-        d['created_by'] = row.created_by
+        try:
+            d['created_by'] = row.owner.current.data["email"]
+        except ex:
+            api.logger.error("Failed to get user email: %s", ex)
     if row_version.id:
         d['version_id'] = row_version.id
     if row_version.updated_on:
         d['updated_on'] = row_version.updated_on
     if row_version.updated_by:
-        d['updated_by'] = row_version.updated_by
+        try:
+            d['updated_by'] = row_version.updator.current.data["email"]
+        except ex:
+            api.logger.error("Failed to get user email: %s", ex)
 
     return d
 
@@ -96,13 +103,27 @@ class BaseModel(db.Model):
 
     is_deleted = db.Column(db.Boolean, default=False)
     created_on = db.Column(db.DateTime, default=db.func.now())
-    created_by = db.Column(db.String(64))
+
+    @declared_attr
+    def created_by(cls):
+        return db.Column(db.String(64), db.ForeignKey('user.id'))
+
+    @declared_attr
+    def owner(cls):
+        return db.relationship('User', primaryjoin=cls.__name__+'.created_by==User.id')
 
 class BaseVersionModel(db.Model):
     __abstract__ = True
 
     updated_on = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
-    updated_by = db.Column(db.String(64))
+
+    @declared_attr
+    def updated_by(cls):
+        return db.Column(db.String(64), db.ForeignKey('user.id'))
+
+    @declared_attr
+    def updator(cls):
+        return db.relationship('User', primaryjoin=cls.__name__+'.updated_by==User.id')
 
 class UserVersion(BaseVersionModel):
     __tablename__ = 'user_version'

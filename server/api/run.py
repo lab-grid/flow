@@ -8,7 +8,7 @@ from server import db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
 from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol
 
-from api.utils import change_allowed, success_output
+from api.utils import change_allowed, success_output, add_owner, add_updator
 
 
 api = Namespace('runs', description='Extra-Simple operations on runs.', path='/')
@@ -88,6 +88,7 @@ class RunsResource(Resource):
         run_version.run = run
         run.current = run_version
         run.protocol_version_id = protocol.version_id
+        add_owner(run)
         db.session.add_all([run, run_version])
         db.session.commit()
         add_policy(path=f"/run/{str(run.id)}", method="GET")
@@ -139,6 +140,7 @@ class RunResource(Resource):
             return
         run_version = RunVersion(data=strip_metadata(run_dict))
         run_version.run = run
+        add_updator(run_version)
         run.current = run_version
         db.session.add(run_version)
         db.session.commit()

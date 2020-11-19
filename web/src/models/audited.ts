@@ -1,6 +1,6 @@
 export interface Audited {
-    createdOn?: string;
-    createdBy?: string;
-    updatedOn?: string;
-    updatedBy?: string;
+    created_on?: string;
+    created_by?: string;
+    updated_on?: string;
+    updated_by?: string;
 }

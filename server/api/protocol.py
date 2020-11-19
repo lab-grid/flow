@@ -7,7 +7,7 @@ from server import db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
 from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Protocol, ProtocolVersion
 
-from api.utils import change_allowed, success_output
+from api.utils import change_allowed, success_output, add_owner, add_updator
 
 
 api = Namespace('protocols', description='Extra-Simple operations on protocols.', path='/')
@@ -63,6 +63,7 @@ class ProtocolsResource(Resource):
         protocol_version = ProtocolVersion(data=strip_metadata(protocol_dict))
         protocol_version.protocol = protocol
         protocol.current = protocol_version
+        add_owner(protocol)
         db.session.add_all([protocol, protocol_version])
         db.session.commit()
         add_policy(path=f"/protocol/{str(protocol.id)}", method="GET")
@@ -112,6 +113,7 @@ class ProtocolResource(Resource):
             return
         protocol_version = ProtocolVersion(data=strip_metadata(protocol_dict))
         protocol_version.protocol = protocol
+        add_updator(protocol_version)
         protocol.current = protocol_version
         db.session.add(protocol_version)
         db.session.commit()

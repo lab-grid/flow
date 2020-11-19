@@ -1,3 +1,4 @@
+from flask import request
 from flask_restx import fields
 
 import copy
@@ -77,3 +78,19 @@ def change_allowed(orig_dict, new_dict):
     if is_witnessed and is_unwitnessing and changed_non_status_witness:
         return False
     return True
+
+
+# -----------------------------------------------------------------------------
+# Miscellaneous ---------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+def add_owner(model, user_id=None):
+    if user_id is None:
+        user_id = request.current_user["sub"]
+    model.created_by = user_id
+
+
+def add_updator(model, user_id=None):
+    if user_id is None:
+        user_id = request.current_user["sub"]
+    model.updated_by = user_id

@@ -6,6 +6,7 @@ import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddRea
 import { BlockPrimer, EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { TableUploadModal } from './TableUploadModal';
 import DateRangePicker from 'react-bootstrap-daterangepicker';
+import { Calculator } from './Calculator';
 
 function RunBlockLabel({ name }: {
     name?: string;
@@ -388,6 +389,15 @@ function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPl
     return <>
         <h4 className="row">{definition.name}</h4>
         <div className="row">
+            <div className="col-8 mx-auto my-4">
+                <Calculator
+                    disabled={disabled}
+                    formula={definition.formula}
+                    variables={definition.variables}
+                />
+            </div>
+        </div>
+        <div className="row">
             <Form.Group className="col">
                 <Form.Label>Adding reagent ({definition.reagentLabel}) to plate</Form.Label>
                 <RunBlockPlateLabelEditor
@@ -424,8 +434,8 @@ function RunBlockPlateSequencerEditor({ disabled, definition, plateLabels, setPl
             <td>
                 <RunBlockPlateLabelEditor
                     disabled={disabled}
-                    wells={definition.plates && definition.plates[i].size}
-                    name={definition.plates && definition.plates[i].name}
+                    wells={definition.plates && definition.plates[i] && definition.plates[i].size}
+                    name={definition.plates && definition.plates[i] && definition.plates[i].name}
                     label={plateLabels ? plateLabels[i] : undefined}
                     setLabel={label => {
                         if (label !== undefined) {

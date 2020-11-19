@@ -28,10 +28,10 @@ export function RunsTable({ runs }: RunsProps) {
                             <Link to={`/run/${run.id}`}>{run.id}</Link>
                         </td>
                         <td>{humanizeRunName(run)}</td>
-                        <td>{run.createdBy}</td>
+                        <td>{run.created_by}</td>
                         <td>{run.status}</td>
-                        <td>{(run.createdOn && moment(run.createdOn).format("LLLL")) || ''}</td>
-                        <td>{((run.updatedOn || run.createdOn) && moment(run.updatedOn || run.createdOn).format("LLLL")) || ''}</td>
+                        <td>{(run.created_on && moment(run.created_on).format("LLLL")) || ''}</td>
+                        <td>{((run.updated_on || run.created_on) && moment(run.updated_on || run.created_on).format("LLLL")) || ''}</td>
                     </tr>
                 ))}
             </tbody>

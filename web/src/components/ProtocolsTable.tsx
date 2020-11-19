@@ -27,9 +27,9 @@ export function ProtocolsTable({ protocols }: ProtocolsProps) {
                             <Link to={`/protocol/${protocol.id}`}>{protocol.id}</Link>
                         </td>
                         <td>{protocol.name}</td>
-                        <td>{protocol.createdBy}</td>
-                        <td>{(protocol.createdOn && moment(protocol.createdOn).format("LLLL")) || ''}</td>
-                        <td>{((protocol.updatedOn || protocol.createdOn) && moment(protocol.updatedOn || protocol.createdOn).format("LLLL")) || ''}</td>
+                        <td>{protocol.created_by}</td>
+                        <td>{(protocol.created_on && moment(protocol.created_on).format("LLLL")) || ''}</td>
+                        <td>{((protocol.updated_on || protocol.created_on) && moment(protocol.updated_on || protocol.created_on).format("LLLL")) || ''}</td>
                     </tr>
                 ))}
             </tbody>

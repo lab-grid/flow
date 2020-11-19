@@ -10,7 +10,7 @@ from server import app, db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, get_policies, get_roles
 from database import versioned_row_to_dict, strip_metadata, User, UserVersion
 
-from api.utils import success_output
+from api.utils import success_output, add_owner, add_updator
 
 
 api = Namespace('users', description='Extra-Simple operations on users.', path='/')
@@ -63,6 +63,7 @@ class UsersResource(Resource):
         user_version = UserVersion(data=strip_metadata(user_dict))
         user_version.user = user
         user.current = user_version
+        add_owner(user)
         db.session.add_all([user, user_version])
         db.session.commit()
         add_policy(path=f"/user/{str(user.id)}", method="GET")
@@ -115,6 +116,7 @@ class UserResource(Resource):
             return
         user_version = UserVersion(data=strip_metadata(user_dict))
         user_version.user = user
+        add_updator(user_version)
         user.current = user_version
         db.session.add(user_version)
         db.session.commit()

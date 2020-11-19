@@ -39,9 +39,9 @@ export function protocolToRow(protocol: Protocol): string {
     return [
         protocol.id || '',
         protocol.name || '',
-        protocol.createdBy || '',
-        (protocol.createdOn && moment(protocol.createdOn).format("LLLL")) || '',
-        ((protocol.updatedOn || protocol.createdOn) && moment(protocol.updatedOn || protocol.createdOn).format("LLLL")) || ''
+        protocol.created_by || '',
+        (protocol.created_on && moment(protocol.created_on).format("LLLL")) || '',
+        ((protocol.updated_on || protocol.created_on) && moment(protocol.updated_on || protocol.created_on).format("LLLL")) || ''
     ].join(',');
 }
 

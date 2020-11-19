@@ -10,6 +10,12 @@ export interface BlockPrimer {
     primer: string;
 }
 
+export interface BlockVariable {
+    id: string;
+    name: string;
+    defaultValue?: number;
+}
+
 export interface BlockPlate<T extends number = number>{
     id: string;
     name?: string;
@@ -50,6 +56,9 @@ export interface PlateAddReagentBlockDefinition {
     plateName?: string;
     plateSize?: 384 | 96;
     reagentLabel?: string;
+
+    formula?: string;
+    variables?: BlockVariable[];
 }
 
 export interface StartThermocyclerBlockDefinition {

@@ -50,10 +50,10 @@ export function runToRow(run: Run): string {
     return [
         run.id || '',
         humanizeRunName(run),
-        run.createdBy || '',
+        run.created_by || '',
         run.status || '',
-        (run.createdOn && moment(run.createdOn).format("LLLL")) || '',
-        ((run.updatedOn || run.createdOn) && moment(run.updatedOn || run.createdOn).format("LLLL")) || ''
+        (run.created_on && moment(run.created_on).format("LLLL")) || '',
+        ((run.updated_on || run.created_on) && moment(run.updated_on || run.created_on).format("LLLL")) || ''
     ].join(',');
 }
 
