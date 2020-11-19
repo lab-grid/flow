@@ -388,15 +388,17 @@ function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPl
 }) {
     return <>
         <h4 className="row">{definition.name}</h4>
-        <div className="row">
-            <div className="col-8 mx-auto my-4">
-                <Calculator
-                    disabled={disabled}
-                    formula={definition.formula}
-                    variables={definition.variables}
-                />
+        {
+            definition.formula && <div className="row">
+                <div className="col-8 mx-auto my-4">
+                    <Calculator
+                        disabled={disabled}
+                        formula={definition.formula}
+                        variables={definition.variables}
+                    />
+                </div>
             </div>
-        </div>
+        }
         <div className="row">
             <Form.Group className="col">
                 <Form.Label>Adding reagent ({definition.reagentLabel}) to plate</Form.Label>
