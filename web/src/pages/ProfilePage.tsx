@@ -20,7 +20,7 @@ function FullName({disabled, name, setName}: {
                 disabled={disabled}
                 type="text"
                 value={name}
-                onInput={(e: React.FormEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
             />
         </Form.Group>
     );

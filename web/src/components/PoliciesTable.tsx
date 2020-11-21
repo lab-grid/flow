@@ -5,7 +5,6 @@ import { useRecoilValue } from "recoil";
 import { Policy } from "../models/policy";
 import { User } from "../models/user";
 import { usersQuery } from "../state/selectors";
-import moment from 'moment';
 
 function humanizePolicyMethod(method?: string) {
     switch(method) {

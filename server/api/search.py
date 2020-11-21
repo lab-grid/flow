@@ -1,3 +1,8 @@
+from functools import reduce
+from sqlalchemy import or_
+from sqlalchemy.sql import func
+from sqlalchemy.orm import aliased
+
 from flask import request
 from flask_restx import Resource, fields, Namespace
 
@@ -34,6 +39,25 @@ plate_param = {
 }
 
 
+def all_protocols():
+    return Protocol.query.filter(Protocol.is_deleted != True)
+
+def all_runs():
+    return Run.query.filter(Run.is_deleted != True)
+
+def filter_by_plate_label(run_version_query, plate_id):
+    return run_version_query.filter(
+        func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].plateLabels["{plate_id}"]')
+    )
+    return run_version_query.filter(
+        or_(
+            func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].plateLabels["{plate_id}"]'),
+            func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].mappings["{plate_id}"]'),
+            func.jsonb_path_match(RunVersion.data, f'$.sections[*].blocks[*].plateLabel = "{plate_id}"')
+        )
+    )
+
+
 @api.route('/search')
 class ProtocolsResource(Resource):
     @api.doc(security='token', model=search_results, params={'protocol': protocol_param, 'run': run_param, 'plate': plate_param})
@@ -45,36 +69,63 @@ class ProtocolsResource(Resource):
         run = int(request.args.get('run')) if request.args.get('run') else None
         plate = request.args.get('plate')
 
-        protocolsQuery = Protocol.query.filter(Protocol.is_deleted != True)
-        runsQuery = Run.query.filter(Run.is_deleted != True)
+        protocols_queries = []
+        runs_queries = []
 
+        # Add filter specific queries. These will be intersected later on.
         if protocol:
-            protocolsQuery = protocolsQuery\
-                .filter(Protocol.id == protocol)
-            runsQuery = runsQuery\
-                .join(ProtocolVersion, ProtocolVersion.id == Run.protocol_version_id)\
-                .filter(ProtocolVersion.protocol_id == protocol)
+            protocols_queries.append(
+                all_protocols().filter(Protocol.id == protocol)
+            )
+            runs_queries.append(
+                all_runs()\
+                    .join(ProtocolVersion, ProtocolVersion.id == Run.protocol_version_id)\
+                    .filter(ProtocolVersion.protocol_id == protocol)
+            )
         if run:
-            protocolsQuery = protocolsQuery\
+            protocols_queries.append(
+                all_protocols()\
+                    .join(ProtocolVersion, ProtocolVersion.protocol_id == Protocol.id)\
+                    .join(Run, Run.protocol_version_id == ProtocolVersion.id)\
+                    .filter(Run.id == run)
+            )
+            runs_queries.append(
+                all_runs().filter(Run.id == run)
+            )
+        if plate:
+            run_version_query = all_runs()\
+                .join(RunVersion, RunVersion.id == Run.version_id)
+            runs_subquery = filter_by_plate_label(run_version_query, plate)
+            runs_queries.append(runs_subquery)
+
+            run_version_query = all_protocols()\
                 .join(ProtocolVersion, ProtocolVersion.protocol_id == Protocol.id)\
                 .join(Run, Run.protocol_version_id == ProtocolVersion.id)\
-                .filter(Run.id == run)
-            runsQuery = runsQuery\
-                .filter(Run.id == run)
-        if plate:
-            # ???
-            pass
+                .join(RunVersion, RunVersion.id == Run.version_id)
+            protocols_subquery = filter_by_plate_label(run_version_query, plate)
+            protocols_queries.append(protocols_subquery)
 
+        # Add a basic non-deleted items query if no filters were specified.
+        if len(protocols_queries) == 0:
+            protocols_queries.append(Protocol.query.filter(Protocol.is_deleted != True))
+        if len(runs_queries) == 0:
+            runs_queries.append(Run.query.filter(Run.is_deleted != True))
+
+        # Only return the intersection of all queries.
+        protocols_query = reduce(lambda a, b: a.intersect(b), protocols_queries)
+        runs_query = reduce(lambda a, b: a.intersect(b), runs_queries)
+
+        # Convert database models to dictionaries and return the serch results.
         protocols = [
             versioned_row_to_dict(api, protocol, protocol.current)
             for protocol
-            in protocolsQuery.distinct()
+            in protocols_query.distinct()
             if check_access(path=f"/protocol/{str(protocol.id)}", method="GET")
         ]
         runs = [
             versioned_row_to_dict(api, run, run.current)
             for run
-            in runsQuery.distinct()
+            in runs_query.distinct()
             if check_access(path=f"/run/{str(run.id)}", method="GET")
         ]
         return {

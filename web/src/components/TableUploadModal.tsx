@@ -2,21 +2,22 @@ import React, { useState } from 'react';
 import { Button, Form, Modal } from 'react-bootstrap';
 import * as xlsx from 'xlsx';
 
-export function getHeadersFromData(data: tableRow[]): string[] {
+export function getHeadersFromData(data: tableRow[]): cellHeader[] {
     if (!data.length) {
         return [];
     }
-    return [...Object.keys(data[0])];
+    return Object.keys(data[0]).map(key => typeof key === 'number' ? key + 1 : key);
 }
 
 export interface TableUploadModalProps<T={[field: string]: any}> {
-    columns: {[column: string]: string | number | null};
+    columns: {[column: string]: cellHeader | null};
     parseHeader?: boolean;
     show: boolean;
     setShow: (show: boolean) => void;
     setTable: (data: T[]) => void;
 }
 
+type cellHeader = string | number;
 type cellData = string | number;
 type objectRow = {[column: string]: cellData};
 type arrayRow = cellData[]
@@ -25,10 +26,10 @@ type tableRow = objectRow | arrayRow;
 export function TableUploadModal<T={[field: string]: any}>(props: TableUploadModalProps<T>) {
     const [sheetName, setSheetName] = useState("");
     const [sheetNames, setSheetNames] = useState<string[]>([]);
-    const [headers, setHeaders] = useState<string[]>([]);
+    const [headers, setHeaders] = useState<cellHeader[]>([]);
     const [workbook, setWorkbook] = useState<xlsx.WorkBook | null>(null);
     const [data, setData] = useState<tableRow[] | null>(null);
-    const [columnHeaders, setColumnHeaders] = useState(new Map<string, string | number | null>(Object.entries(props.columns)));
+    const [columnHeaders, setColumnHeaders] = useState(new Map<string, cellHeader | null>(Object.entries(props.columns)));
 
     const uploadFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files && e.target.files[0]
@@ -72,7 +73,7 @@ export function TableUploadModal<T={[field: string]: any}>(props: TableUploadMod
                 for (const column of Object.keys(props.columns)) {
                     const header = columnHeaders.get(column);
                     if (header !== undefined && header !== null) {
-                        obj[column] = d[header];
+                        obj[column] = d[typeof header === 'number' ? header - 1 : header];
                     }
                 }
                 return obj;

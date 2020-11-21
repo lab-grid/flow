@@ -17,8 +17,9 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 # Configuration ---------------------------------------------------------------
 
 app.config['SERVER_NAME'] = os.environ.get('SERVER_NAME', app.config.get('SERVER_NAME'))
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.environ.get('SQLALCHEMY_TRACK_MODIFICATIONS', False)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.environ.get('SQLALCHEMY_TRACK_MODIFICATIONS', 'False') == 'True'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///labflow.db')
+app.config['SQLALCHEMY_ECHO'] = os.environ.get('SQLALCHEMY_ECHO', 'False') == 'True'
 app.config['AUTH_PROVIDER'] = os.environ.get('AUTH_PROVIDER', 'auth0')
 app.config['AUTH0_DOMAIN'] = os.environ.get('AUTH0_DOMAIN', '')
 app.config['AUTH0_CLIENT_ID'] = os.environ.get('AUTH0_CLIENT_ID', 'Msk8I4Ad2ujE76MwOatsmmvEEds5v50h')

@@ -198,7 +198,7 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
             disabled={disabled}
             type="text"
             placeholder="Enter the title. A section has a signature block during a run."
-            value={(section && section.name)}
+            value={(section && section.name) || ""}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSectionTitle((e.target as HTMLInputElement).value)}
           />
         </Form.Group>

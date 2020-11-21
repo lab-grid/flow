@@ -67,7 +67,7 @@ function ProtocolBlockOptionsEditor({ disabled, options, setOptions }: {
 }) {
     const currentOptions = trimEmpty(options, option => option.option);
     currentOptions.push({ id: uuid.v4(), option: "" });
-    return <>
+    return <Form.Group>
         <Form.Label>
             Options
         </Form.Label>
@@ -88,7 +88,7 @@ function ProtocolBlockOptionsEditor({ disabled, options, setOptions }: {
             }}
             placeholder={(currentOptions.length - 1 === i) ? "Start typing here to add an option..." : "Blank option (will be ignored)"}
         />)}
-    </>
+    </Form.Group>
 }
 
 function ProtocolBlockOptionEditor({ disabled, deletable, placeholder, option, setOption, deleteOption }: {
@@ -99,21 +99,19 @@ function ProtocolBlockOptionEditor({ disabled, deletable, placeholder, option, s
     setOption: (option: string | undefined) => void;
     deleteOption: () => void;
 }) {
-    return <Form.Group>
-        <InputGroup>
-            <FormControl
-                disabled={disabled}
-                placeholder={placeholder}
-                value={option}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOption((e.target as HTMLInputElement).value)}
-            />
-            {!disabled && deletable &&
-                <InputGroup.Append>
-                    <Button variant="secondary" onClick={deleteOption}><Trash /></Button>
-                </InputGroup.Append>
-            }
-        </InputGroup>
-    </Form.Group>
+    return<InputGroup>
+        <FormControl
+            disabled={disabled}
+            placeholder={placeholder}
+            value={option}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOption((e.target as HTMLInputElement).value)}
+        />
+        {!disabled && deletable &&
+            <InputGroup.Append>
+                <Button variant="secondary" onClick={deleteOption}><Trash /></Button>
+            </InputGroup.Append>
+        }
+    </InputGroup>
 }
 
 function ProtocolBlockOptionTypeEditor({ disabled, optionType, setOptionType }: {
@@ -145,7 +143,7 @@ function ProtocolBlockPrimersEditor({ disabled, primers, setPrimers }: {
 }) {
     const currentPrimers = trimEmpty(primers, primer => primer.primer);
     currentPrimers.push({ id: uuid.v4(), primer: "" });
-    return <>
+    return <Form.Group>
         <Form.Label>
             Primers
         </Form.Label>
@@ -166,7 +164,7 @@ function ProtocolBlockPrimersEditor({ disabled, primers, setPrimers }: {
             }}
             placeholder={(currentPrimers.length - 1 === i) ? "Start typing here to add an primer..." : "Blank primer (will be ignored)"}
         />)}
-    </>
+    </Form.Group>
 }
 
 function ProtocolBlockPrimerEditor({ disabled, deletable, placeholder, primer, setPrimer, deletePrimer }: {
@@ -177,21 +175,19 @@ function ProtocolBlockPrimerEditor({ disabled, deletable, placeholder, primer, s
     setPrimer: (primer: string | undefined) => void;
     deletePrimer: () => void;
 }) {
-    return <Form.Group>
-        <InputGroup>
-            <FormControl
-                disabled={disabled}
-                placeholder={placeholder}
-                value={primer}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPrimer((e.target as HTMLInputElement).value)}
-            />
-            {!disabled && deletable &&
-                <InputGroup.Append>
-                    <Button variant="secondary" onClick={deletePrimer}><Trash /></Button>
-                </InputGroup.Append>
-            }
-        </InputGroup>
-    </Form.Group>
+    return <InputGroup>
+        <FormControl
+            disabled={disabled}
+            placeholder={placeholder}
+            value={primer}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPrimer((e.target as HTMLInputElement).value)}
+        />
+        {!disabled && deletable &&
+            <InputGroup.Append>
+                <Button variant="secondary" onClick={deletePrimer}><Trash /></Button>
+            </InputGroup.Append>
+        }
+    </InputGroup>
 }
 
 function ProtocolBlockPlateEditor<T extends number = number>({ disabled, label, plateName, plateSize, plateSizes, setPlateName: setName, setPlateSize }: {
@@ -230,45 +226,46 @@ function ProtocolBlockPlatesEditor<T extends number = number>({ disabled, label,
     plates?: BlockPlate<T>[];
     setPlates: (plates?: BlockPlate<T>[]) => void;
 }) {
+    console.log(plates);
     return <Form.Group>
         {label && <Form.Label>{label}</Form.Label>}
-        {plates && plates.map((plate, i) => <ProtocolBlockPlateEditor
-            key={plate.id}
-            disabled={disabled}
-            plateName={plate.name}
-            plateSize={plate.size}
-            plateSizes={plateSizes}
-            setPlateName={name => {
-                if (plates) {
-                    const newPlates = [...plates];
-                    if (!newPlates[i]) {
-                        newPlates[i] = { id: uuid.v4() };
+        {plates && plates.map((plate, i) => {
+            const currentPlate = plate || { id: uuid.v4() };
+            return <ProtocolBlockPlateEditor
+                key={currentPlate.id}
+                disabled={disabled}
+                plateName={currentPlate.name}
+                plateSize={currentPlate.size}
+                plateSizes={plateSizes}
+                setPlateName={name => {
+                    if (plates) {
+                        const newPlates = [...plates];
+                        newPlates[i] = currentPlate;
+                        newPlates[i].name = name;
+                        setPlates(newPlates);
                     }
-                    newPlates[i].name = name;
-                    setPlates(newPlates);
-                }
-            }}
-            setPlateSize={size => {
-                if (plates) {
-                    const newPlates = [...plates];
-                    if (!newPlates[i]) {
-                        newPlates[i] = { id: uuid.v4() };
+                }}
+                setPlateSize={size => {
+                    if (plates) {
+                        const newPlates = [...plates];
+                        newPlates[i] = currentPlate;
+                        newPlates[i].size = size;
+                        setPlates(newPlates);
                     }
-                    newPlates[i].size = size;
-                    setPlates(newPlates);
-                }
-            }}
-        />)}
+                }}
+            />
+        })}
     </Form.Group>
 }
 
-function ProtocolBlockPlateCountEditor({ disabled, plateCount, setPlateCount }: {
+function ProtocolBlockPlateCountEditor({ disabled, label, plateCount, setPlateCount }: {
     disabled?: boolean;
+    label?: string;
     plateCount?: number;
     setPlateCount: (plateCount?: number) => void;
 }) {
     return <Form.Group>
-        <Form.Label>Number of plates to transfer</Form.Label>
+        <Form.Label>{label}</Form.Label>
         <Form.Control
             disabled={disabled}
             type="number"
@@ -465,10 +462,12 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     disabled={props.disabled}
                     label="Plate to sample"
                     plateSizes={[96]}
+                    plates={block.plates}
                     setPlates={plates => props.setBlock({ ...block, type: 'plate-sampler', plates })}
                 />
                 <ProtocolBlockPlateCountEditor
                     disabled={props.disabled}
+                    label="Number of plates to transfer"
                     plateCount={block.plateCount}
                     setPlateCount={plateCount => {
                         let plates = block.plates || Array(plateCount).map(() => ({id: uuid.v4()}));
@@ -535,11 +534,13 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                 <ProtocolBlockPlatesEditor
                     disabled={props.disabled}
                     label="Plate to sequence"
-                    plateSizes={[96]}
+                    plateSizes={[384]}
+                    plates={block.plates}
                     setPlates={plates => props.setBlock({ ...block, type: 'plate-sequencer', plates })}
                 />
                 <ProtocolBlockPlateCountEditor
                     disabled={props.disabled}
+                    label="Number of plates to sequence"
                     plateCount={block.plateCount}
                     setPlateCount={plateCount => {
                         let plates = block.plates || Array(plateCount).map(() => ({id: uuid.v4()}));

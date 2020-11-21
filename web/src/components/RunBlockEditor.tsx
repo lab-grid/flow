@@ -239,9 +239,9 @@ function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
     return <>
         <TableUploadModal
             columns={{
-                'plate': 0,
-                'cell': 1,
-                'result': 2,
+                'marker1': 1,
+                'marker2': 2,
+                'count': 3,
             }}
             show={showUploader}
             setShow={setShowUploader}

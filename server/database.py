@@ -4,6 +4,8 @@ import copy
 import pprint
 from server import db
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.dialects.postgresql import JSONB
+# from alembic_utils.pg_view import PGView
 
 
 # Helpers ---------------------------------------------------------------------
@@ -49,7 +51,7 @@ def versioned_row_to_dict(api, row, row_version):
 
     Assumes that row_version object contains the following columns:
     - id (int)
-    - data (JSON) Contains the rest of the fields as a single JSON column in postgres
+    - data (JSONB) Contains the rest of the fields as a single JSON column in postgres
     - updated_on (datetime)
     - updated_by (string(64))
 
@@ -130,7 +132,7 @@ class UserVersion(BaseVersionModel):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(64), db.ForeignKey('user.id'))
-    data = db.Column(db.JSON())
+    data = db.Column(JSONB)
 
     user = db.relationship('User', primaryjoin='UserVersion.user_id==User.id')
 
@@ -147,7 +149,7 @@ class ProtocolVersion(BaseVersionModel):
 
     id = db.Column(db.Integer, primary_key=True)
     protocol_id = db.Column(db.Integer, db.ForeignKey('protocol.id'))
-    data = db.Column(db.JSON())
+    data = db.Column(JSONB)
 
     protocol = db.relationship('Protocol', primaryjoin='ProtocolVersion.protocol_id==Protocol.id')
 
@@ -164,7 +166,7 @@ class RunVersion(BaseVersionModel):
 
     id = db.Column(db.Integer, primary_key=True)
     run_id = db.Column(db.Integer, db.ForeignKey('run.id'))
-    data = db.Column(db.JSON())
+    data = db.Column(JSONB)
 
     run = db.relationship('Run', primaryjoin='RunVersion.run_id==Run.id')
 
@@ -177,3 +179,15 @@ class Run(BaseModel):
 
     current = db.relationship(RunVersion, primaryjoin='Run.version_id==RunVersion.id', post_update=True)
     protocol_version = db.relationship(ProtocolVersion, primaryjoin='Run.protocol_version_id==ProtocolVersion.id')
+
+
+# -----------------------------------------------------------------------------
+# Views
+# -----------------------------------------------------------------------------
+
+# sample_view = PGView(
+#     schema="public",
+#     signature="sample_view",
+#     # TODO: Come up with a query that generates a samples table.
+#     definition="select block.val from public.run join public.run_version on public.run.version_id = public.run_version.id join lateral json_array_elements(public.run_version.data::json->'sections') as sec(val) on true join lateral json_array_elements(sec.val::json->'blocks') as block(val) on true"
+# )
