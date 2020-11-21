@@ -12,6 +12,8 @@ services:
       - ./web:/app
       - /app/node_modules
   server:
+    environment:
+      - "SQLALCHEMY_ECHO=True"
     volumes:
       - ./server:/app
   db:
