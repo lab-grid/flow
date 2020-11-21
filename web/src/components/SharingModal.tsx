@@ -5,7 +5,7 @@ import { labflowOptions } from '../config';
 import { Policy } from '../models/policy';
 import { apiFetch } from '../state/api';
 import { auth0State } from '../state/atoms';
-import { policyQuery, usersQuery } from '../state/selectors';
+import { groupsQuery, policyQuery, usersQuery } from '../state/selectors';
 import { PoliciesTable } from './PoliciesTable';
 
 export interface SharingModalProps {
@@ -19,10 +19,12 @@ export interface SharingModalProps {
 export function SharingModal(props: SharingModalProps) {
     const [policiesTimestamp] = useState("");
     const [usersTimestamp] = useState("");
+    const [groupsTimestamp] = useState("");
     const [newUserId, setNewUserId] = useState<string | null>(null);
     const [newMethod, setNewMethod] = useState<string>("GET");
     const policies = useRecoilValue(policyQuery({ path: props.targetPath, queryTime: policiesTimestamp }));
     const users = useRecoilValue(usersQuery({ queryTime: usersTimestamp }));
+    const groups = useRecoilValue(groupsQuery({ queryTime: groupsTimestamp }));
 
     const addPerm = useRecoilCallback(({ snapshot }) => async (policy: Policy) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
@@ -59,6 +61,10 @@ export function SharingModal(props: SharingModalProps) {
                     >
                         {users.map(user =>
                             <option key={user.id} value={user.id}>{user.fullName || user.email || user.id}</option>
+                        )}
+                        <hr />
+                        {groups.map(group =>
+                            <option key={group.id} value={group.id}>{group.id}</option>
                         )}
                     </Form.Control>
                 </Form.Group>

@@ -8,6 +8,7 @@ import { User } from "../models/user";
 import { Policy } from "../models/policy";
 import { SearchResults } from "../models/search-results";
 import { Auth0Client } from "@auth0/auth0-spa-js";
+import { Group } from "../models/group";
 
 
 function paramsToQuery(params?: {[name: string]: string}): string {
@@ -76,6 +77,14 @@ export const usersQuery = selectorFamily<User[], {
 }>({
   key: "usersQuery",
   get: ({ filterParams }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `user${paramsToQuery(filterParams)}`),
+});
+
+export const groupsQuery = selectorFamily<Group[], {
+  filterParams?: {[name: string]: string}
+  queryTime: string;
+}>({
+  key: "groupsQuery",
+  get: ({ filterParams }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `group${paramsToQuery(filterParams)}`),
 });
 
 

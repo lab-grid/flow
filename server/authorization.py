@@ -143,6 +143,9 @@ def get_policies(user='', path='', method=''):
 def get_roles(user=None):
     return casbin_enforcer.get_roles_for_user(user if user else request.current_user["sub"])
 
+def get_all_roles():
+    return casbin_enforcer.get_all_roles()
+
 
 # Decorators ------------------------------------------------------------------
 
