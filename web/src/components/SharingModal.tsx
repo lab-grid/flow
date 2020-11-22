@@ -25,6 +25,8 @@ export function SharingModal(props: SharingModalProps) {
     const policies = useRecoilValue(policyQuery({ path: props.targetPath, queryTime: policiesTimestamp }));
     const users = useRecoilValue(usersQuery({ queryTime: usersTimestamp }));
     const groups = useRecoilValue(groupsQuery({ queryTime: groupsTimestamp }));
+    const firstUserId = users && (users.length > 0) && users[0].id;
+    const firstGroupId = groups && (groups.length > 0) && groups[0].id;
 
     const addPerm = useRecoilCallback(({ snapshot }) => async (policy: Policy) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
@@ -56,15 +58,15 @@ export function SharingModal(props: SharingModalProps) {
                     <Form.Label>User</Form.Label>
                     <Form.Control
                         as="select"
-                        value={newUserId || ""}
+                        value={newUserId || firstGroupId || firstUserId || ""}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewUserId((e.target as HTMLInputElement).value)}
                     >
-                        {users.map(user =>
-                            <option key={user.id} value={user.id}>{user.fullName || user.email || user.id}</option>
-                        )}
-                        <hr />
                         {groups.map(group =>
                             <option key={group.id} value={group.id}>{group.id}</option>
+                        )}
+                        <option className="divider" disabled={true} />
+                        {users.map(user =>
+                            <option key={user.id} value={user.id}>{user.fullName || user.email || user.id}</option>
                         )}
                     </Form.Control>
                 </Form.Group>

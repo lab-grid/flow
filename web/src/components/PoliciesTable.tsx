@@ -31,7 +31,7 @@ export interface PoliciesTableProps {
 }
 
 export function PoliciesTable(props: PoliciesTableProps) {
-    const [usersTimestamp] = useState(moment().format());
+    const [usersTimestamp] = useState("");
     const users = useRecoilValue(usersQuery({ queryTime: usersTimestamp }));
     const userLookup = new Map<string, User>();
     users.forEach(user => user.id && userLookup.set(user.id, user));

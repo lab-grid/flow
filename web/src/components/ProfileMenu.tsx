@@ -22,7 +22,7 @@ export function ProfileMenuLoading() {
 
 export function ProfileMenu() {
     const history = useHistory();
-    const [userTimestamp] = useState(moment().format());
+    const [userTimestamp] = useState("");
     const { user: auth0User, auth0Client } = useRecoilValue(auth0State);
     const user = useRecoilValue(userQuery({userId: auth0User && auth0User.sub, queryTime: userTimestamp}));
 
