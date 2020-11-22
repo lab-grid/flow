@@ -53,7 +53,7 @@ function RunBlockOptionsQuestion({ disabled, definition, answer, setAnswer }: {
                     radioGroup="run-block"
                     type={optionType}
                     id={`run-block-${option.id}`}
-                    label={option}
+                    label={option.option}
                     onClick={() => setAnswer(option.option)}
                 />)}
             </div>
