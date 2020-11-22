@@ -27,11 +27,11 @@ export function SharingModal(props: SharingModalProps) {
 
     const addPerm = useRecoilCallback(({ snapshot }) => async (policy: Policy) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
-        await apiFetch(labflowOptions, () => auth0Client, "POST", `${policy.path}/permissions/${policy.method}/${policy.user}`);
+        await apiFetch(labflowOptions, () => auth0Client, "POST", `${policy.path}/permission/${policy.method}/${policy.user}`);
     });
     const handleDeletePerm = useRecoilCallback(({ snapshot }) => async (policy: Policy) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
-        await apiFetch(labflowOptions, () => auth0Client, "DELETE", `${policy.path}/permissions/${policy.method}/${policy.user}`);
+        await apiFetch(labflowOptions, () => auth0Client, "DELETE", `${policy.path}/permission/${policy.method}/${policy.user}`);
     });
     const handleAddPerm = () => {
         if (!newUserId) {
