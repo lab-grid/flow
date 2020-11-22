@@ -5,8 +5,10 @@ RUN apk update && apk add python make gcc g++
 
 # Build webapp bundle.
 WORKDIR /app
-COPY . .
+COPY package.json package.json
+COPY package-lock.json package-lock.json
 RUN npm install
+COPY . .
 RUN npm ci --silent
 RUN npm run build
 
