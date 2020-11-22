@@ -73,7 +73,7 @@ function ParametricSearch({
 }
 
 export function SearchResultsPage() {
-    const [queryTime, setQueryTime] = useState(moment().format());
+    const [queryTime, setQueryTime] = useState("");
     const [filterParams, setFilterParams] = useState<{[name: string]: string}>({});
     const [filterPlateId, setFilterPlateId] = useState("");
     const [filterSampleId, setFilterSampleId] = useState("");

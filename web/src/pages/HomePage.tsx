@@ -13,11 +13,11 @@ import moment from 'moment';
 import { LoadingPage } from '../components/LoadingPage';
 
 export function HomePage() {
-    const [runsTimestamp, setRunsTimestamp] = React.useState(moment().format());
-    const [protocolsTimestamp, setProtocolsTimestamp] = React.useState(moment().format());
+    const [runsTimestamp, setRunsTimestamp] = React.useState("");
+    const [protocolsTimestamp, setProtocolsTimestamp] = React.useState("");
     const history = useHistory();
-    const protocols = useRecoilValue(protocolsQuery({queryTime: protocolsTimestamp}));
-    const runs = useRecoilValue(runsQuery({queryTime: runsTimestamp}));
+    const protocols = useRecoilValue(protocolsQuery({ queryTime: protocolsTimestamp }));
+    const runs = useRecoilValue(runsQuery({ queryTime: runsTimestamp }));
     const protocolUpsert = useRecoilCallback(({ snapshot }) => async (protocol: Protocol) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
         return await upsertProtocol(() => auth0Client, protocol);

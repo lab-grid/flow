@@ -327,8 +327,8 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
             <td>
                 <RunBlockPlateLabelUploader
                     disabled={disabled}
-                    wells={definition.plates && definition.plates[i].size}
-                    name={definition.plates && definition.plates[i].name}
+                    wells={definition.plates && definition.plates[i] && definition.plates[i].size}
+                    name={definition.plates && definition.plates[i] && definition.plates[i].name}
                     plateLabel={label}
                     setCoordinates={(label, coordinates) => {
                         const newMappings = { ...mappings };

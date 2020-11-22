@@ -7,7 +7,6 @@ import { apiFetch } from '../state/api';
 import { auth0State } from '../state/atoms';
 import { policyQuery, usersQuery } from '../state/selectors';
 import { PoliciesTable } from './PoliciesTable';
-import moment from 'moment';
 
 export interface SharingModalProps {
     targetName: string;
@@ -18,8 +17,8 @@ export interface SharingModalProps {
 }
 
 export function SharingModal(props: SharingModalProps) {
-    const [policiesTimestamp] = useState(moment().format());
-    const [usersTimestamp] = useState(moment().format());
+    const [policiesTimestamp] = useState("");
+    const [usersTimestamp] = useState("");
     const [newUserId, setNewUserId] = useState<string | null>(null);
     const [newMethod, setNewMethod] = useState<string>("GET");
     const policies = useRecoilValue(policyQuery({ path: props.targetPath, queryTime: policiesTimestamp }));

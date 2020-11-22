@@ -247,7 +247,7 @@ export interface ProtocolEditorPageParams {
 
 export function ProtocolEditorPage() {
     const history = useHistory();
-    const [protocolTimestamp, setProtocolTimestamp] = useState(moment().format());
+    const [protocolTimestamp, setProtocolTimestamp] = useState("");
     const [showSharingModal, setShowSharingModal] = useState(false);
     const [name, setName] = useState<string | null>(null);
     const [description, setDescription] = useState<Node[] | null>(null);

@@ -46,7 +46,7 @@ function Email({email}: {
 }
 
 export function ProfilePage() {
-    const [userTimestamp, setUserTimestamp] = React.useState(moment().format());
+    const [userTimestamp, setUserTimestamp] = React.useState("");
     const [fullName, setFullName] = useState<string | null>(null);
     const [formSaving, setFormSaving] = useState<boolean>(false);
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);

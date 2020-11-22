@@ -161,7 +161,7 @@ export interface RunEditorPageParams {
 }
 
 export function RunEditorPage() {
-    const [runTimestamp, setRunTimestamp] = useState(moment().format());
+    const [runTimestamp, setRunTimestamp] = useState("");
     const [showSharingModal, setShowSharingModal] = useState(false);
     const [notes, setNotes] = useState<Node[] | null>(null);
     const [sections, setSections] = useState<Section[] | null>(null);
