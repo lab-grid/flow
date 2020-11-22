@@ -47,7 +47,7 @@ function RunBlockOptionsQuestion({ disabled, definition, answer, setAnswer }: {
             const optionType: 'switch' | 'radio' | 'checkbox' = definition.optionType || 'checkbox';
             return <div>
                 <Form.Label>{definition.name || 'Select an option'}</Form.Label>
-                {definition.options && definition.options.map(option => <Form.Check
+                {definition.options && definition.options.filter(({id, option}) => id && option).map(option => <Form.Check
                     disabled={disabled}
                     key={option.id}
                     radioGroup="run-block"
@@ -67,7 +67,7 @@ function RunBlockOptionsQuestion({ disabled, definition, answer, setAnswer }: {
                     value={answer}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAnswer((e.target as HTMLSelectElement).value)}
                 >
-                    {definition.options && definition.options.map(option => <option key={option.id}>{option.option}</option>)}
+                    {definition.options && definition.options.filter(({id, option}) => id && option).map(option => <option key={option.id}>{option.option}</option>)}
                 </Form.Control>
             </Form.Group>
     }
