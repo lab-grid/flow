@@ -7,6 +7,7 @@ import { apiFetch } from '../state/api';
 import { auth0State } from '../state/atoms';
 import { groupsQuery, policyQuery, usersQuery } from '../state/selectors';
 import { PoliciesTable } from './PoliciesTable';
+import moment from 'moment';
 
 export interface SharingModalProps {
     targetName: string;
@@ -17,10 +18,10 @@ export interface SharingModalProps {
 }
 
 export function SharingModal(props: SharingModalProps) {
-    const [policiesTimestamp] = useState("");
+    const [policiesTimestamp, setPoliciesTimestamp] = useState("");
     const [usersTimestamp] = useState("");
     const [groupsTimestamp] = useState("");
-    const [newUserId, setNewUserId] = useState<string | null>(null);
+    const [newSubjectId, setNewSubjectId] = useState<string | null>(null);
     const [newMethod, setNewMethod] = useState<string>("GET");
     const policies = useRecoilValue(policyQuery({ path: props.targetPath, queryTime: policiesTimestamp }));
     const users = useRecoilValue(usersQuery({ queryTime: usersTimestamp }));
@@ -28,22 +29,26 @@ export function SharingModal(props: SharingModalProps) {
     const firstUserId = users && (users.length > 0) && users[0].id;
     const firstGroupId = groups && (groups.length > 0) && groups[0].id;
 
+    const currentSubjectId = newSubjectId || firstGroupId || firstUserId;
+
     const addPerm = useRecoilCallback(({ snapshot }) => async (policy: Policy) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
         await apiFetch(labflowOptions, () => auth0Client, "POST", `${policy.path}/permission/${policy.method}/${policy.user}`);
+        setPoliciesTimestamp(moment().format());
     });
     const handleDeletePerm = useRecoilCallback(({ snapshot }) => async (policy: Policy) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
         await apiFetch(labflowOptions, () => auth0Client, "DELETE", `${policy.path}/permission/${policy.method}/${policy.user}`);
+        setPoliciesTimestamp(moment().format());
     });
     const handleAddPerm = () => {
-        if (!newUserId) {
+        if (!currentSubjectId) {
             alert("Please provide a user to attach policy to!");
         } else {
             addPerm({
                 method: newMethod,
                 path: props.targetPath,
-                user: newUserId,
+                user: currentSubjectId,
             });
         }
     }
@@ -58,8 +63,8 @@ export function SharingModal(props: SharingModalProps) {
                     <Form.Label>User</Form.Label>
                     <Form.Control
                         as="select"
-                        value={newUserId || firstGroupId || firstUserId || ""}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewUserId((e.target as HTMLInputElement).value)}
+                        value={currentSubjectId || ""}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewSubjectId((e.target as HTMLInputElement).value)}
                     >
                         {groups.map(group =>
                             <option key={group.id} value={group.id}>{group.id}</option>
@@ -78,7 +83,7 @@ export function SharingModal(props: SharingModalProps) {
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewMethod((e.target as HTMLInputElement).value)}
                     >
                         <option value="GET">Read</option>
-                        <option value="PUT">Write</option>
+                        <option value="PUT">Edit</option>
                         <option value="DELETE">Delete</option>
                     </Form.Control>
                 </Form.Group>
