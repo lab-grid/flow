@@ -47,14 +47,21 @@ def all_runs():
 
 def filter_by_plate_label(run_version_query, plate_id):
     return run_version_query.filter(
-        func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].plateLabels["{plate_id}"]')
-    )
-    return run_version_query.filter(
         or_(
             func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].plateLabels["{plate_id}"]'),
             func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].mappings["{plate_id}"]'),
-            func.jsonb_path_match(RunVersion.data, f'$.sections[*].blocks[*].plateLabel = "{plate_id}"')
+            func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plateLabel ? (@ == "{plate_id}"))')
         )
+    )
+
+def filter_by_reagent_label(run_version_query, reagent_id):
+    return run_version_query.filter(
+        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].definition.reagentLabel ? (@ == "{reagent_id}"))')
+    )
+
+def filter_by_sample_label(run_version_query, sample_id):
+    return run_version_query.filter(
+        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plateMappings[*].sampleLabel ? (@ == "{sample_id}"))')
     )
 
 
@@ -68,6 +75,8 @@ class ProtocolsResource(Resource):
         protocol = int(request.args.get('protocol')) if request.args.get('protocol') else None
         run = int(request.args.get('run')) if request.args.get('run') else None
         plate = request.args.get('plate')
+        reagent = request.args.get('reagent')
+        sample = request.args.get('sample')
 
         protocols_queries = []
         runs_queries = []
@@ -103,6 +112,30 @@ class ProtocolsResource(Resource):
                 .join(Run, Run.protocol_version_id == ProtocolVersion.id)\
                 .join(RunVersion, RunVersion.id == Run.version_id)
             protocols_subquery = filter_by_plate_label(run_version_query, plate)
+            protocols_queries.append(protocols_subquery)
+        if reagent:
+            run_version_query = all_runs()\
+                .join(RunVersion, RunVersion.id == Run.version_id)
+            runs_subquery = filter_by_reagent_label(run_version_query, reagent)
+            runs_queries.append(runs_subquery)
+
+            run_version_query = all_protocols()\
+                .join(ProtocolVersion, ProtocolVersion.protocol_id == Protocol.id)\
+                .join(Run, Run.protocol_version_id == ProtocolVersion.id)\
+                .join(RunVersion, RunVersion.id == Run.version_id)
+            protocols_subquery = filter_by_reagent_label(run_version_query, reagent)
+            protocols_queries.append(protocols_subquery)
+        if sample:
+            run_version_query = all_runs()\
+                .join(RunVersion, RunVersion.id == Run.version_id)
+            runs_subquery = filter_by_sample_label(run_version_query, sample)
+            runs_queries.append(runs_subquery)
+
+            run_version_query = all_protocols()\
+                .join(ProtocolVersion, ProtocolVersion.protocol_id == Protocol.id)\
+                .join(Run, Run.protocol_version_id == ProtocolVersion.id)\
+                .join(RunVersion, RunVersion.id == Run.version_id)
+            protocols_subquery = filter_by_sample_label(run_version_query, sample)
             protocols_queries.append(protocols_subquery)
 
         # Add a basic non-deleted items query if no filters were specified.
