@@ -37,7 +37,8 @@ export function TableUploadModal<T={[field: string]: any}>(props: TableUploadMod
             const reader = new FileReader();
             reader.onload = (ev: any) => {
                 const data = new Uint8Array(ev.target.result as ArrayBuffer);
-                const workbook = xlsx.read(data, { type: 'array', codepage: 65001 });
+                const binary = [...data].map(x => String.fromCharCode(x)).join("");
+                const workbook = xlsx.read(binary, { type: 'binary', codepage: 65001 });
                 setWorkbook(workbook);
                 setSheetNames(workbook.SheetNames);
                 if (workbook.SheetNames && workbook.SheetNames.length) {
