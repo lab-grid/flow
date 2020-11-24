@@ -6,7 +6,7 @@ export function getHeadersFromData(data: tableRow[]): cellHeader[] {
     if (!data.length) {
         return [];
     }
-    return Object.keys(data[0]).map(key => typeof key === 'number' ? key + 1 : key);
+    return Array.isArray(data) ? Array.from({length: data.length},(v,k)=>k+1) : Object.keys(data[0]);
 }
 
 export interface TableUploadModalProps<T={[field: string]: any}> {
@@ -37,7 +37,7 @@ export function TableUploadModal<T={[field: string]: any}>(props: TableUploadMod
             const reader = new FileReader();
             reader.onload = (ev: any) => {
                 const data = new Uint8Array(ev.target.result as ArrayBuffer);
-                const workbook = xlsx.read(data, { type: 'array' });
+                const workbook = xlsx.read(data, { type: 'array', codepage: 65001 });
                 setWorkbook(workbook);
                 setSheetNames(workbook.SheetNames);
                 if (workbook.SheetNames && workbook.SheetNames.length) {
