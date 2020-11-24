@@ -153,9 +153,9 @@ function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, setCoor
     return <>
         <TableUploadModal
             columns={{
-                'plate': 0,
-                'cell': 1,
-                'sample': 2,
+                'plate': 1,
+                'cell': 2,
+                'sample': 3,
             }}
             show={showUploader}
             setShow={setShowUploader}

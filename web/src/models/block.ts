@@ -33,7 +33,7 @@ export interface PlateAddReagentBlock {
     plateLabel?: string;
     plateLot?: string;
 
-    // TODO: lotId, etc.
+    // TODO: Save input calculator variables.
 }
 
 export interface StartThermocyclerBlock {
