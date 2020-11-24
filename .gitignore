@@ -2,6 +2,7 @@
 *.env
 !example.env
 cloud-sql-dev-proxy*.json
+.credentials*.json
 
 # Don't save local database data to the repository!
 .postgres
