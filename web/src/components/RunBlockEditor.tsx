@@ -46,7 +46,7 @@ function RunBlockOptionsQuestion({ disabled, definition, answer, setAnswer }: {
         default:
             const optionType: 'switch' | 'radio' | 'checkbox' = definition.optionType || 'checkbox';
             return <div>
-                <Form.Label>{definition.name || 'Select an option'}</Form.Label>
+                <h4 className="row">{definition.name}</h4>
                 {definition.options && definition.options.filter(({id, option}) => id && option).map(option => <Form.Check
                     disabled={disabled}
                     key={option.id}
@@ -60,7 +60,7 @@ function RunBlockOptionsQuestion({ disabled, definition, answer, setAnswer }: {
         case 'menu-item':
         case 'user':
             return <Form.Group>
-                <Form.Label>{definition.name || 'Select an option'}</Form.Label>
+                <h4 className="row">{definition.name}</h4>
                 <Form.Control
                     disabled={disabled}
                     as="select"
@@ -153,9 +153,9 @@ function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, setCoor
     return <>
         <TableUploadModal
             columns={{
-                'plate': 1,
-                'cell': 2,
-                'sample': 3,
+                'plate': 0,
+                'cell': 1,
+                'sample': 2,
             }}
             show={showUploader}
             setShow={setShowUploader}
@@ -173,8 +173,8 @@ function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, setCoor
             </DropdownButton>
             <Form.Control
                 disabled={true}
-                placeholder={plateLabel ? `Plate ID: ${plateLabel}. Mappings saved...` : "Upload plate mapping csv"}
-                aria-label={plateLabel ? `Plate ID: ${plateLabel}. Mappings saved...` : "Upload plate mapping csv"}
+                placeholder={plateLabel ? `Plate ID: ${plateLabel}. Barcodes saved...` : "Upload sample barcodes csv"}
+                aria-label={plateLabel ? `Plate ID: ${plateLabel}. Barcides saved...` : "Upload sample barcodes csv"}
             />
             <InputGroup.Append>
                 {name && <InputGroup.Text>{name}</InputGroup.Text>}
@@ -255,7 +255,7 @@ function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
             />
             <InputGroup.Append>
                 <Button variant="secondary" disabled={disabled} onClick={() => setShowUploader(true)}>
-                    <UpcScan /> Scan
+                    Upload
                 </Button>
             </InputGroup.Append>
         </InputGroup>
