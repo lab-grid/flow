@@ -61,10 +61,13 @@ export interface PlateSequencerBlock {
 }
 
 export interface PlateResult {
-    row?: number;
-    col?: number;
-    result?: string;
     plateLabel?: string;
+    plateIndex?: number;
+    plateRow?: number;
+    plateCol?: number;
+    marker1?: number;
+    marker2?: number;
+    classification?: string;
 }
 
 export interface PlateCoordinate {

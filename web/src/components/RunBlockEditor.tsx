@@ -93,11 +93,7 @@ interface plateLabelRow {
 
 const cellRegex = /^([A-Za-z]+)([0-9]+)$/;
 
-function cellToCoordinate(cell?: string): PlateCoordinate {
-    if (!cell) {
-        return {};
-    }
-
+function cellToRowCol(cell: string): [number, number] {
     const [, rowRaw, columnRaw] = cell.match(cellRegex);
 
     let row = 0;
@@ -106,10 +102,16 @@ function cellToCoordinate(cell?: string): PlateCoordinate {
         row += (lowerRowRaw.charCodeAt(i) - 97) * Math.pow(10, lowerRowRaw.length - 1 - i);
     }
 
-    return {
-        row,
-        col: parseInt(columnRaw),
-    };
+    return [row, parseInt(columnRaw)];
+}
+
+function cellToCoordinate(cell?: string): PlateCoordinate {
+    if (!cell) {
+        return {};
+    }
+
+    const [row, col] = cellToRowCol(cell);
+    return { row, col };
 }
 
 function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, setCoordinates, platePrimers, platePrimer, setPlatePrimer }: {
@@ -188,28 +190,12 @@ function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, setCoor
 }
 
 interface sequencerRow {
-    plate?: string;
-    cell?: string;
-    result?: string;
-}
-
-function cellToResult(cell?: string): PlateResult {
-    if (!cell) {
-        return {};
-    }
-
-    const [, rowRaw, columnRaw] = cell.match(cellRegex);
-
-    let row = 0;
-    const lowerRowRaw = rowRaw.toLocaleLowerCase();
-    for (let i = 0; i < lowerRowRaw.length; i++) {
-        row += (lowerRowRaw.charCodeAt(i) - 97) * Math.pow(10, lowerRowRaw.length - 1 - i);
-    }
-
-    return {
-        row,
-        col: parseInt(columnRaw),
-    };
+    plateLabel?: string;
+    plateIndex?: number;
+    plateCell?: string;
+    marker1?: number;
+    marker2?: number;
+    classification?: string;
 }
 
 function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
@@ -222,26 +208,37 @@ function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
     const parseAndSetResults = (data: sequencerRow[]) => {
         const results: PlateResult[] = [];
         for (const row of data) {
-            if (!row.plate) {
-                console.warn('Found a row with no plate!', row);
+            const {plateCell, ...withoutCell} = row;
+            if (!plateCell) {
+                console.warn('Found a row without a cell!', row);
                 return;
             }
-            const result = cellToResult(row.cell);
-            if (result) {
-                result.result = row.result;
-                results.push(result);
-            }
+            const [plateRow, plateCol] = cellToRowCol(plateCell);
+            const result: PlateResult = {
+                ...withoutCell,
+                plateRow,
+                plateCol,
+            };
+            results.push(result);
         }
-        setResults(results);
+        if (results.length === 0) {
+            console.warn('Uploaded table contained no data', data, results);
+            return;
+        }
+        setResults(data);
         setShowUploader(false);
     }
 
     return <>
         <TableUploadModal
+            parseHeader={true}
             columns={{
-                'marker1': 1,
-                'marker2': 2,
-                'count': 3,
+                'plateLabel': 'Plate_ID',
+                'plateIndex': 'Plate_384_Number',
+                'plateCell': 'Sample_Well',
+                'marker1': 'index',
+                'marker2': 'index2',
+                'classification': 'classification',
             }}
             show={showUploader}
             setShow={setShowUploader}
@@ -250,8 +247,8 @@ function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
         <InputGroup>
             <Form.Control
                 disabled={true}
-                placeholder={results ? `Results saved (${results.length} records)...` : "Upload results csv"}
-                aria-label={results ? `Results saved (${results.length} records)...` : "Upload results csv"}
+                placeholder={(results && results.length) ? `Results saved (${results.length} records)...` : "Upload results csv"}
+                aria-label={(results && results.length) ? `Results saved (${results.length} records)...` : "Upload results csv"}
             />
             <InputGroup.Append>
                 <Button variant="secondary" disabled={disabled} onClick={() => setShowUploader(true)}>
