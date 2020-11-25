@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup } from 'react-bootstrap';
 import { GripHorizontal, Trash } from 'react-bootstrap-icons';
-import { BlockDefinition, BlockOption, BlockPlate, BlockPrimer, BlockVariable, EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { BlockDefinition, BlockOption, BlockPlate, BlockPlateMarkerEntry, BlockPrimer, BlockVariable, EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { trimEmpty } from '../utils';
 import * as uuid from 'uuid';
+import { TableUploadModal } from './TableUploadModal';
 
 export function humanizeBlockType(blockType: "text-question" | "options-question" | "plate-sampler" | "plate-add-reagent" | "start-thermocycler" | "end-thermocycler" | "plate-sequencer" | undefined): string {
     switch (blockType) {
@@ -394,6 +395,65 @@ function ProtocolBlockFormulaEditor({ disabled, formula, setFormula, variables, 
     </>
 }
 
+function ProtocolBlockMarkersUploader({ disabled, plateMarkers, setPlateMarkers }: {
+    disabled?: boolean;
+    plateMarkers?: {[markers: string]: BlockPlateMarkerEntry};
+    setPlateMarkers: (plateMarkers?: {[markers: string]: BlockPlateMarkerEntry}) => void;
+}) {
+    const [showUploader, setShowUploader] = useState(false);
+
+    const markersCount = plateMarkers && Object.keys(plateMarkers).length;
+
+    const parseAndSetMarkers = (data: BlockPlateMarkerEntry[]) => {
+        const results: { [marker: string]: BlockPlateMarkerEntry } = {};
+        for (const row of data) {
+            if (!row.marker1 && !row.marker2) {
+                console.warn('Found a row with no markers!', row);
+                return;
+            }
+            results[`${row.marker1}${row.marker2}`] = row;
+        }
+        const labels = Object.keys(results);
+        if (labels.length === 0) {
+            console.warn('Uploaded table contained no data', data, results);
+            return;
+        }
+        setPlateMarkers(results);
+        setShowUploader(false);
+    }
+
+    return <Form.Group>
+        <Form.Label>
+            Plate Markers
+        </Form.Label>
+        <TableUploadModal
+            parseHeader={true}
+            columns={{
+                'marker1': 'index',
+                'marker2': 'index2',
+                'plateIndex': 'plate_384',
+                'plateRow': 'row_384',
+                'plateColumn': 'column_384',
+            }}
+            show={showUploader}
+            setShow={setShowUploader}
+            setTable={parseAndSetMarkers}
+        />
+        <InputGroup>
+            <Form.Control
+                disabled={true}
+                placeholder={markersCount ? `${markersCount} markers saved...` : "Upload markers plate mapping csv"}
+                aria-label={markersCount ? `${markersCount} markers saved...` : "Upload markers plate mapping csv"}
+            />
+            <InputGroup.Append>
+                <Button variant="secondary" disabled={disabled} onClick={() => setShowUploader(true)}>
+                    Upload
+                </Button>
+            </InputGroup.Append>
+        </InputGroup>
+    </Form.Group>
+}
+
 export interface ProtocolBlockEditorProps {
     disabled?: boolean;
     index: number;
@@ -553,6 +613,11 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                         }
                         props.setBlock({ ...block, type: 'plate-sequencer', plateCount, plates });
                     }}
+                />
+                <ProtocolBlockMarkersUploader
+                    disabled={props.disabled}
+                    plateMarkers={block.plateMarkers}
+                    setPlateMarkers={plateMarkers => props.setBlock({ ...block, type: 'plate-sequencer', plateMarkers })}
                 />
             </>;
         }

@@ -16,6 +16,14 @@ export interface BlockVariable {
     defaultValue?: number;
 }
 
+export interface BlockPlateMarkerEntry {
+    marker1?: string;
+    marker2?: string;
+    plateIndex?: number;  // Reference to order in which the 384-well plates are sequenced (multiple are processed in batches).
+    plateRow?: number;
+    plateColumn?: number;
+}
+
 export interface BlockPlate<T extends number = number>{
     id: string;
     name?: string;
@@ -82,4 +90,5 @@ export interface PlateSequencerBlockDefinition {
     name?: string;
     plates?: BlockPlate[];
     plateCount?: number;
+    plateMarkers?: {[markers: string]: BlockPlateMarkerEntry};
 }

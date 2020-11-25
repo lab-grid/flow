@@ -35,21 +35,21 @@ function ParametricSearch({
 }) {
     return <>
         <Form.Group className="col-2 mt-auto">
-            <Form.Label>Plate ID <i>(Coming soon...)</i></Form.Label>
+            <Form.Label>Plate ID <i></i></Form.Label>
             <Form.Control
                 value={filterPlateId}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterPlateId((e.target as HTMLInputElement).value)}
             />
         </Form.Group>
         <Form.Group className="col-2 mt-auto">
-            <Form.Label>Sample ID <i>(Coming soon...)</i></Form.Label>
+            <Form.Label>Sample ID <i></i></Form.Label>
             <Form.Control
                 value={filterSampleId}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterSampleId((e.target as HTMLInputElement).value)}
             />
         </Form.Group>
         <Form.Group className="col-2 mt-auto">
-            <Form.Label>Reagent ID <i>(Coming soon...)</i></Form.Label>
+            <Form.Label>Reagent ID <i></i></Form.Label>
             <Form.Control
                 value={filterReagentId}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterReagentId((e.target as HTMLInputElement).value)}
