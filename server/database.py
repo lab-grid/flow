@@ -5,6 +5,7 @@ import pprint
 from server import db
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.sql import func
 # from alembic_utils.pg_view import PGView
 
 
@@ -182,7 +183,7 @@ class Run(BaseModel):
 
 
 # -----------------------------------------------------------------------------
-# Views
+# Samples
 # -----------------------------------------------------------------------------
 
 # sample_view = PGView(
@@ -191,3 +192,35 @@ class Run(BaseModel):
 #     # TODO: Come up with a query that generates a samples table.
 #     definition="select block.val from public.run join public.run_version on public.run.version_id = public.run_version.id join lateral json_array_elements(public.run_version.data::json->'sections') as sec(val) on true join lateral json_array_elements(sec.val::json->'blocks') as block(val) on true"
 # )
+
+def get_samples(plate_id=None, protocol_id=None, run_id=None):
+    """
+    SELECT
+        sample.value AS sampleID,
+        public.run.id as runID,
+        public.protocol_version.protocol_id as protocolID,
+        public.run_version.data as runData
+    #     ? as result,
+    #     ? as signer,
+    #     ? as witness,
+    #     ? as completedOn
+    FROM public.run, public.run_version, public.protocol_version, jsonb_path_query(public.run_version.data, '$.sections[*].blocks[*].plateMappings[*].sampleLabel') AS sample
+    WHERE public.run_version.id = public.run.version_id
+    WHERE public.protocol_version.id = public.run_version.protocol_version_id
+    """
+    sample_query = db.func.jsonb_path_query(RunVersion.data, '$.sections[*].blocks[*].plateMappings[*].sampleLabel')
+    return db.session\
+        .query(Run, RunVersion, ProtocolVersion, sample_query)\
+        .join(RunVersion, RunVersion.id == Run.version_id)\
+        .join(ProtocolVersion, ProtocolVersion.id == Run.protocol_version_id)\
+        .filter(Run.is_deleted != True)
+
+def run_to_sample(run, run_version, protocol_version, sample_id):
+    return {
+        'sampleID': sample.value,
+        'runID': run.id,
+        'protocolID': protocol_version.protocol_id,
+        # 'result': ???,
+        # 'signer': ???,
+        # 'completedOn': ???,
+    }

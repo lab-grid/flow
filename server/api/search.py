@@ -7,7 +7,7 @@ from flask import request
 from flask_restx import Resource, fields, Namespace
 
 from authorization import AuthError, requires_auth, requires_scope, check_access
-from database import versioned_row_to_dict, Protocol, ProtocolVersion, Run, RunVersion
+from database import versioned_row_to_dict, Protocol, ProtocolVersion, Run, RunVersion, get_samples, run_to_sample
 
 from api.protocol import protocol_output
 from api.run import run_output
@@ -34,6 +34,16 @@ run_param = {
 }
 plate_param = {
     'description': 'Identifier for a plate to filter by',
+    'in': 'query',
+    'type': 'string'
+}
+sample_param = {
+    'description': 'Identifier for a sample to filter by',
+    'in': 'query',
+    'type': 'string'
+}
+reagent_param = {
+    'description': 'Identifier for a reagent to filter by',
     'in': 'query',
     'type': 'string'
 }
@@ -67,7 +77,17 @@ def filter_by_sample_label(run_version_query, sample_id):
 
 @api.route('/search')
 class ProtocolsResource(Resource):
-    @api.doc(security='token', model=search_results, params={'protocol': protocol_param, 'run': run_param, 'plate': plate_param})
+    @api.doc(
+        security='token',
+        model=search_results,
+        params={
+            'protocol': protocol_param,
+            'run': run_param,
+            'plate': plate_param,
+            'sample': sample_param,
+            'reagent': reagent_param,
+        }
+    )
     @requires_auth
     @requires_scope('read:protocols')
     @requires_scope('read:runs')
@@ -80,6 +100,7 @@ class ProtocolsResource(Resource):
 
         protocols_queries = []
         runs_queries = []
+        samples_queries = []
 
         # Add filter specific queries. These will be intersected later on.
         if protocol:
@@ -143,10 +164,13 @@ class ProtocolsResource(Resource):
             protocols_queries.append(Protocol.query.filter(Protocol.is_deleted != True))
         if len(runs_queries) == 0:
             runs_queries.append(Run.query.filter(Run.is_deleted != True))
+        if len(samples_queries) == 0:
+            samples_queries.append(get_samples())
 
         # Only return the intersection of all queries.
         protocols_query = reduce(lambda a, b: a.intersect(b), protocols_queries)
         runs_query = reduce(lambda a, b: a.intersect(b), runs_queries)
+        samples_query = reduce(lambda a, b: a.intersect(b), samples_queries)
 
         # Convert database models to dictionaries and return the serch results.
         protocols = [
@@ -161,7 +185,14 @@ class ProtocolsResource(Resource):
             in runs_query.distinct()
             if check_access(path=f"/run/{str(run.id)}", method="GET")
         ]
+        samples = [
+            run_to_sample(run, run_version, protocol_version, sample_id)
+            for run, run_version, protocol_version, sample_id
+            in samples_query.distinct()
+            # if check_access(path=f"/sample/{str(sample_id)}", method="GET")
+        ]
         return {
             'protocols': protocols,
-            'runs': runs
+            'runs': runs,
+            'samples': samples,
         }
