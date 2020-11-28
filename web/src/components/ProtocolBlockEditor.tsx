@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup } from 'react-bootstrap';
 import { GripHorizontal, Trash } from 'react-bootstrap-icons';
-import { BlockDefinition, BlockOption, BlockPlate, BlockPlateMarkerEntry, BlockPrimer, BlockVariable, EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { BlockDefinition, BlockOption, BlockPlate, BlockPlateMarkerEntry, BlockPrimer, BlockVariable, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { trimEmpty } from '../utils';
 import * as uuid from 'uuid';
 import { TableUploadModal } from './TableUploadModal';
 
-export function humanizeBlockType(blockType: "text-question" | "options-question" | "plate-sampler" | "plate-add-reagent" | "start-thermocycler" | "end-thermocycler" | "plate-sequencer" | undefined): string {
+export function humanizeBlockType(blockType: "text-question" | "options-question" | "plate-sampler" | "plate-add-reagent" | "start-timestamp" | "end-timestamp" | "plate-sequencer" | undefined): string {
     switch (blockType) {
         case 'text-question':
             return 'Answer Question';
@@ -16,10 +16,10 @@ export function humanizeBlockType(blockType: "text-question" | "options-question
             return 'Run Plate Sampler';
         case 'plate-add-reagent':
             return 'Add Reagent to Plate';
-        case 'start-thermocycler':
-            return 'Start Thermocycler';
-        case 'end-thermocycler':
-            return 'End Thermocycler';
+        case 'start-timestamp':
+            return 'Start Timestamp';
+        case 'end-timestamp':
+            return 'End Timestamp';
         case 'plate-sequencer':
             return 'Run Plate Sequencer';
         default:
@@ -29,7 +29,7 @@ export function humanizeBlockType(blockType: "text-question" | "options-question
 
 function BlockLabel({ index, blockType }: {
     index: number;
-    blockType?: "text-question" | "options-question" | "plate-sampler" | "plate-add-reagent" | "start-thermocycler" | "end-thermocycler" | "plate-sequencer";
+    blockType?: "text-question" | "options-question" | "plate-sampler" | "plate-add-reagent" | "start-timestamp" | "end-timestamp" | "plate-sequencer";
 }) {
     return <div className="mb-2">
         <GripHorizontal /> Step {index+1} - {humanizeBlockType(blockType)}
@@ -621,26 +621,26 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                 />
             </>;
         }
-        case 'start-thermocycler': {
-            const block: StartThermocyclerBlockDefinition = props.block;
+        case 'start-timestamp': {
+            const block: StartTimestampBlockDefinition = props.block;
             return <>
                 <BlockLabel index={props.index} blockType={block.type} />
                 <ProtocolBlockNameEditor
                     disabled={props.disabled}
                     name={block.name}
-                    setName={name => props.setBlock({ ...block, type: 'start-thermocycler', name })}
+                    setName={name => props.setBlock({ ...block, type: 'start-timestamp', name })}
                     deleteStep={props.deleteBlock}
                 />
             </>;
         }
-        case 'end-thermocycler': {
-            const block: EndThermocyclerBlockDefinition = props.block;
+        case 'end-timestamp': {
+            const block: EndTimestampBlockDefinition = props.block;
             return <>
                 <BlockLabel index={props.index} blockType={block.type} />
                 <ProtocolBlockNameEditor
                     disabled={props.disabled}
                     name={block.name}
-                    setName={name => props.setBlock({ ...block, type: 'end-thermocycler', name })}
+                    setName={name => props.setBlock({ ...block, type: 'end-timestamp', name })}
                     deleteStep={props.deleteBlock}
                 />
             </>;

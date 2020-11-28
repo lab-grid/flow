@@ -1,6 +1,6 @@
-import { EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from "./block-definition";
+import { EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition } from "./block-definition";
 
-export type Block = TextQuestionBlock | OptionsQuestionBlock | PlateSamplerBlock | PlateAddReagentBlock | PlateSequencerBlock | StartThermocyclerBlock | EndThermocyclerBlock;
+export type Block = TextQuestionBlock | OptionsQuestionBlock | PlateSamplerBlock | PlateAddReagentBlock | PlateSequencerBlock | StartTimestampBlock | EndTimestampBlock;
 
 export interface TextQuestionBlock {
     type: 'text-question';
@@ -36,19 +36,19 @@ export interface PlateAddReagentBlock {
     // TODO: Save input calculator variables.
 }
 
-export interface StartThermocyclerBlock {
-    type: 'start-thermocycler';
-    definition: StartThermocyclerBlockDefinition;
+export interface StartTimestampBlock {
+    type: 'start-timestamp';
+    definition: StartTimestampBlockDefinition;
 
-    thermocyclerLabel?: string;
+    timestampLabel?: string;
     startedOn?: string;
 }
 
-export interface EndThermocyclerBlock {
-    type: 'end-thermocycler';
-    definition: EndThermocyclerBlockDefinition;
+export interface EndTimestampBlock {
+    type: 'end-timestamp';
+    definition: EndTimestampBlockDefinition;
 
-    thermocyclerLabel?: string;
+    timestampLabel?: string;
     endedOn?: string;
 }
 
