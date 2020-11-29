@@ -2,8 +2,8 @@ import moment from 'moment';
 import React, { useState } from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
 import { UpcScan } from 'react-bootstrap-icons';
-import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block, PlateCoordinate, PlateResult, StartThermocyclerBlock, EndThermocyclerBlock } from '../models/block';
-import { BlockPrimer, EndThermocyclerBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartThermocyclerBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block, PlateCoordinate, PlateResult, StartTimestampBlock, EndTimestampBlock } from '../models/block';
+import { BlockPrimer, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { TableUploadModal } from './TableUploadModal';
 import DateRangePicker from 'react-bootstrap-daterangepicker';
 import { Calculator } from './Calculator';
@@ -468,11 +468,11 @@ function RunBlockPlateSequencerEditor({ disabled, definition, plateLabels, setPl
     </>
 }
 
-function RunBlockStartThermocyclerEditor({ disabled, definition, thermocyclerLabel, setThermocyclerLabel, startedOn, setStartedOn }: {
+function RunBlockStartTimestampEditor({ disabled, definition, timestampLabel, setTimestampLabel, startedOn, setStartedOn }: {
     disabled?: boolean;
-    definition: StartThermocyclerBlockDefinition;
-    thermocyclerLabel?: string;
-    setThermocyclerLabel: (thermocyclerLabel?: string) => void;
+    definition: StartTimestampBlockDefinition;
+    timestampLabel?: string;
+    setTimestampLabel: (timestampLabel?: string) => void;
     startedOn?: string;
     setStartedOn: (startedOn?: string) => void;
 }) {
@@ -480,14 +480,14 @@ function RunBlockStartThermocyclerEditor({ disabled, definition, thermocyclerLab
         <RunBlockLabel name={definition.name} />
         <div className="row">
             <Form.Group className="col">
-                <Form.Label>Thermocycler ID/Label</Form.Label>
+                <Form.Label>Timestamp ID/Label</Form.Label>
                 <Form.Control
                     disabled={disabled}
                     type="text"
                     placeholder="Enter a label or ID here..."
                     aria-placeholder="Enter a label or ID here..."
-                    value={thermocyclerLabel}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setThermocyclerLabel((e.target as HTMLInputElement).value)}
+                    value={timestampLabel}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTimestampLabel((e.target as HTMLInputElement).value)}
                 />
             </Form.Group>
             <Form.Group className="col">
@@ -515,11 +515,11 @@ function RunBlockStartThermocyclerEditor({ disabled, definition, thermocyclerLab
     </>;
 }
 
-function RunBlockEndThermocyclerEditor({ disabled, definition, thermocyclerLabel, setThermocyclerLabel, endedOn, setEndedOn }: {
+function RunBlockEndTimestampEditor({ disabled, definition, timestampLabel, setTimestampLabel, endedOn, setEndedOn }: {
     disabled?: boolean;
-    definition: EndThermocyclerBlockDefinition;
-    thermocyclerLabel?: string;
-    setThermocyclerLabel: (thermocyclerLabel?: string) => void;
+    definition: EndTimestampBlockDefinition;
+    timestampLabel?: string;
+    setTimestampLabel: (timestampLabel?: string) => void;
     endedOn?: string;
     setEndedOn: (startedOn?: string) => void;
 }) {
@@ -527,14 +527,14 @@ function RunBlockEndThermocyclerEditor({ disabled, definition, thermocyclerLabel
         <RunBlockLabel name={definition.name} />
         <div className="row">
             <Form.Group className="col">
-                <Form.Label>Thermocycler ID/Label</Form.Label>
+                <Form.Label>Timestamp ID/Label</Form.Label>
                 <Form.Control
                     disabled={disabled}
                     type="text"
                     placeholder="Enter a label or ID here..."
                     aria-placeholder="Enter a label or ID here..."
-                    value={thermocyclerLabel}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setThermocyclerLabel((e.target as HTMLInputElement).value)}
+                    value={timestampLabel}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTimestampLabel((e.target as HTMLInputElement).value)}
                 />
             </Form.Group>
             <Form.Group className="col">
@@ -553,8 +553,8 @@ function RunBlockEndThermocyclerEditor({ disabled, definition, thermocyclerLabel
                 >
                     <Form.Control
                         type="text"
-                        placeholder="Thermocycler ended on..."
-                        aria-placeholder="Thermocycler ended on..."
+                        placeholder="Timestamp ended on..."
+                        aria-placeholder="Timestamp ended on..."
                     />
                 </DateRangePicker>
             </Form.Group>
@@ -643,29 +643,29 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                 />
             );
         }
-        case 'start-thermocycler': {
-            const block: StartThermocyclerBlock = props.block;
+        case 'start-timestamp': {
+            const block: StartTimestampBlock = props.block;
             return (
-                <RunBlockStartThermocyclerEditor
+                <RunBlockStartTimestampEditor
                     disabled={props.disabled}
                     definition={block.definition}
-                    thermocyclerLabel={block.thermocyclerLabel}
-                    setThermocyclerLabel={thermocyclerLabel => props.setBlock({ ...block, type: 'start-thermocycler', thermocyclerLabel })}
+                    timestampLabel={block.timestampLabel}
+                    setTimestampLabel={timestampLabel => props.setBlock({ ...block, type: 'start-timestamp', timestampLabel })}
                     startedOn={block.startedOn}
-                    setStartedOn={startedOn => props.setBlock({ ...block, type: 'start-thermocycler', startedOn })}
+                    setStartedOn={startedOn => props.setBlock({ ...block, type: 'start-timestamp', startedOn })}
                 />
             );
         }
-        case 'end-thermocycler': {
-            const block: EndThermocyclerBlock = props.block;
+        case 'end-timestamp': {
+            const block: EndTimestampBlock = props.block;
             return (
-                <RunBlockEndThermocyclerEditor
+                <RunBlockEndTimestampEditor
                     disabled={props.disabled}
                     definition={block.definition}
-                    thermocyclerLabel={block.thermocyclerLabel}
-                    setThermocyclerLabel={thermocyclerLabel => props.setBlock({ ...block, type: 'end-thermocycler', thermocyclerLabel })}
+                    timestampLabel={block.timestampLabel}
+                    setTimestampLabel={timestampLabel => props.setBlock({ ...block, type: 'end-timestamp', timestampLabel })}
                     endedOn={block.endedOn}
-                    setEndedOn={endedOn => props.setBlock({ ...block, type: 'end-thermocycler', endedOn })}
+                    setEndedOn={endedOn => props.setBlock({ ...block, type: 'end-timestamp', endedOn })}
                 />
             );
         }
