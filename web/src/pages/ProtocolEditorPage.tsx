@@ -9,7 +9,7 @@ import { ProtocolBlockEditor } from '../components/ProtocolBlockEditor';
 import { BlockDefinition } from '../models/block-definition';
 import { Protocol, SectionDefinition } from '../models/protocol';
 import { auth0State } from '../state/atoms';
-import { protocolQuery, upsertProtocol, upsertRun } from '../state/selectors';
+import { protocolQuery, upsertProtocol, upsertRun, currentUser } from '../state/selectors';
 import * as uuid from 'uuid';
 import { DragSourceMonitor, DropTargetMonitor, useDrag, useDrop, XYCoord } from 'react-dnd';
 import { CheckCircle, Share } from 'react-bootstrap-icons';
@@ -193,7 +193,7 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
 
     return <>
         <Form.Group>
-          <h3 className="row"><Form.Label>Protocol section:</Form.Label></h3>
+          <h3 className="row"><Form.Label>Protocol section {index + 1}:</Form.Label></h3>
           <Form.Control
             disabled={disabled}
             type="text"
@@ -252,12 +252,13 @@ export function ProtocolEditorPage() {
     const [name, setName] = useState<string | null>(null);
     const [description, setDescription] = useState<Node[] | null>(null);
     const [sections, setSections] = useState<SectionDefinition[] | null>(null);
-    const [signature, setSignature] = useState<string | null>(null);
-    const [witness, setWitness] = useState<string | null>(null);
+    const [signature] = useState<string | null>(null);
+    const [witness] = useState<string | null>(null);
     const [formSaving, setFormSaving] = useState<boolean>(false);
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
     const editor = React.useMemo(() => withReact(createEditor()), []);
     const { id } = useParams<ProtocolEditorPageParams>();
+    const loggedInUser = useRecoilValue(currentUser);
     const protocol = useRecoilValue(protocolQuery({ protocolId: parseInt(id), queryTime: protocolTimestamp }));
     const protocolUpsert = useRecoilCallback(({ snapshot }) => async (protocol: Protocol) => {
         setFormSaving(true);
@@ -407,8 +408,7 @@ export function ProtocolEditorPage() {
                             className="flow-signature"
                             type="text"
                             value={currentSignature}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSignature((e.target as HTMLInputElement).value)}
-                            disabled={isSigned}
+                            disabled={true}
                         />
                         <InputGroup.Append>
                             <Button variant="secondary" onClick={() => {
@@ -416,6 +416,11 @@ export function ProtocolEditorPage() {
                                 if (isSigned) {
                                     override.signature = "";
                                     override.witness = "";
+                                } else {
+                                    if (loggedInUser) {
+                                        override.signature = loggedInUser.fullName;
+                                        override.signedOn = moment().format();
+                                    }
                                 }
                                 syncProtocol(override);
                             }}>
@@ -442,14 +447,18 @@ export function ProtocolEditorPage() {
                             className="flow-signature"
                             type="text"
                             value={currentWitness}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWitness((e.target as HTMLInputElement).value)}
-                            disabled={isWitnessed || !isSigned}
+                            disabled={true}
                         />
                         <InputGroup.Append>
                             <Button variant="secondary" disabled={!isSigned} onClick={() => {
                                 const override: Protocol = {};
                                 if (isWitnessed) {
                                     override.witness = "";
+                                } else {
+                                    if (loggedInUser) {
+                                        override.witness = loggedInUser.fullName;
+                                        override.witnessedOn = moment().format();
+                                    }
                                 }
                                 syncProtocol(override);
                             }}>

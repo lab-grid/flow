@@ -7,7 +7,7 @@ import { Slate, Editable, withReact } from 'slate-react';
 import { RunBlockEditor } from '../components/RunBlockEditor';
 import { calculateRunStatus, humanizeRunName, Run, Section } from '../models/run';
 import { auth0State } from '../state/atoms';
-import { runQuery, upsertRun } from '../state/selectors';
+import { currentUser, runQuery, upsertRun } from '../state/selectors';
 import { Block } from '../models/block';
 import { deserializeSlate, serializeSlate } from '../slate';
 import moment from 'moment';
@@ -31,6 +31,8 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
     setSection: (section?: Section) => void;
     syncSection: (section?: Section) => void;
 }) {
+    const loggedInUser = useRecoilValue(currentUser);
+
     const currentBlocks = (section && section.blocks) || [];
     const currentSignature = (section && section.signature) || '';
     const currentWitness = (section && section.witness) || '';
@@ -74,15 +76,7 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
                         className="flow-signature"
                         type="text"
                         value={currentSignature}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                            if (section) {
-                                setSection({
-                                    ...section,
-                                    signature: (e.target as HTMLInputElement).value,
-                                })
-                            }
-                        }}
-                        disabled={isSigned}
+                        disabled={true}
                     />
                     <InputGroup.Append>
                         <Button variant="secondary" onClick={() => {
@@ -91,7 +85,13 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
                                     const { signature, witness, signedOn, witnessedOn, ...newSection} = section;
                                     syncSection(newSection);
                                 } else {
-                                    syncSection({...section, signedOn: moment().format()});
+                                    if (loggedInUser) {
+                                        syncSection({
+                                            ...section,
+                                            signature: loggedInUser.fullName,
+                                            signedOn: moment().format(),
+                                        });
+                                    }
                                 }
                             }
                         }}>
@@ -118,15 +118,7 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
                         className="flow-signature"
                         type="text"
                         value={currentWitness}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                            if (section) {
-                                setSection({
-                                    ...section,
-                                    witness: (e.target as HTMLInputElement).value,
-                                });
-                            }
-                        }}
-                        disabled={isWitnessed || !isSigned}
+                        disabled={true}
                     />
                     <InputGroup.Append>
                         <Button variant="secondary" disabled={!isSigned} onClick={() => {
@@ -135,7 +127,13 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
                                     const { witness, witnessedOn, ...newSection} = section;
                                     syncSection(newSection)
                                 } else {
-                                    syncSection({...section, witnessedOn: moment().format()})
+                                    if (loggedInUser) {
+                                        syncSection({
+                                            ...section,
+                                            witness: loggedInUser.fullName,
+                                            witnessedOn: moment().format(),
+                                        });
+                                    }
                                 }
                             }
                         }}>

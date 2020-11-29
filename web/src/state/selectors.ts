@@ -1,4 +1,4 @@
-import { selectorFamily } from "recoil";
+import { selector, selectorFamily } from "recoil";
 import { labflowOptions } from "../config";
 import { Protocol } from "../models/protocol";
 import { Run } from "../models/run";
@@ -135,3 +135,16 @@ export function upsertUser(auth0ClientFn: () => Auth0Client | undefined, user: U
   const path = user.id ? `user/${user.id}` : "user";
   return apiFetch(labflowOptions, auth0ClientFn, method, path, user);
 }
+
+
+// ----------------------------------------------------------------------------
+// Other ----------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+export const currentUser = selector<User | undefined>({
+  key: "currentUser",
+  get: ({ get }) => {
+    const userId = get(auth0State).user.sub;
+    return userId && get(userQuery(userId));
+  },
+})
