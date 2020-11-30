@@ -39,6 +39,11 @@ method_param = {
     'in': 'path',
     'type': 'string'
 }
+sample_id_param = {
+    'description': 'ID for a sample',
+    'in': 'path',
+    'type': 'string'
+}
 
 
 def run_to_dict(run, run_version):
@@ -218,6 +223,118 @@ class RunPermissionResource(Resource):
     @requires_permissions_access('PUT')
     def delete(self, run_id, method, user_id):
         delete_policy(user=user_id, path=f"/run/{run_id}", method=method)
+        return {
+            'success': True
+        }
+
+
+# Samples ---------------------------------------------------------------------
+
+
+@api.route('/run/<int:run_id>/sample')
+@api.doc(params={'run_id': run_id_param})
+class RunSamplesResource(Resource):
+    @api.doc(security='token', model=runs_output)
+    @requires_auth
+    @requires_scope('read:runs')
+    def get(self):
+        return [
+            run_to_dict(run, run.current)
+            for run
+            in Run.query.filter(Run.is_deleted != True).all()
+            if check_access(path=f"/run/{str(run.id)}", method="GET")
+        ]
+
+    @api.doc(security='token', model=run_output, body=run_input)
+    @requires_auth
+    @requires_scope('write:runs')
+    # @requires_access()
+    def post(self):
+        run_dict = request.json
+        protocol_id = extract_protocol_id(run_dict)
+        run_dict.pop('protocol', None)
+        if not protocol_id:
+            abort(400)
+            return
+        protocol = Protocol.query.get(protocol_id)
+        if not protocol:
+            abort(400)
+            return
+        run = Run()
+        run_version = RunVersion(data=strip_metadata(run_dict))
+        run_version.run = run
+        run.current = run_version
+        run.protocol_version_id = protocol.version_id
+        add_owner(run)
+        db.session.add_all([run, run_version])
+        db.session.commit()
+        add_policy(path=f"/run/{str(run.id)}", method="GET")
+        add_policy(path=f"/run/{str(run.id)}", method="PUT")
+        add_policy(path=f"/run/{str(run.id)}", method="DELETE")
+        return run_to_dict(run, run_version)
+
+
+@api.route('/run/<int:run_id>/sample/<int:sample_id>')
+@api.doc(params={'run_id': run_id_param, 'sample_id': sample_id_param})
+class RunSampleResource(Resource):
+    @api.doc(security='token', model=run_output, params={'version_id': version_id_param})
+    @requires_auth
+    @requires_scope('read:runs')
+    @requires_access()
+    def get(self, run_id, sample_id):
+        version_id = int(request.args.get('version_id')) if request.args.get('version_id') else None
+        
+        if version_id:
+            run_version = RunVersion.query\
+                .filter(RunVersion.id == version_id)\
+                .filter(Run.id == run_id)\
+                .first()
+            if (not run_version) or run_version.run.is_deleted:
+                abort(404)
+                return
+            return run_to_dict(run_version.run, run_version)
+        
+        run = Run.query.get(run_id)
+        if (not run) or run.is_deleted:
+            abort(404)
+            return
+        return run_to_dict(run, run.current)
+
+    @api.doc(security='token', model=run_output, body=run_input)
+    @requires_auth
+    @requires_scope('write:runs')
+    @requires_access()
+    def put(self, run_id, sample_id):
+        run_dict = request.json
+        # This field shouldn't be updated by users.
+        run_dict.pop('protocol', None)
+        run = Run.query.get(run_id)
+        if not run or run.is_deleted:
+            abort(404)
+            return
+        if not change_allowed(run_to_dict(run, run.current), run_dict):
+            abort(403)
+            return
+        run_version = RunVersion(data=strip_metadata(run_dict))
+        run_version.run = run
+        add_updator(run_version)
+        run.current = run_version
+        db.session.add(run_version)
+        db.session.commit()
+        return run_to_dict(run, run.current)
+
+    @api.doc(security='token', model=success_output)
+    @requires_auth
+    @requires_scope('write:runs')
+    @requires_access()
+    def delete(self, run_id, sample_id):
+        run = Run.query.get(run_id)
+        if not run or run.is_deleted:
+            abort(404)
+            return
+        run.is_deleted = True
+        db.session.commit()
+        delete_policy(path=f"/run/{str(run.id)}")
         return {
             'success': True
         }
