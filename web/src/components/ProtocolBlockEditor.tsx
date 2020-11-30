@@ -648,7 +648,7 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
         default:
             return (
                 <div>
-                    TODO: ProtocolBlockEditor
+                    Unrecognized block type: {(props.block as any).type}
                 </div>
             );
     }

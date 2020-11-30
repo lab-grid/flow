@@ -672,7 +672,7 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
         default:
             return (
                 <div>
-                    TODO: RunBlockEditor
+                    Unrecognized block type: {(props.block as any).type}
                 </div>
             );
     }
