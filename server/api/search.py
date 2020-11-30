@@ -186,8 +186,8 @@ class ProtocolsResource(Resource):
             if check_access(path=f"/run/{str(run.id)}", method="GET")
         ]
         samples = [
-            run_to_sample(run, run_version, protocol_version, sample_id)
-            for run, run_version, protocol_version, sample_id
+            run_to_sample(sample)
+            for sample
             in samples_query.distinct()
             # if check_access(path=f"/sample/{str(sample_id)}", method="GET")
         ]
