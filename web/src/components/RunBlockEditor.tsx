@@ -5,8 +5,8 @@ import { UpcScan } from 'react-bootstrap-icons';
 import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block, PlateCoordinate, PlateResult, StartTimestampBlock, EndTimestampBlock } from '../models/block';
 import { BlockPrimer, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { TableUploadModal } from './TableUploadModal';
-import DateRangePicker from 'react-bootstrap-daterangepicker';
 import { Calculator } from './Calculator';
+import DatePicker from "react-datepicker";
 
 function RunBlockLabel({ name }: {
     name?: string;
@@ -492,24 +492,24 @@ function RunBlockStartTimestampEditor({ disabled, definition, timestampLabel, se
             </Form.Group>
             <Form.Group className="col">
                 <Form.Label>Started On</Form.Label>
-                <DateRangePicker
-                    initialSettings={{
-                        timePicker: true,
-                        singleDatePicker: true,
-                        showDropdowns: true,
-                        startDate: startedOn ? moment(startedOn) : undefined,
-                        minYear: 1901,
-                        maxYear: parseInt(moment().format('YYYY'), 10),
-                        locale: { format: 'LLLL' },
-                    }}
-                    onCallback={start => setStartedOn(start.format())}
-                >
-                    <Form.Control
-                        type="text"
-                        placeholder="Set a date/time here..."
-                        aria-placeholder="Set a date/time here..."
+                <InputGroup>
+                    <DatePicker
+                        selected={startedOn ? moment(startedOn).toDate() : undefined}
+                        onChange={start => {
+                            if (start && (start instanceof Date)) {
+                                setStartedOn(moment(start).format());
+                            }
+                        }}
+                        placeholderText="Click here to set a date/time..."
+                        todayButton="Now"
+                        showTimeSelect
+                        dateFormat="Pp"
+                        customInput={<Form.Control />}
                     />
-                </DateRangePicker>
+                    <InputGroup.Append>
+                        <Button variant="secondary" onClick={() => setStartedOn(moment().format())}>Now</Button>
+                    </InputGroup.Append>
+                </InputGroup>
             </Form.Group>
         </div>
     </>;
@@ -539,24 +539,24 @@ function RunBlockEndTimestampEditor({ disabled, definition, timestampLabel, setT
             </Form.Group>
             <Form.Group className="col">
                 <Form.Label>Ended On</Form.Label>
-                <DateRangePicker
-                    initialSettings={{
-                        timePicker: true,
-                        singleDatePicker: true,
-                        showDropdowns: true,
-                        startDate: endedOn ? moment(endedOn) : undefined,
-                        minYear: 1901,
-                        maxYear: parseInt(moment().format('YYYY'), 10),
-                        locale: { format: 'LLLL' },
-                    }}
-                    onCallback={end => setEndedOn(end.format())}
-                >
-                    <Form.Control
-                        type="text"
-                        placeholder="Timestamp ended on..."
-                        aria-placeholder="Timestamp ended on..."
+                <InputGroup>
+                    <DatePicker
+                        selected={endedOn ? moment(endedOn).toDate() : undefined}
+                        onChange={start => {
+                            if (start && (start instanceof Date)) {
+                                setEndedOn(moment(start).format());
+                            }
+                        }}
+                        placeholderText="Click here to set a date/time..."
+                        todayButton="Now"
+                        showTimeSelect
+                        dateFormat="Pp"
+                        customInput={<Form.Control />}
                     />
-                </DateRangePicker>
+                    <InputGroup.Append>
+                        <Button variant="secondary" onClick={() => setEndedOn(moment().format())}>Now</Button>
+                    </InputGroup.Append>
+                </InputGroup>
             </Form.Group>
         </div>
     </>;
