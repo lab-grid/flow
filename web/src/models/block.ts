@@ -58,6 +58,8 @@ export interface PlateSequencerBlock {
 
     plateLabels?: string[];
     plateSequencingResults?: PlateResult[];
+    timestampLabel?: string;
+    startedOn?: string;
 }
 
 export interface PlateResult {
