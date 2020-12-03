@@ -3,9 +3,10 @@ import React, { useState } from 'react';
 import { Button, Form, Spinner } from 'react-bootstrap';
 import { CheckCircle } from 'react-bootstrap-icons';
 import { useParams } from 'react-router-dom';
-import { useRecoilCallback, useRecoilValue } from 'recoil';
+import { useRecoilCallback, useRecoilState, useRecoilValue } from 'recoil';
 import { User } from '../models/user';
-import { auth0State } from '../state/atoms';
+import { FetchError } from '../state/api';
+import { auth0State, errorsState } from '../state/atoms';
 import { upsertUser, userQuery } from '../state/selectors';
 
 function FullName({disabled, name, setName}: {
@@ -51,11 +52,20 @@ export function ProfilePage() {
     const [formSaving, setFormSaving] = useState<boolean>(false);
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
     const { id } = useParams<ProfilePageParams>();
+    const [errors, setErrors] = useRecoilState(errorsState);
     const userUpsert = useRecoilCallback(({ snapshot }) => async (user: User) => {
         setFormSaving(true);
         try {
             const { auth0Client } = await snapshot.getPromise(auth0State);
             return await upsertUser(() => auth0Client, user);
+        } catch (e) {
+            if (e instanceof FetchError) {
+                const err: FetchError = e;
+                setErrors({
+                    ...errors,
+                    errors: [...(errors.errors || []), err],
+                });
+            }
         } finally {
             setFormSaving(false);
             setFormSavedTime(moment().format());
@@ -83,6 +93,7 @@ export function ProfilePage() {
     }, override));
 
     return <Form className="container">
+        {isFirstLogin && <h1 className="row">Setup your new account</h1>}
         <div className="row mt-4">
             <img className="avatar col-auto mx-auto" src={currentAvatar} alt="profile avatar" />
         </div>

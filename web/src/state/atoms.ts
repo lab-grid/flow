@@ -46,3 +46,13 @@ export const auth0State = atom<Auth0State>({
   key: "auth0State",
   default: initializeAuth0State(),
 });
+
+
+export interface ErrorsState {
+  errors?: Error[];
+}
+
+export const errorsState = atom<ErrorsState>({
+  key: "errorsState",
+  default: {},
+});

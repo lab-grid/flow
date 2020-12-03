@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Button, ButtonGroup, ButtonToolbar, Form, InputGroup, Spinner } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
-import { useRecoilCallback, useRecoilValue } from 'recoil';
+import { useRecoilCallback, useRecoilState, useRecoilValue } from 'recoil';
 import { createEditor, Node } from 'slate';
 import { Slate, Editable, withReact } from 'slate-react';
 import { RunBlockEditor } from '../components/RunBlockEditor';
 import { calculateRunStatus, humanizeRunName, Run, Section } from '../models/run';
-import { auth0State } from '../state/atoms';
+import { auth0State, errorsState } from '../state/atoms';
 import { runQuery, upsertRun, userQuery } from '../state/selectors';
 import { Block } from '../models/block';
 import { deserializeSlate, serializeSlate } from '../slate';
@@ -14,6 +14,7 @@ import moment from 'moment';
 import { CheckCircle, Share } from 'react-bootstrap-icons';
 import { SharingModal } from '../components/SharingModal';
 import { Element, Leaf, onHotkeyDown, Toolbar } from '../components/Slate';
+import { FetchError } from '../state/api';
 
 const initialSlateValue: Node[] = [
     {
@@ -170,11 +171,20 @@ export function RunEditorPage() {
     const editor = React.useMemo(() => withReact(createEditor()), []);
     const { id } = useParams<RunEditorPageParams>();
     const run = useRecoilValue(runQuery({ runId: parseInt(id), queryTime: runTimestamp }));
+    const [errors, setErrors] = useRecoilState(errorsState);
     const runUpsert = useRecoilCallback(({ snapshot }) => async (run: Run) => {
         setFormSaving(true);
         try {
             const { auth0Client } = await snapshot.getPromise(auth0State);
             return await upsertRun(() => auth0Client, run);
+        } catch (e) {
+            if (e instanceof FetchError) {
+                const err: FetchError = e;
+                setErrors({
+                    ...errors,
+                    errors: [...(errors.errors || []), err],
+                });
+            }
         } finally {
             setFormSaving(false);
             setFormSavedTime(moment().format());

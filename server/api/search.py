@@ -165,7 +165,7 @@ class ProtocolsResource(Resource):
         if len(runs_queries) == 0:
             runs_queries.append(Run.query.filter(Run.is_deleted != True))
         if len(samples_queries) == 0:
-            samples_queries.append(get_samples())
+            samples_queries.append(get_samples(sample_id=sample, plate_id=plate, protocol_id=protocol, run_id=run))
 
         # Only return the intersection of all queries.
         protocols_query = reduce(lambda a, b: a.intersect(b), protocols_queries)
