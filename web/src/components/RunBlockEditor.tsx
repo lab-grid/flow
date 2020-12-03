@@ -437,7 +437,7 @@ function RunBlockPlateSequencerEditor({ disabled, definition, plateLabels, setPl
             <td>
                 <RunBlockPlateLabelEditor
                     disabled={disabled}
-                    wells={definition.plates && definition.plates[i] && definition.plates[i].size}
+                    wells={384}
                     name={definition.plates && definition.plates[i] && definition.plates[i].name}
                     label={plateLabels ? plateLabels[i] : undefined}
                     setLabel={label => {
