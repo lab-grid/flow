@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { Button, Dropdown, Form, InputGroup, Spinner } from 'react-bootstrap';
 import { useHistory } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
-import { useRecoilCallback, useRecoilValue } from 'recoil';
+import { useRecoilCallback, useRecoilState, useRecoilValue } from 'recoil';
 import { createEditor, Node } from 'slate';
 import { Slate, Editable, withReact } from 'slate-react';
 import { ProtocolBlockEditor } from '../components/ProtocolBlockEditor';
 import { BlockDefinition } from '../models/block-definition';
 import { Protocol, SectionDefinition } from '../models/protocol';
-import { auth0State } from '../state/atoms';
+import { auth0State, errorsState } from '../state/atoms';
 import { protocolQuery, upsertProtocol, upsertRun, userQuery } from '../state/selectors';
 import * as uuid from 'uuid';
 import { DragSourceMonitor, DropTargetMonitor, useDrag, useDrop, XYCoord } from 'react-dnd';
@@ -19,6 +19,7 @@ import { Block } from '../models/block';
 import { SharingModal } from '../components/SharingModal';
 import { Run, Section } from '../models/run';
 import { Element, Leaf, onHotkeyDown, Toolbar } from '../components/Slate';
+import { FetchError } from '../state/api';
 
 const initialSlateValue: Node[] = [
     {
@@ -262,11 +263,20 @@ export function ProtocolEditorPage() {
     const { user: auth0User } = useRecoilValue(auth0State);
     const loggedInUser = useRecoilValue(userQuery({userId: auth0User && auth0User.sub, queryTime: userTimestamp}));
     const protocol = useRecoilValue(protocolQuery({ protocolId: parseInt(id), queryTime: protocolTimestamp }));
+    const [errors, setErrors] = useRecoilState(errorsState);
     const protocolUpsert = useRecoilCallback(({ snapshot }) => async (protocol: Protocol) => {
         setFormSaving(true);
         try {
             const { auth0Client } = await snapshot.getPromise(auth0State);
             return await upsertProtocol(() => auth0Client, protocol);
+        } catch (e) {
+            if (e instanceof FetchError) {
+                const err: FetchError = e;
+                setErrors({
+                    ...errors,
+                    errors: [...(errors.errors || []), err],
+                });
+            }
         } finally {
             setFormSaving(false);
             setFormSavedTime(moment().format());

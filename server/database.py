@@ -3,10 +3,12 @@
 import copy
 import pprint
 from server import db
-from sqlalchemy.sql.expression import literal_column
+from sqlalchemy import and_
+from sqlalchemy.sql.expression import column, literal_column
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, text
+from sqlalchemy.orm.attributes import flag_modified
 # from alembic_utils.pg_view import PGView
 
 
@@ -194,139 +196,107 @@ class Run(BaseModel):
 #     definition="select block.val from public.run join public.run_version on public.run.version_id = public.run_version.id join lateral json_array_elements(public.run_version.data::json->'sections') as sec(val) on true join lateral json_array_elements(sec.val::json->'blocks') as block(val) on true"
 # )
 
-def get_samples(plate_id=None, protocol_id=None, run_id=None):
-    """
-    SELECT
-        public.protocol_version.protocol_id as protocolID,
-        aggSample.runID as runID,
-        aggSample.plateID AS plateID,
-        aggSample.plateRow AS plateRow,
-        aggSample.plateCol AS plateCol,
-        aggSample.sampleID AS sampleID,
-        aggResult.marker1 AS marker1,
-        aggResult.marker2 AS marker2,
-        aggResult.result AS result
-    FROM
-        (
-            SELECT
-                sample.key AS plateID,
-                (sample.value::jsonb->'row')::int AS plateRow,
-                (sample.value::jsonb->'col')::int AS plateCol,
-                (sample.value::jsonb->'sampleLabel')::text AS sampleID,
-                public.run.id as runID
-            FROM
-                public.run,
-                public.run_version,
-                jsonb_path_query(public.run_version.data, '$.sections[*].blocks[*].plateMappings') AS plateMappings,
-                jsonb_each(plateMappings) AS sample
-            WHERE public.run_version.id = public.run.version_id
-        ) AS aggSample,
-        (
-            SELECT
-                (result::jsonb->'plateLabel')::text AS plateID,
-                (result::jsonb->'plateRow')::int AS plateRow,
-                (result::jsonb->'plateCol')::int AS plateCol,
-                (result::jsonb->'marker1')::text AS marker1,
-                (result::jsonb->'marker2')::text AS marker2,
-                (result::jsonb->'classification')::text AS result,
-                public.run.id as runID
-            FROM
-                public.run,
-                public.run_version,
-                jsonb_path_query(public.run_version.data, '$.sections[*].blocks[*].plateSequencingResults[*]') AS result
-            WHERE public.run_version.id = public.run.version_id
-        ) AS aggResult,
-        public.protocol_version
-    WHERE aggSample.plateRow = aggResult.plateRow
-    AND aggSample.plateCol = aggResult.plateCol
-    AND aggSample.plateID = aggResult.plateID
-    AND public.protocol_version.id = aggSample.runID;
-    """
-    func_plate_mappings = db.func.jsonb_path_query(RunVersion.data, '$.sections[*].blocks[*].plateMappings')
-    func_sample = db.func.jsonb_each(func_plate_mappings).alias('sample')
-    func_result = db.func.jsonb_path_query(RunVersion.data, '$.sections[*].blocks[*].plateSequencingResults[*]')
+def update_sample(run, sample_id, override):
+    if "sampleOverrides" not in run.current.data:
+        run.current.data["sampleOverrides"] = {}
+    run.current.data["sampleOverrides"][sample_id] = override
+    flag_modified(run, "data")
 
-    sample_query = db.session\
-        .query(
-            Run.protocol_version_id.label('protocolVersionID'),
-            Run.id.label('runID'),
-            literal_column('sample.key').label('plateID'),
-            literal_column('sample.value', type_=JSONB)['row'].cast('int').label('plateRow'),
-            literal_column('sample.value', type_=JSONB)['col'].cast('int').label('plateCol'),
-            literal_column('sample.value', type_=JSONB)['sampleLabel'].cast('text').label('sampleID'),
-            # func_sample.c.key.label('plateID'),
-            # func_sample.c.value['row'].cast('int').label('plateRow'),
-            # func_sample.c.value['col'].cast('int').label('plateCol'),
-            # func_sample.c.value['sampleLabel'].cast('text').label('sampleID'),
-        )\
-        .join(RunVersion, RunVersion.id == Run.version_id)\
-        .filter(Run.is_deleted != True)\
-        .subquery()
-    result_query = db.session\
-        .query(
-            Run.id.label('runID'),
-            func_result['plateLabel'].cast('text').label('plateID'),
-            func_result['plateRow'].cast('int').label('plateRow'),
-            func_result['plateCol'].cast('int').label('plateCol'),
-            func_result['marker1'].cast('text').label('marker1'),
-            func_result['marker2'].cast('text').label('marker2'),
-            func_result['classification'].cast('text').label('result'),
-        )\
-        .join(RunVersion, RunVersion.id == Run.version_id)\
-        .filter(Run.is_deleted != True)\
-        .subquery()
+def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None):
+    params = {}
+    if plate_id is not None:
+        params["plate_id"] = plate_id
+    if run_id is not None:
+        params["run_id"] = run_id
+    if protocol_id is not None:
+        params["protocol_id"] = protocol_id
+
+    sample_plate_id = "samples.key AS plate_id"
+    sample_plate_row = "(sample::jsonb->'row')::int AS plate_row"
+    sample_plate_col = "(sample::jsonb->'col')::int AS plate_col"
+    sample_sample_id = "(sample::jsonb->'sampleLabel')::text AS sample_id"
+    sample_run_id = "public.run.id as run_id"
+    sample_protocol_id = "public.protocol_version.protocol_id as protocol_id"
+    sample_plate_mappings = "jsonb_path_query(public.run_version.data, '$.sections[*].blocks[*].plateMappings') AS plate_mappings"
+    sample_samples = "jsonb_each(plate_mappings) AS samples"
+    sample_sample = "jsonb_path_query(samples.value, '$[*]') AS sample"
+    sample_subquery = text(
+        f"SELECT {sample_plate_id}, {sample_plate_row}, {sample_plate_col}, {sample_sample_id}, {sample_run_id}, {sample_protocol_id} "
+        f"FROM public.run, public.run_version, public.protocol_version, {sample_plate_mappings}, {sample_samples}, {sample_sample} "
+        "WHERE public.run_version.id = public.run.version_id "
+        "AND public.protocol_version.id = public.run.protocol_version_id "
+        "AND sample::jsonb->'sampleLabel' IS NOT NULL "
+        "AND public.run.is_deleted IS NOT TRUE " +\
+        ("AND (sample::jsonb->'sampleLabel')::text = :sample_id " if sample_id is not None else "") +\
+        ("AND samples.key = :plate_id " if plate_id is not None else "") +\
+        ("AND public.run.id = :run_id " if run_id is not None else "") +\
+        ("AND public.protocol_version.protocol_id = :protocol_id " if protocol_id is not None else "")
+    ).bindparams(**params).columns(
+        plate_id=db.String,
+        plate_row=db.Integer,
+        plate_col=db.Integer,
+        sample_id=db.String,
+        run_id=db.Integer,
+        protocol_id=db.Integer,
+    )
+    sample_query = sample_subquery.alias('aggSample')
+
+    result_plate_id = "(result::jsonb->'plateLabel')::text AS plate_id"
+    result_plate_row = "(result::jsonb->'plate_row')::int AS plate_row"
+    result_plate_col = "(result::jsonb->'plate_col')::int AS plate_col"
+    result_plate_marker1 = "(result::jsonb->'marker1')::text AS marker1"
+    result_plate_marker2 = "(result::jsonb->'marker2')::text AS marker2"
+    result_classification = "(result::jsonb->'classification')::text AS result"
+    result_run_id = "public.run.id as run_id"
+    result_protocol_id = "public.protocol_version.protocol_id as protocol_id"
+    result_result = "jsonb_path_query(public.run_version.data, '$.sections[*].blocks[*].plateSequencingResults[*]') AS result"
+    result_subquery = text(
+        f"SELECT {result_plate_id}, {result_plate_row}, {result_plate_col}, {result_plate_marker1}, {result_plate_marker2}, {result_classification}, {result_run_id}, {result_protocol_id} "
+        f"FROM public.run, public.run_version, public.protocol_version, {result_result} "
+        "WHERE public.run_version.id = public.run.version_id "
+        "AND public.protocol_version.id = public.run.protocol_version_id " +\
+        ("AND (result::jsonb->'plateLabel')::text = :plate_id " if plate_id is not None else "") +\
+        ("AND public.run.id = :run_id " if run_id is not None else "") +\
+        ("AND public.protocol_version.protocol_id = :protocol_id " if protocol_id is not None else "")
+    ).bindparams(**params).columns(
+        plate_id=db.String,
+        plate_row=db.Integer,
+        plate_col=db.Integer,
+        marker1=db.String,
+        marker2=db.String,
+        result=db.String,
+        run_id=db.Integer,
+        protocol_id=db.Integer,
+    )
+    result_query = result_subquery.alias('aggResult')
+
     return db.session\
         .query(
-            ProtocolVersion.protocol_id.label('protocolID'),
-            sample_query.c.runID.label('runID'),
-            sample_query.c.plateID.label('plateID'),
-            sample_query.c.plateRow.label('plateRow'),
-            sample_query.c.plateCol.label('plateCol'),
-            sample_query.c.sampleID.label('sampleID'),
-            result_query.c.marker1.label('marker1'),
-            result_query.c.marker2.label('marker2'),
-            result_query.c.result.label('result'),
+            sample_query.c.protocol_id,
+            sample_query.c.run_id,
+            sample_query.c.plate_id,
+            sample_query.c.plate_row,
+            sample_query.c.plate_col,
+            sample_query.c.sample_id,
+            result_query.c.marker1,
+            result_query.c.marker2,
+            result_query.c.result,
         )\
-        .join(result_query, sample_query.c.plateRow == result_query.c.plateRow)\
-        .join(result_query, sample_query.c.plateCol == result_query.c.plateCol)\
-        .join(result_query, sample_query.c.plateID == result_query.c.plateID)\
-        .join(ProtocolVersion, sample_query.c.protocolVersionID == ProtocolVersion.id)
-
-    # """
-    # SELECT
-    #     sample.value AS sampleID,
-    #     public.run.id as runID,
-    #     public.protocol_version.protocol_id as protocolID,
-    #     public.run_version.data as runData
-    # #     ? as result,
-    # #     ? as signer,
-    # #     ? as witness,
-    # #     ? as completedOn
-    # FROM public.run, public.run_version, public.protocol_version, jsonb_path_query(public.run_version.data, '$.sections[*].blocks[*].plateMappings[*].sampleLabel') AS sample
-    # WHERE public.run_version.id = public.run.version_id
-    # WHERE public.protocol_version.id = public.run_version.protocol_version_id
-    # """
-    # sample_query = db.func.jsonb_path_query(RunVersion.data, '$.sections[*].blocks[*].plateMappings[*].sampleLabel')
-    # return db.session\
-    #     .query(Run, RunVersion, ProtocolVersion, sample_query)\
-    #     .join(RunVersion, RunVersion.id == Run.version_id)\
-    #     .join(ProtocolVersion, ProtocolVersion.id == Run.protocol_version_id)\
-    #     .filter(Run.is_deleted != True)
-
-# def run_to_sample(run, run_version, protocol_version, sample_id):
-#     return {
-#         'sampleID': sample.value,
-#         'runID': run.id,
-#         'protocolID': protocol_version.protocol_id,
-#         'result': run_version.data['sections'],
-#         # 'signer': ???,
-#         # 'completedOn': ???,
-#     }
-
+        .filter(and_(
+            sample_query.c.plate_row == result_query.c.plate_row,
+            sample_query.c.plate_col == result_query.c.plate_col,
+            sample_query.c.plate_id == result_query.c.plate_id,
+        ))
 
 def run_to_sample(sample):
-    import pprint
-    pprint.print('======== DEBUGGING START ========')
-    pprint.print(sample)
-    pprint.print('========  DEBUGGING END  ========')
-    return {}
+    return {
+        'protocolID': sample[0],
+        'runID': sample[1],
+        'plateID': sample[2],
+        'plateRow': sample[3],
+        'plateCol': sample[4],
+        'sampleID': sample[5],
+        'marker1': sample[6],
+        'marker2': sample[7],
+        'result': sample[8],
+    }

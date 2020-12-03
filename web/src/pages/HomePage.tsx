@@ -1,16 +1,17 @@
 import React, { Suspense } from 'react';
 import { Button, Dropdown } from 'react-bootstrap';
 import { useHistory } from 'react-router-dom';
-import { useRecoilCallback, useRecoilValue } from 'recoil';
+import { useRecoilCallback, useRecoilValue, useRecoilState } from 'recoil';
 import { ProtocolsTable } from '../components/ProtocolsTable';
 import { RunsTable } from '../components/RunsTable';
 import { Protocol } from '../models/protocol';
 import { Block } from '../models/block';
 import { Run, Section } from '../models/run';
-import { auth0State } from '../state/atoms';
+import { auth0State, errorsState } from '../state/atoms';
 import { protocolsQuery, runsQuery, upsertProtocol, upsertRun } from '../state/selectors';
 import moment from 'moment';
 import { LoadingPage } from '../components/LoadingPage';
+import { FetchError } from '../state/api';
 
 export function HomePage() {
     const [runsTimestamp, setRunsTimestamp] = React.useState("");
@@ -18,9 +19,20 @@ export function HomePage() {
     const history = useHistory();
     const protocols = useRecoilValue(protocolsQuery({ queryTime: protocolsTimestamp }));
     const runs = useRecoilValue(runsQuery({ queryTime: runsTimestamp }));
+    const [errors, setErrors] = useRecoilState(errorsState);
     const protocolUpsert = useRecoilCallback(({ snapshot }) => async (protocol: Protocol) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
-        return await upsertProtocol(() => auth0Client, protocol);
+        try {
+            return await upsertProtocol(() => auth0Client, protocol);
+        } catch (e) {
+            if (e instanceof FetchError) {
+                const err: FetchError = e;
+                setErrors({
+                    ...errors,
+                    errors: [...(errors.errors || []), err],
+                });
+            }
+        }
     });
     const runUpsert = useRecoilCallback(({ snapshot }) => async (run: Run) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
@@ -30,8 +42,10 @@ export function HomePage() {
     const createProtocol = async () => {
         // Create new protocol
         const created = await protocolUpsert({});
-        // Redirect to the new protocol page editor
-        history.push(`/protocol/${created.id}`);
+        if (created) {
+            // Redirect to the new protocol page editor
+            history.push(`/protocol/${created.id}`);
+        }
     };
     const createRun = (protocol: Protocol) => async () => {
         // Create new run
