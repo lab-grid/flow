@@ -5,8 +5,13 @@ export interface SampleResult {
     sampleID?: string;
     runID?: number;
     protocolID?: number;
+    plateID?: string;
 
     result?: string;
+    marker1?: string;
+    marker2?: string;
+    plateRow?: number;
+    plateCol?: number;
 
     signer?: string;
     witness?: string;

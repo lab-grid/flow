@@ -9,6 +9,8 @@ import { Policy } from "../models/policy";
 import { SearchResults } from "../models/search-results";
 import { Auth0Client } from "@auth0/auth0-spa-js";
 import { Group } from "../models/group";
+import { ServerHealth } from "../models/server-health";
+import { SampleResult } from "../models/sample-result";
 
 
 function paramsToQuery(params?: {[name: string]: string}): string {
@@ -50,6 +52,15 @@ export const userQuery = selectorFamily<User | undefined, {
   get: ({ userId }) => ({ get }) => apiGetOne(labflowOptions, () => get(auth0State).auth0Client, `user/${userId}`),
 });
 
+export const runSampleQuery = selectorFamily<SampleResult[], {
+  runId: number;
+  sampleId: string;
+  queryTime: string;
+}>({
+  key: "runSampleQuery",
+  get: ({ runId, sampleId }) => ({ get }) => apiGetOne(labflowOptions, () => get(auth0State).auth0Client, `run/${runId}/sample/${sampleId}`),
+});
+
 
 // ----------------------------------------------------------------------------
 // List Queries ---------------------------------------------------------------
@@ -85,6 +96,15 @@ export const groupsQuery = selectorFamily<Group[], {
 }>({
   key: "groupsQuery",
   get: ({ filterParams }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `group${paramsToQuery(filterParams)}`),
+});
+
+export const runSamplesQuery = selectorFamily<SampleResult[], {
+  runId: number;
+  filterParams?: {[name: string]: string}
+  queryTime: string;
+}>({
+  key: "runSamplesQuery",
+  get: ({ runId, filterParams }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `run/${runId}/sample${paramsToQuery(filterParams)}`),
 });
 
 
@@ -148,13 +168,6 @@ export const currentUser = selector<User | undefined>({
     return userId && get(userQuery(userId));
   },
 })
-
-export interface ServerHealth {
-  version?: string;
-  server?: boolean;
-  database?: boolean;
-  database_error?: string;
-}
 
 export const serverHealth = selector<ServerHealth | undefined>({
   key: "serverHealth",

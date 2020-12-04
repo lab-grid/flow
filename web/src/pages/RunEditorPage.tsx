@@ -7,7 +7,7 @@ import { Slate, Editable, withReact } from 'slate-react';
 import { RunBlockEditor } from '../components/RunBlockEditor';
 import { calculateRunStatus, humanizeRunName, Run, Section } from '../models/run';
 import { auth0State, errorsState } from '../state/atoms';
-import { runQuery, upsertRun, userQuery } from '../state/selectors';
+import { runQuery, runSamplesQuery, upsertRun, userQuery } from '../state/selectors';
 import { Block } from '../models/block';
 import { deserializeSlate, serializeSlate } from '../slate';
 import moment from 'moment';
@@ -15,6 +15,8 @@ import { CheckCircle, Share } from 'react-bootstrap-icons';
 import { SharingModal } from '../components/SharingModal';
 import { Element, Leaf, onHotkeyDown, Toolbar } from '../components/Slate';
 import { FetchError } from '../state/api';
+import { ResultsTable } from '../components/ResultsTable';
+import { exportSampleResultsToCSV } from '../models/sample-result';
 
 const initialSlateValue: Node[] = [
     {
@@ -172,6 +174,7 @@ export function RunEditorPage() {
     const { id } = useParams<RunEditorPageParams>();
     const run = useRecoilValue(runQuery({ runId: parseInt(id), queryTime: runTimestamp }));
     const [errors, setErrors] = useRecoilState(errorsState);
+    const samples = useRecoilValue(runSamplesQuery({ runId: parseInt(id), queryTime: runTimestamp }));
     const runUpsert = useRecoilCallback(({ snapshot }) => async (run: Run) => {
         setFormSaving(true);
         try {
@@ -229,6 +232,13 @@ export function RunEditorPage() {
         }
     }
 
+    const exportSamples = () => {
+        if (!samples) {
+            return;
+        }
+        exportSampleResultsToCSV(`export-sample-results-${moment().format()}`, samples, true);
+    };
+
     return <>
         <SharingModal
             show={showSharingModal}
@@ -274,6 +284,15 @@ export function RunEditorPage() {
                     syncSection={syncSection(i)}
                 />
             })}
+
+            <div className="row">
+                <small className="col-auto my-auto">Samples (<i><a href="/#" onClick={exportSamples}>Export to CSV</a></i>)</small>
+                <hr className="col my-auto" />
+                <small className="col-auto my-auto">
+                    {(samples && samples.length) || 0}
+                </small>
+            </div>
+            <ResultsTable results={samples || []} />
 
             <div className="row">
                 <ButtonToolbar className="col-auto">

@@ -3,6 +3,7 @@ import { Block } from "./block";
 import { Protocol, SectionDefinition } from "./protocol";
 import moment from 'moment';
 import { exportAsDownload, objectsToCSV } from "../utils";
+import { SampleResult } from "./sample-result";
 
 export type RunStatus = 'todo' | 'in-progress' | 'completed';
 
@@ -24,6 +25,8 @@ export interface Run extends Audited {
     status?: RunStatus;
 
     sections?: Section[];
+
+    sampleOverrides?: SampleResult[];
 
     protocol?: Protocol;
 }
