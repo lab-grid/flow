@@ -29,6 +29,7 @@ app.config['AUTH0_TOKEN_URL'] = os.environ.get('AUTH0_TOKEN_URL', '')
 app.config['CASBIN_MODEL'] = os.environ.get('CASBIN_MODEL', 'casbinmodel.conf')
 app.config['CASBIN_SQLALCHEMY_DATABASE_URI'] = os.environ.get('CASBIN_SQLALCHEMY_DATABASE_URI', app.config['SQLALCHEMY_DATABASE_URI'])
 app.config['RESTX_JSON'] = {'cls': JSONEncoder}  # Add support for serializing datetime/date
+app.config['SERVER_VERSION'] = os.environ.get('SERVER_VERSION', 'local')
 
 
 # API Documentation -----------------------------------------------------------

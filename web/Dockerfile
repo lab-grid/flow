@@ -1,5 +1,7 @@
 FROM node:14-alpine AS builder
 
+ARG REACT_APP_VERSION=local+container
+
 # For node-gyp.
 RUN apk update && apk add python make gcc g++
 

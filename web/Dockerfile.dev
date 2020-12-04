@@ -1,5 +1,7 @@
 FROM node:14-alpine AS builder
 
+ARG REACT_APP_VERSION=local+devcontainer
+
 # For node-gyp.
 RUN apk update && apk add python make gcc g++
 
@@ -9,5 +11,7 @@ COPY package.json package.json
 COPY package-lock.json package-lock.json
 RUN npm install
 COPY . .
+
+ENV REACT_APP_VERSION=$REACT_APP_VERSION
 
 CMD ["npm", "start"]

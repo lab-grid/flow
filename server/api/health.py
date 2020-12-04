@@ -1,12 +1,13 @@
 from flask_restx import Resource, fields, Namespace
 
-from server import db
+from server import app, db
 
 
 api = Namespace('server-health', description="Service health checks.", path='/')
 
 
 health_output = api.model('HealthOutput', {
+    'version': fields.String(),
     'server': fields.Boolean(),
     'database': fields.Boolean(),
     'database_error': fields.String()
@@ -18,6 +19,7 @@ class HealthResource(Resource):
     @api.doc(model=health_output)
     def get(self):
         status = {
+            'version': app.config['SERVER_VERSION'],
             'server': True,
             'database': True
         }

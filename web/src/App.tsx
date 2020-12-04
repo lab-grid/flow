@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react';
-import { Button, Form, InputGroup, Navbar, Toast } from 'react-bootstrap';
+import { Button, Form, InputGroup, Navbar, OverlayTrigger, Toast, Tooltip } from 'react-bootstrap';
+import { InfoCircleFill } from 'react-bootstrap-icons';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import { ErrorBoundary } from 'react-error-boundary';
 import { BrowserRouter, Route, Link, Switch } from 'react-router-dom';
@@ -13,6 +14,7 @@ import { ProtocolEditorPage } from './pages/ProtocolEditorPage';
 import { RunEditorPage } from './pages/RunEditorPage';
 import { SearchResultsPage } from './pages/SearchResultsPage';
 import { auth0State, errorsState } from './state/atoms';
+import { serverHealth } from './state/selectors';
 
 function ErrorFallback({ error, resetErrorBoundary }: {
   error: Error;
@@ -36,6 +38,7 @@ function ErrorFallback({ error, resetErrorBoundary }: {
 export default function App() {
   const { auth0Client, isAuthenticated } = useRecoilValue(auth0State);
   const { errors } = useRecoilValue(errorsState);
+  const serverInfo = useRecoilValue(serverHealth);
   if (!isAuthenticated) {
     switch (labflowOptions.authProvider) {
       case 'auth0':
@@ -58,8 +61,19 @@ export default function App() {
         <Navbar.Brand>
           <Link className="product-name" to="/">
             Flow by LabGrid
-            </Link>
+          </Link>
         </Navbar.Brand>
+        <OverlayTrigger
+          placement="right"
+          overlay={
+            <Tooltip id="app-version-tooltip">
+              <p>Webapp Version: {process.env.REACT_APP_VERSION}</p>
+              <p>Server Version: {(serverInfo && serverInfo.version) || <i>Unknown</i>}</p>
+            </Tooltip>
+          }
+        >
+          <InfoCircleFill />
+        </OverlayTrigger>
         <Form.Group className="my-auto mr-3 ml-auto">
           <InputGroup>
             <Typeahead

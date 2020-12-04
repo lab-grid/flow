@@ -48,6 +48,13 @@ export async function apiFetch(options: LabflowOptions, auth0ClientFn: () => Aut
             }
         case 'none':
             const response = await fetchWithoutAuth(method, `${options.apiURL}/${path}`, newBody);
+            if (!response.ok) {
+                throw new FetchError(
+                    `Request to ${options.apiURL}/${path} failed: ${response.status} ${response.statusText}`,
+                    response,
+                    await response.text(),
+                );
+            }
             return await response.json();
     }
 }

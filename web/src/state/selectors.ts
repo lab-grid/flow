@@ -3,7 +3,7 @@ import { labflowOptions } from "../config";
 import { Protocol } from "../models/protocol";
 import { Run } from "../models/run";
 import { auth0State } from "./atoms";
-import { apiFetch, apiGetOne } from "./api";
+import { apiFetch, apiGetOne, FetchError, fetchWithoutAuth } from "./api";
 import { User } from "../models/user";
 import { Policy } from "../models/policy";
 import { SearchResults } from "../models/search-results";
@@ -147,4 +147,26 @@ export const currentUser = selector<User | undefined>({
     const userId = get(auth0State).user.sub;
     return userId && get(userQuery(userId));
   },
+})
+
+export interface ServerHealth {
+  version?: string;
+  server?: boolean;
+  database?: boolean;
+  database_error?: string;
+}
+
+export const serverHealth = selector<ServerHealth | undefined>({
+  key: "serverHealth",
+  get: async () => {
+    const response = await fetchWithoutAuth("GET", `${labflowOptions.apiURL}/health`);
+    if (!response.ok) {
+        throw new FetchError(
+            `Request to ${labflowOptions.apiURL}/health failed: ${response.status} ${response.statusText}`,
+            response,
+            await response.text(),
+        );
+    }
+    return await response.json();
+  }
 })
