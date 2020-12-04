@@ -614,12 +614,6 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                         props.setBlock({ ...block, type: 'plate-sequencer', plateCount, plates });
                     }}
                 />
-                <ProtocolBlockNameEditor
-                    disabled={props.disabled}
-                    name={block.name}
-                    setName={name => props.setBlock({ ...block, type: 'start-timestamp', name })}
-                    deleteStep={props.deleteBlock}
-                />
                 <ProtocolBlockMarkersUploader
                     disabled={props.disabled}
                     plateMarkers={block.plateMarkers}
