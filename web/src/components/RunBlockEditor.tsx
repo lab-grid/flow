@@ -219,13 +219,14 @@ function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
                 plateRow,
                 plateCol,
             };
+            console.log('DEBUGGING UPLOADER:', row, result);
             results.push(result);
         }
         if (results.length === 0) {
             console.warn('Uploaded table contained no data', data, results);
             return;
         }
-        setResults(data);
+        setResults(results);
         setShowUploader(false);
     }
 
@@ -233,7 +234,7 @@ function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
         <TableUploadModal
             parseHeader={true}
             columns={{
-                'plateLabel': 'Plate_ID',
+                'plateLabel': 'PlateBarcode',
                 'plateIndex': 'Plate_384_Number',
                 'plateCell': 'Sample_Well',
                 'marker1': 'index',

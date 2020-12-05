@@ -248,8 +248,8 @@ def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None):
     sample_query = sample_subquery.alias('aggSample')
 
     result_plate_id = "(result::jsonb->'plateLabel')::text AS plate_id"
-    result_plate_row = "(result::jsonb->'plate_row')::int AS plate_row"
-    result_plate_col = "(result::jsonb->'plate_col')::int AS plate_col"
+    result_plate_row = "(result::jsonb->'plateRow')::int AS plate_row"
+    result_plate_col = "(result::jsonb->'plateCol')::int AS plate_col"
     result_plate_marker1 = "(result::jsonb->'marker1')::text AS marker1"
     result_plate_marker2 = "(result::jsonb->'marker2')::text AS marker2"
     result_classification = "(result::jsonb->'classification')::text AS result"

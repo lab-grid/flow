@@ -6,7 +6,7 @@ from functools import wraps
 
 from server import db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
-from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol, update_sample, get_samples
+from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol, update_sample, get_samples, run_to_sample
 
 from api.utils import change_allowed, success_output, add_owner, add_updator
 
@@ -245,7 +245,7 @@ class RunSamplesResource(Resource):
             run_to_sample(sample)
             for sample
             in get_samples(run_id=run_id).distinct()
-            if check_access(path=f"/run/{str(run.id)}", method="GET")
+            if check_access(path=f"/run/{str(run_id)}", method="GET")
         ]
 
 
