@@ -219,7 +219,6 @@ function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
                 plateRow,
                 plateCol,
             };
-            console.log('DEBUGGING UPLOADER:', row, result);
             results.push(result);
         }
         if (results.length === 0) {

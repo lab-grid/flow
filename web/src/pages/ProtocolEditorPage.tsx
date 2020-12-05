@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
-import { Button, Dropdown, Form, InputGroup, Spinner } from 'react-bootstrap';
+import { Button, Form, InputGroup, Spinner } from 'react-bootstrap';
 import { useHistory } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { useRecoilCallback, useRecoilState, useRecoilValue } from 'recoil';
 import { createEditor, Node } from 'slate';
 import { Slate, Editable, withReact } from 'slate-react';
-import { ProtocolBlockEditor } from '../components/ProtocolBlockEditor';
-import { BlockDefinition } from '../models/block-definition';
 import { Protocol, SectionDefinition } from '../models/protocol';
 import { auth0State, errorsState } from '../state/atoms';
 import { protocolQuery, upsertProtocol, upsertRun, userQuery } from '../state/selectors';
 import * as uuid from 'uuid';
-import { DragSourceMonitor, DropTargetMonitor, useDrag, useDrop, XYCoord } from 'react-dnd';
 import { CheckCircle, Share } from 'react-bootstrap-icons';
 import moment from 'moment';
 import { deserializeSlate, serializeSlate } from '../slate';
@@ -20,6 +17,8 @@ import { SharingModal } from '../components/SharingModal';
 import { Run, Section } from '../models/run';
 import { Element, Leaf, onHotkeyDown, Toolbar } from '../components/Slate';
 import { FetchError } from '../state/api';
+import { Draggable } from '../components/Draggable';
+import { ProtocolSectionEditor } from '../components/ProtocolSectionEditor';
 
 const initialSlateValue: Node[] = [
     {
@@ -29,218 +28,6 @@ const initialSlateValue: Node[] = [
         ],
     }
 ];
-
-interface DragItem {
-    type: 'protocol-block' | 'protocol-section';
-    index: number;
-}
-interface DragResult {
-    isDragging: boolean;
-}
-
-export function ProtocolDraggableBlock({ disabled, index, block, setBlock, moveBlock, deleteBlock }: {
-    disabled?: boolean;
-    index: number;
-    block?: BlockDefinition;
-    setBlock: (block?: BlockDefinition) => void;
-    moveBlock: (dragIndex: number, hoverIndex: number) => void;
-    deleteBlock: (blockId?: string) => void;
-}) {
-    const ref = React.useRef<HTMLDivElement>(null);
-    const [, drop] = useDrop({
-        accept: 'protocol-block',
-        hover(item: DragItem, monitor: DropTargetMonitor) {
-            if (!ref.current || item.index === index) {
-                return;
-            }
-
-            const hoverBoundingRect = ref.current.getBoundingClientRect();
-            const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-            const clientOffset = monitor.getClientOffset()
-            const hoverClientY = (clientOffset as XYCoord).y - hoverBoundingRect.top
-
-            if (item.index < index && hoverClientY < hoverMiddleY) {
-                // Dragging downwards
-                return
-            }
-            if (item.index > index && hoverClientY > hoverMiddleY) {
-                // Dragging upwards
-                return
-            }
-
-            // Time to actually perform the action
-            moveBlock(item.index, index)
-            item.index = index
-        },
-    });
-
-    const [{ isDragging }, drag] = useDrag<DragItem, unknown, DragResult>({
-        item: { type: 'protocol-block', index },
-        collect: (monitor: DragSourceMonitor) => ({ isDragging: monitor.isDragging() }),
-    });
-
-    const opacity = isDragging ? 0 : 1;
-    drag(drop(ref));
-    return (
-        <div ref={ref} style={{ opacity }} className="mt-5 mb-5">
-            <ProtocolBlockEditor disabled={disabled} index={index} block={block} setBlock={setBlock} deleteBlock={() => deleteBlock(block && block.id)} />
-        </div>
-    );
-}
-
-export function ProtocolDraggableSection({ disabled, index, section, setSection, moveSection, deleteSection }: {
-    disabled?: boolean;
-    index: number;
-    section?: SectionDefinition;
-    setSection: (section?: SectionDefinition) => void;
-    moveSection: (dragIndex: number, hoverIndex: number) => void;
-    deleteSection: (sectionId?: string) => void;
-}) {
-    const ref = React.useRef<HTMLDivElement>(null);
-    const [, drop] = useDrop({
-        accept: 'protocol-section',
-        hover(item: DragItem, monitor: DropTargetMonitor) {
-            if (!ref.current || item.index === index) {
-                return;
-            }
-
-            const hoverBoundingRect = ref.current.getBoundingClientRect();
-            const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-            const clientOffset = monitor.getClientOffset()
-            const hoverClientY = (clientOffset as XYCoord).y - hoverBoundingRect.top
-
-            if (item.index < index && hoverClientY < hoverMiddleY) {
-                // Dragging downwards
-                return
-            }
-            if (item.index > index && hoverClientY > hoverMiddleY) {
-                // Dragging upwards
-                return
-            }
-
-            // Time to actually perform the action
-            moveSection(item.index, index)
-            item.index = index
-        },
-    });
-
-    const [{ isDragging }, drag] = useDrag<DragItem, unknown, DragResult>({
-        item: { type: 'protocol-section', index },
-        collect: (monitor: DragSourceMonitor) => ({ isDragging: monitor.isDragging() }),
-    });
-
-    const opacity = isDragging ? 0 : 1;
-    drag(drop(ref));
-    return (
-        <div ref={ref} style={{ opacity }} className="mt-5 mb-5">
-            <ProtocolSectionEditor disabled={disabled} index={index} section={section} setSection={setSection} deleteSection={() => deleteSection(section && section.id)} />
-        </div>
-    );
-}
-
-export function ProtocolSectionEditor({disabled, index, section, setSection}: {
-    disabled?: boolean;
-    index: number;
-    section?: SectionDefinition;
-    setSection: (section?: SectionDefinition) => void;
-    deleteSection: (sectionId?: string) => void;
-}) {
-    const currentBlocks = React.useMemo(() => (section && section.blocks) || [], [section]);
-
-    const addBlock = (block?: BlockDefinition) => {
-        if (block) {
-            setSection({
-                ...section,
-                blocks: [...currentBlocks, block],
-            });
-        }
-    }
-    const updateBlock = (block?: BlockDefinition) => {
-        if (block) {
-            setSection({
-                ...section,
-                blocks: currentBlocks.map(b => (b.id === block.id) ? block : b)
-            });
-        }
-    };
-    const moveBlock = React.useCallback(
-        (dragIndex: number, hoverIndex: number) => {
-            const dragBlock = currentBlocks[dragIndex]
-            const newBlocks = [...currentBlocks];
-            newBlocks.splice(dragIndex, 1);
-            newBlocks.splice(hoverIndex, 0, dragBlock);
-            setSection({
-                ...section,
-                blocks: newBlocks
-            });
-        },
-        [currentBlocks, section, setSection],
-    )
-    const deleteBlock = (blockId?: string) => {
-        if (blockId) {
-            setSection({
-                ...section,
-                blocks: currentBlocks.filter(b => b.id !== blockId)
-            });
-        }
-    }
-
-    const updateSectionTitle = (sectionTitle?: string) => {
-      setSection({
-        ...section,
-        name: sectionTitle
-      });
-    }
-
-    return <>
-        <Form.Group>
-          <h3 className="row"><Form.Label>Protocol section {index + 1}:</Form.Label></h3>
-          <Form.Control
-            disabled={disabled}
-            type="text"
-            placeholder="Enter the title. A section has a signature block during a run."
-            value={(section && section.name) || ""}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSectionTitle((e.target as HTMLInputElement).value)}
-          />
-        </Form.Group>
-
-        {currentBlocks.map((block, index) => {
-            if (!block || !block.id) {
-                return undefined;
-            }
-            return <ProtocolDraggableBlock
-                key={block.id}
-                index={index}
-                moveBlock={moveBlock}
-                block={block}
-                setBlock={updateBlock}
-                deleteBlock={deleteBlock}
-                disabled={disabled}
-            />;
-        })}
-        
-
-        {
-            !disabled && <div className="row">
-                <Dropdown className="col-auto my-3 mx-auto">
-                    <Dropdown.Toggle variant="success" id="block-add">
-                        Add a new block
-                    </Dropdown.Toggle>
-
-                    <Dropdown.Menu>
-                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'text-question' })}>Text Question</Dropdown.Item>
-                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'options-question' })}>Options Question</Dropdown.Item>
-                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'plate-sampler' })}>Run Plate Sampler</Dropdown.Item>
-                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'plate-add-reagent' })}>Add Reagent to Plate</Dropdown.Item>
-                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'start-timestamp' })}>Start Timestamp</Dropdown.Item>
-                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'end-timestamp' })}>End Timestamp</Dropdown.Item>
-                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'plate-sequencer' })}>Run Plate Sequencer</Dropdown.Item>
-                    </Dropdown.Menu>
-                </Dropdown>
-            </div>
-        }
-    </>
-}
 
 export interface ProtocolEditorPageParams {
     id: string;
@@ -395,15 +182,9 @@ export function ProtocolEditorPage() {
                 if (!section || !section.id) {
                     return undefined;
                 }
-                return <ProtocolDraggableSection
-                    key={section.id}
-                    index={index}
-                    moveSection={moveSection}
-                    section={section}
-                    setSection={updateSection}
-                    deleteSection={deleteSection}
-                    disabled={isSigned || isWitnessed}
-                />;
+                return <Draggable key={section.id} type="protocol-section" index={index} move={moveSection}>
+                    <ProtocolSectionEditor disabled={isSigned || isWitnessed} index={index} section={section} setSection={updateSection} deleteSection={() => deleteSection(section && section.id)} />
+                </Draggable>
             })}
 
             {
