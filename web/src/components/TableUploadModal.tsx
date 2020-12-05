@@ -6,7 +6,7 @@ export function getHeadersFromData(data: tableRow[]): cellHeader[] {
     if (!data.length) {
         return [];
     }
-    return Array.isArray(data) ? Array.from({length: data.length},(v,k)=>k+1) : Object.keys(data[0]);
+    return Array.isArray(data[0]) ? Array.from({length: data[0].length},(v,k)=>k+1) : Object.keys(data[0]);
 }
 
 export interface TableUploadModalProps<T={[field: string]: any}> {
