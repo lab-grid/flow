@@ -418,13 +418,17 @@ function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPl
     </>;
 }
 
-function RunBlockPlateSequencerEditor({ disabled, definition, plateLabels, setPlateLabels, results, setResults }: {
+function RunBlockPlateSequencerEditor({ disabled, definition, plateLabels, setPlateLabels, results, setResults, timestampLabel, setTimestampLabel, startedOn, setStartedOn }: {
     disabled?: boolean;
     definition: PlateSequencerBlockDefinition;
     plateLabels?: string[];
     setPlateLabels: (plateLabels?: string[]) => void;
     results?: PlateResult[];
     setResults: (results?: PlateResult[]) => void;
+    timestampLabel?: string;
+    setTimestampLabel: (timestampLabel?: string) => void;
+    startedOn?: string;
+    setStartedOn: (startedOn?: string) => void;
 }) {
     const inputRows: JSX.Element[] = [];
     for (let i = 0; i < (definition.plateCount || 0); i++) {
@@ -433,7 +437,7 @@ function RunBlockPlateSequencerEditor({ disabled, definition, plateLabels, setPl
             <td>
                 <RunBlockPlateLabelEditor
                     disabled={disabled}
-                    wells={definition.plates && definition.plates[i] && definition.plates[i].size}
+                    wells={384}
                     name={definition.plates && definition.plates[i] && definition.plates[i].name}
                     label={plateLabels ? plateLabels[i] : undefined}
                     setLabel={label => {
@@ -460,6 +464,38 @@ function RunBlockPlateSequencerEditor({ disabled, definition, plateLabels, setPl
                 {inputRows}
             </tbody>
         </Table>
+        <Form.Group className="col">
+            <Form.Label>Timestamp ID/Label</Form.Label>
+            <Form.Control
+                disabled={disabled}
+                type="text"
+                placeholder="Enter a label or ID here..."
+                aria-placeholder="Enter a label or ID here..."
+                value={timestampLabel}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTimestampLabel((e.target as HTMLInputElement).value)}
+            />
+        </Form.Group>
+        <Form.Group className="col">
+            <Form.Label>Started On</Form.Label>
+            <InputGroup>
+                <DatePicker
+                    selected={startedOn ? moment(startedOn).toDate() : undefined}
+                    onChange={start => {
+                        if (start && (start instanceof Date)) {
+                            setStartedOn(moment(start).format());
+                        }
+                    }}
+                    placeholderText="Click here to set a date/time..."
+                    todayButton="Now"
+                    showTimeSelect
+                    dateFormat="Pp"
+                    customInput={<Form.Control />}
+                />
+                <InputGroup.Append>
+                    <Button variant="secondary" onClick={() => setStartedOn(moment().format())}>Now</Button>
+                </InputGroup.Append>
+            </InputGroup>
+        </Form.Group>
         <RunBlockSequencerResultsUploader
             disabled={disabled}
             results={results}
@@ -640,6 +676,10 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                     setPlateLabels={plateLabels => props.setBlock({ ...block, type: 'plate-sequencer', plateLabels })}
                     results={props.block && props.block.plateSequencingResults}
                     setResults={plateSequencingResults => props.setBlock({ ...block, type: 'plate-sequencer', plateSequencingResults })}
+                    timestampLabel={block.timestampLabel}
+                    setTimestampLabel={timestampLabel => props.setBlock({ ...block, type: 'plate-sequencer', timestampLabel })}
+                    startedOn={block.startedOn}
+                    setStartedOn={startedOn => props.setBlock({ ...block, type: 'plate-sequencer', startedOn })}
                 />
             );
         }
