@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
-import { Button, ButtonGroup, ButtonToolbar, Form, Spinner } from 'react-bootstrap';
+import { Form } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 import { useRecoilCallback, useRecoilState, useRecoilValue } from 'recoil';
-import { createEditor, Node } from 'slate';
-import { Slate, Editable, withReact } from 'slate-react';
+import { Node } from 'slate';
 import { calculateRunStatus, humanizeRunName, Run, Section } from '../models/run';
 import { auth0State, errorsState } from '../state/atoms';
 import { runQuery, runSamplesQuery, upsertRun } from '../state/selectors';
 import { deserializeSlate, serializeSlate } from '../slate';
 import moment from 'moment';
-import { CheckCircle, Share } from 'react-bootstrap-icons';
-import { SharingModal } from '../components/SharingModal';
-import { Element, Leaf, onHotkeyDown, Toolbar } from '../components/Slate';
 import { FetchError } from '../state/api';
 import { ResultsTable } from '../components/ResultsTable';
 import { exportSampleResultsToCSV } from '../models/sample-result';
 import { RunSectionEditor } from '../components/RunSectionEditor';
+import { SaveButton } from '../components/SaveButton';
+import { SavedIndicator } from '../components/SavedIndicator';
+import { SlateInput } from '../components/SlateInput';
+import { DocumentTitle } from '../components/DocumentTitle';
 
 const initialSlateValue: Node[] = [
     {
@@ -32,12 +32,10 @@ export interface RunEditorPageParams {
 
 export function RunEditorPage() {
     const [runTimestamp, setRunTimestamp] = useState("");
-    const [showSharingModal, setShowSharingModal] = useState(false);
     const [notes, setNotes] = useState<Node[] | null>(null);
     const [sections, setSections] = useState<Section[] | null>(null);
     const [formSaving, setFormSaving] = useState<boolean>(false);
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
-    const editor = React.useMemo(() => withReact(createEditor()), []);
     const { id } = useParams<RunEditorPageParams>();
     const run = useRecoilValue(runQuery({ runId: parseInt(id), queryTime: runTimestamp }));
     const [errors, setErrors] = useRecoilState(errorsState);
@@ -59,26 +57,30 @@ export function RunEditorPage() {
             setFormSaving(false);
             setFormSavedTime(moment().format());
             setRunTimestamp(moment().format());
-            // setNotes(null);
-            // setBlocks(null);
-            // setStatus(null);
+            setNotes(null);
+            setSections(null);
         }
     });
 
-    const currentNotes = ((notes !== null) ? notes : (run && run.notes && deserializeSlate(run.notes))) || initialSlateValue;
-    const currentSections = ((sections !== null) ? sections : (run && run.sections)) || [];
+    const currentNotes = React.useMemo(
+        () => ((notes !== null)
+            ? notes
+            : (run && run.notes && deserializeSlate(run.notes))) || initialSlateValue,
+        [notes, run],
+    );
+    const currentSections = React.useMemo(
+        () => ((sections !== null)
+            ? sections
+            : (run && run.sections)) || [],
+        [sections, run],
+    );
+    const isCompleted = (run && run.status) === 'completed';
 
     const updateSection = (section?: Section) => {
         if (section) {
             setSections(currentSections.map(b => (b.definition.id === section.definition.id) ? section : b));
         }
     };
-
-    const isCompleted = (run && run.status) === 'completed';
-
-    // Slate helpers.
-    const renderElement = React.useCallback(props => <Element {...props} />, []);
-    const renderLeaf = React.useCallback(props => <Leaf {...props} />, []);
 
     const syncRun = (override?: Run) => {
         const run: Run = Object.assign({
@@ -107,37 +109,22 @@ export function RunEditorPage() {
     };
 
     return <>
-        <SharingModal
-            show={showSharingModal}
-            setShow={show => setShowSharingModal(show || false)}
-            targetName="Run"
-            targetPath={`/run/${id}`}
-        />
         <Form className="mt-4 container">
-            <div className="row">
-                <h1 className="col">{humanizeRunName(run)}</h1>
-                <Button className="col-auto ml-3 my-auto" variant="secondary" onClick={() => setShowSharingModal(true)}>
-                    <Share /> Share
-                </Button>
-            </div>
+            <DocumentTitle
+                className="row"
+                targetName="Run"
+                targetPath={`/run/${id}`}
+                name={humanizeRunName(run)}
+            />
             <br></br>
             <Form.Group>
                 <Form.Label>Notes</Form.Label>
-                <Slate
-                    editor={editor}
+                <SlateInput
+                    disabled={isCompleted}
                     value={currentNotes}
+                    placeholder="Enter run notes here..."
                     onChange={setNotes}
-                >
-                    <Toolbar />
-                    <Editable
-                        renderElement={renderElement}
-                        renderLeaf={renderLeaf}
-                        placeholder="Enter run notes here..."
-                        onKeyDown={onHotkeyDown(editor)}
-                        spellCheck
-                        disabled={isCompleted}
-                    />
-                </Slate>
+                />
             </Form.Group>
             {currentSections.map((section, i) => {
                 if (!section || !section.definition || !section.definition.id) {
@@ -162,26 +149,15 @@ export function RunEditorPage() {
             <ResultsTable results={samples || []} />
 
             <div className="row">
-                <ButtonToolbar className="col-auto">
-                    <ButtonGroup>
-                        <Button
-                            className="col-auto"
-                            variant="primary"
-                            onClick={() => syncRun()}
-                            disabled={formSaving}
-                        >
-                            {
-                                formSaving
-                                    ? <><Spinner size="sm" animation="border" /> Saving...</>
-                                    : <>Save</>
-                            }
-                        </Button>
-                    </ButtonGroup>
-                </ButtonToolbar>
-                <div className="col"></div>
-                <div className="col-auto my-auto">
-                    {formSavedTime && <><CheckCircle /> Last saved on: {moment(formSavedTime).format('LLLL')}</>}
-                </div>
+                <SaveButton
+                    className="col-auto ml-3"
+                    onClick={() => syncRun()}
+                    disabled={formSaving}
+                />
+                <SavedIndicator
+                    className="col-auto mr-auto my-auto"
+                    savedOn={formSavedTime}
+                />
             </div>
         </Form>
     </>;

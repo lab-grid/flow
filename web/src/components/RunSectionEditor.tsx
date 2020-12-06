@@ -1,12 +1,12 @@
 import moment from 'moment';
 import React, { useState } from 'react';
-import { Form, InputGroup, Button } from 'react-bootstrap';
 import { useRecoilValue } from 'recoil';
 import { Block } from '../models/block';
 import { Section } from '../models/run';
 import { auth0State } from '../state/atoms';
 import { userQuery } from '../state/selectors';
 import { RunBlockEditor } from './RunBlockEditor';
+import { SignatureEditor } from './SignatureEditor';
 
 export function RunSectionEditor({disabled, index, section, setSection, syncSection}: {
     disabled?: boolean;
@@ -25,7 +25,7 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
 
     const isSigned = (section && !!section.signedOn) || false;
     const isWitnessed = (section && !!section.witnessedOn) || false;
-    
+
     const updateBlock = (block?: Block) => {
         if (block && section) {
             setSection({
@@ -37,7 +37,7 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
 
     return <>
         <h2 className="row">
-            <i>Section: {(section && section.definition.name) || 'Untitled Section'}</i>
+            <i>Section {index + 1}: {(section && section.definition.name) || 'Untitled Section'}</i>
         </h2>
 
         {currentBlocks.map(block => {
@@ -49,93 +49,65 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
                 key={block.definition.id}
                 block={block}
                 setBlock={updateBlock}
-                disabled={isSigned || isWitnessed}
+                disabled={isSigned || isWitnessed || disabled}
               />
             </div>
         })}
 
         <div className="row">
-            <Form.Group className="col-3 ml-auto">
-                <Form.Label>Signature</Form.Label>
-                <InputGroup>
-                    <Form.Control
-                        className="flow-signature"
-                        type="text"
-                        value={currentSignature}
-                        disabled={true}
-                    />
-                    <InputGroup.Append>
-                        <Button variant="secondary" onClick={() => {
-                            if (section) {
-                                if (isSigned || isWitnessed) {
-                                    const { signature, witness, signedOn, witnessedOn, ...newSection} = section;
-                                    syncSection(newSection);
-                                } else {
-                                    if (loggedInUser) {
-                                        syncSection({
-                                            ...section,
-                                            signature: loggedInUser.fullName,
-                                            signedOn: moment().format(),
-                                        });
-                                    }
-                                }
-                            }
-                        }}>
-                            {(isSigned || isWitnessed) ? 'Un-sign' : 'Sign'}
-                        </Button>
-                    </InputGroup.Append>
-                </InputGroup>
-            </Form.Group>
+            <SignatureEditor
+                className="col-4 ml-auto"
+                disabled={disabled}
+                label="Signature"
+                signature={currentSignature}
+                signedOn={section && section.signedOn}
+                onSign={() => {
+                    if (section && loggedInUser) {
+                        syncSection({
+                            ...section,
+                            signature: loggedInUser.fullName,
+                            signedOn: moment().format(),
+                        });
+                    }
+                }}
+                onUnsign={() => {
+                    if (section) {
+                        syncSection({
+                            ...section,
+                            signature: "",
+                            signedOn: undefined,
+                        });
+                    }
+                }}
+            />
         </div>
-
-        {
-            section && section.signedOn && <div className="row">
-                <div className="col-3 ml-auto">
-                    Signed On: {moment(section && section.signedOn).format('LLL')}
-                </div>
-            </div>
-        }
 
         <div className="row">
-            <Form.Group className="col-3 ml-auto">
-                <Form.Label>Witness</Form.Label>
-                <InputGroup>
-                    <Form.Control
-                        className="flow-signature"
-                        type="text"
-                        value={currentWitness}
-                        disabled={true}
-                    />
-                    <InputGroup.Append>
-                        <Button variant="secondary" disabled={!isSigned} onClick={() => {
-                            if (section) {
-                                if (isWitnessed) {
-                                    const { witness, witnessedOn, ...newSection} = section;
-                                    syncSection(newSection)
-                                } else {
-                                    if (loggedInUser) {
-                                        syncSection({
-                                            ...section,
-                                            witness: loggedInUser.fullName,
-                                            witnessedOn: moment().format(),
-                                        });
-                                    }
-                                }
-                            }
-                        }}>
-                            {isWitnessed ? 'Un-sign' : 'Sign'}
-                        </Button>
-                    </InputGroup.Append>
-                </InputGroup>
-            </Form.Group>
+            <SignatureEditor
+                className="col-4 ml-auto"
+                disabled={!isSigned || disabled}
+                label="Witness"
+                signature={currentWitness}
+                signedOn={section && section.witnessedOn}
+                onSign={() => {
+                    if (section && loggedInUser) {
+                        syncSection({
+                            ...section,
+                            witness: loggedInUser.fullName,
+                            witnessedOn: moment().format(),
+                        });
+                    }
+                }}
+                onUnsign={() => {
+                    if (section) {
+                        syncSection({
+                            ...section,
+                            witness: "",
+                            witnessedOn: undefined,
+                        });
+                    }
+                }}
+            />
         </div>
-
-        {
-            section && section.witnessedOn && <div className="row">
-                <div className="col-3 ml-auto">
-                    Witnessed On: {moment(section && section.witnessedOn).format('LLL')}
-                </div>
-            </div>
-        }
     </>
 }

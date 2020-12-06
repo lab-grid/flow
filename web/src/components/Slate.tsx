@@ -94,6 +94,7 @@ export function BlockButton({ format, children }: {
     const editor = useSlate();
     return (
         <Button
+            className="bg-light"
             variant="outline-secondary"
             active={isBlockActive(editor, format)}
             onMouseDown={event => {
@@ -113,6 +114,7 @@ export function MarkButton({ format, children }: {
     const editor = useSlate();
     return (
         <Button
+            className="bg-light"
             variant="outline-secondary"
             active={isMarkActive(editor, format)}
             onMouseDown={event => {
@@ -125,8 +127,10 @@ export function MarkButton({ format, children }: {
     );
 }
 
-export function Toolbar() {
-    return <div>
+export function Toolbar({className}: {
+    className?: string;
+}) {
+    return <div className={className}>
         <MarkButton format="bold">
             <TypeBold />
         </MarkButton>
@@ -176,6 +180,10 @@ export function Toolbar() {
 //     'mod+i': 'italic',
 //     'mod+u': 'underline',
 //     'mod+`': 'code',
+//     'mod+t': 'table',
+//     'mod+y': 'checkbox',
+//     'mod+g': 'dropdown',
+//     'mod+k': 'radio',
 // }
 
 export function onHotkeyDown(editor: Editor) {
@@ -195,3 +203,9 @@ export function onHotkeyDown(editor: Editor) {
         }
     };
 }
+
+// TODO: Add table plugin (with upload to pre-populate)
+//  - Make sure there's a way to collapse the table.
+// TODO: Add checkboxes plugin.
+// TODO: Add dropdown plugin.
+// TODO: Add switches plugin.

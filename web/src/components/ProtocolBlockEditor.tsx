@@ -206,7 +206,6 @@ function ProtocolBlockPlateEditor<T extends number = number>({ disabled, label, 
             as={InputGroup.Prepend}
             variant="outline-secondary"
             title={`${plateSize || (plateSizes && plateSizes[0])}-well`}
-            id="block-plate-size"
         >
             {(plateSizes || []).map(s => <Dropdown.Item key={s} onClick={() => setPlateSize(s)}>{s}-well</Dropdown.Item>)}
         </DropdownButton>
@@ -227,7 +226,6 @@ function ProtocolBlockPlatesEditor<T extends number = number>({ disabled, label,
     plates?: BlockPlate<T>[];
     setPlates: (plates?: BlockPlate<T>[]) => void;
 }) {
-    console.log(plates);
     return <Form.Group>
         {label && <Form.Label>{label}</Form.Label>}
         {plates && plates.map((plate, i) => {
