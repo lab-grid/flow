@@ -673,7 +673,7 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
         default:
             return (
                 <div>
-                    Unrecognized block type: {(props.block as any).type}
+                    Unrecognized block type: {(props.block as any).type} <Button variant="danger" onClick={props.deleteBlock}>Delete</Button>
                 </div>
             );
     }
