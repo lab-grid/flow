@@ -2,8 +2,8 @@ import moment from 'moment';
 import React, { useState } from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
 import { UpcScan } from 'react-bootstrap-icons';
-import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block, PlateCoordinate, PlateResult, StartTimestampBlock, EndTimestampBlock } from '../models/block';
-import { BlockPrimer, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block, PlateCoordinate, PlateResult, StartTimestampBlock, EndTimestampBlock, CalculatorBlock } from '../models/block';
+import { BlockPrimer, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { TableUploadModal } from './TableUploadModal';
 import { Calculator } from './Calculator';
 import DatePicker from "react-datepicker";
@@ -71,6 +71,30 @@ function RunBlockOptionsQuestion({ disabled, definition, answer, setAnswer }: {
                 </Form.Control>
             </Form.Group>
     }
+}
+
+function RunBlockCalculatorEditor({ disabled, definition, values, setValues }: {
+    disabled?: boolean;
+    definition: CalculatorBlockDefinition;
+    values?: {[variable: string]: number};
+    setValues: (values?: {[variable: string]: number}) => void;
+}) {
+    return <>
+        <h4 className="row">{definition.name}</h4>
+        {
+            definition.formula && <div className="row">
+                <div className="col-8 mx-auto my-4">
+                    <Calculator
+                        disabled={disabled}
+                        formula={definition.formula}
+                        variables={definition.variables}
+                        values={values}
+                        setValues={setValues}
+                    />
+                </div>
+            </div>
+        }
+    </>;
 }
 
 function cloneArrayToSize<T>(size: number, defaultValue: T, original?: T[]): T[] {
@@ -377,11 +401,13 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
     </>
 }
 
-function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPlateLabel, plateLot, setPlateLot }: {
+function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPlateLabel, plateLot, setPlateLot, values, setValues }: {
     disabled?: boolean;
     definition: PlateAddReagentBlockDefinition;
+    values?: {[variable: string]: number};
     plateLabel?: string;
     plateLot?: string;
+    setValues: (values?: {[variable: string]: number}) => void;
     setPlateLabel: (plateLabel?: string) => void;
     setPlateLot: (plateLot?: string) => void;
 }) {
@@ -394,6 +420,8 @@ function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPl
                         disabled={disabled}
                         formula={definition.formula}
                         variables={definition.variables}
+                        values={values}
+                        setValues={setValues}
                     />
                 </div>
             </div>
@@ -617,8 +645,6 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
         );
     }
 
-    console.log('props', props);
-
     switch (props.block.type) {
         case 'text-question': {
             const block: TextQuestionBlock = props.block;
@@ -639,6 +665,17 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                     definition={block.definition}
                     answer={block.answer}
                     setAnswer={answer => props.setBlock({ ...block, type: 'options-question', answer })}
+                />
+            );
+        }
+        case 'calculator': {
+            const block: CalculatorBlock = props.block;
+            return (
+                <RunBlockCalculatorEditor
+                    disabled={props.disabled}
+                    definition={block.definition}
+                    values={block.values}
+                    setValues={values => props.setBlock({ ...block, type: 'calculator', values })}
                 />
             );
         }
@@ -667,6 +704,8 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                     plateLot={block.plateLot}
                     setPlateLabel={plateLabel => props.setBlock({ ...block, type: 'plate-add-reagent', plateLabel })}
                     setPlateLot={plateLot => props.setBlock({ ...block, type: 'plate-add-reagent', plateLot })}
+                    values={block.values}
+                    setValues={values => props.setBlock({ ...block, type: 'plate-add-reagent', values })}
                 />
             );
         }

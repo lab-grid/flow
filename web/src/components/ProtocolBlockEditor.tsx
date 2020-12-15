@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup } from 'react-bootstrap';
 import { GripHorizontal, Trash } from 'react-bootstrap-icons';
-import { BlockDefinition, BlockOption, BlockPlate, BlockPlateMarkerEntry, BlockPrimer, BlockVariable, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { BlockDefinition, BlockOption, BlockPlate, BlockPlateMarkerEntry, BlockPrimer, BlockVariable, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
 import { trimEmpty } from '../utils';
 import * as uuid from 'uuid';
 import { TableUploadModal } from './TableUploadModal';
 
-export function humanizeBlockType(blockType: "text-question" | "options-question" | "plate-sampler" | "plate-add-reagent" | "start-timestamp" | "end-timestamp" | "plate-sequencer" | undefined): string {
+export function humanizeBlockType(blockType: "text-question" | "options-question" | "calculator" | "plate-sampler" | "plate-add-reagent" | "start-timestamp" | "end-timestamp" | "plate-sequencer" | undefined): string {
     switch (blockType) {
         case 'text-question':
             return 'Answer Question';
         case 'options-question':
             return 'Answer Multiple Choice Question';
+        case 'calculator':
+            return 'Calculation';
         case 'plate-sampler':
             return 'Run Plate Sampler';
         case 'plate-add-reagent':
@@ -29,7 +31,7 @@ export function humanizeBlockType(blockType: "text-question" | "options-question
 
 function BlockLabel({ index, blockType }: {
     index: number;
-    blockType?: "text-question" | "options-question" | "plate-sampler" | "plate-add-reagent" | "start-timestamp" | "end-timestamp" | "plate-sequencer";
+    blockType?: "text-question" | "options-question" | "calculator" | "plate-sampler" | "plate-add-reagent" | "start-timestamp" | "end-timestamp" | "plate-sequencer";
 }) {
     return <div className="mb-2">
         <GripHorizontal /> Step {index+1} - {humanizeBlockType(blockType)}
@@ -503,6 +505,25 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     disabled={props.disabled}
                     options={block.options}
                     setOptions={options => props.setBlock({ ...block, type: 'options-question', options })}
+                />
+            </>;
+        }
+        case 'calculator': {
+            const block: CalculatorBlockDefinition = props.block;
+            return <>
+                <BlockLabel index={props.index} blockType={block.type} />
+                <ProtocolBlockNameEditor
+                    disabled={props.disabled}
+                    name={block.name}
+                    setName={name => props.setBlock({ ...block, type: 'calculator', name })}
+                    deleteStep={props.deleteBlock}
+                />
+                <ProtocolBlockFormulaEditor
+                    disabled={props.disabled}
+                    formula={block.formula}
+                    setFormula={formula => props.setBlock({ ...block, type: 'calculator', formula })}
+                    variables={block.variables}
+                    setVariables={variables => props.setBlock({ ...block, type: 'calculator', variables })}
                 />
             </>;
         }

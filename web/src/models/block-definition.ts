@@ -1,4 +1,4 @@
-export type BlockDefinition = TextQuestionBlockDefinition | OptionsQuestionBlockDefinition | PlateSamplerBlockDefinition | PlateAddReagentBlockDefinition | PlateSequencerBlockDefinition | StartTimestampBlockDefinition | EndTimestampBlockDefinition;
+export type BlockDefinition = TextQuestionBlockDefinition | OptionsQuestionBlockDefinition | CalculatorBlockDefinition | PlateSamplerBlockDefinition | PlateAddReagentBlockDefinition | PlateSequencerBlockDefinition | StartTimestampBlockDefinition | EndTimestampBlockDefinition;
 
 export interface BlockOption {
     id: string;
@@ -44,6 +44,16 @@ export interface OptionsQuestionBlockDefinition {
     name?: string;
     optionType?: 'switch' | 'checkbox' | 'radio' | 'menu-item' | 'user';
     options?: BlockOption[];
+}
+
+export interface CalculatorBlockDefinition {
+    type: 'calculator';
+
+    id?: string;
+    name?: string;
+
+    formula?: string;
+    variables?: BlockVariable[];
 }
 
 export interface PlateSamplerBlockDefinition {

@@ -1,6 +1,6 @@
-import { EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition } from "./block-definition";
+import { CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition } from "./block-definition";
 
-export type Block = TextQuestionBlock | OptionsQuestionBlock | PlateSamplerBlock | PlateAddReagentBlock | PlateSequencerBlock | StartTimestampBlock | EndTimestampBlock;
+export type Block = TextQuestionBlock | OptionsQuestionBlock | CalculatorBlock | PlateSamplerBlock | PlateAddReagentBlock | PlateSequencerBlock | StartTimestampBlock | EndTimestampBlock;
 
 export interface TextQuestionBlock {
     type: 'text-question';
@@ -14,6 +14,13 @@ export interface OptionsQuestionBlock {
     definition: OptionsQuestionBlockDefinition;
 
     answer?: string;
+}
+
+export interface CalculatorBlock {
+    type: 'calculator';
+    definition: CalculatorBlockDefinition;
+
+    values?: {[variable: string]: number};
 }
 
 export interface PlateSamplerBlock {
@@ -34,6 +41,7 @@ export interface PlateAddReagentBlock {
     plateLot?: string;
 
     // TODO: Save input calculator variables.
+    values?: {[variable: string]: number};
 }
 
 export interface StartTimestampBlock {
