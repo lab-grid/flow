@@ -19,12 +19,14 @@ function ParametricSearch({
     filterRunId,
     filterProtocolId,
     filterCreator,
+    includeArchived,
     setFilterPlateId,
     setFilterSampleId,
     setFilterReagentId,
     setFilterRunId,
     setFilterProtocolId,
     setFilterCreator,
+    setIncludeArchived
 }: {
     users?: User[];
     filterPlateId: string;
@@ -33,12 +35,14 @@ function ParametricSearch({
     filterRunId: string;
     filterProtocolId: string;
     filterCreator: string;
+    includeArchived: boolean;
     setFilterPlateId: (plateId: string) => void;
     setFilterSampleId: (sampleId: string) => void;
     setFilterReagentId: (reagentId: string) => void;
     setFilterRunId: (runId: string) => void;
     setFilterProtocolId: (protocolId: string) => void;
     setFilterCreator: (creator: string) => void;
+    setIncludeArchived: (includeArchived: boolean) => void;
 }) {
     return <>
         <Form.Group className="col-2 mt-auto">
@@ -88,6 +92,14 @@ function ParametricSearch({
                 )}
             </Form.Control>
         </Form.Group>
+        <Form.Group className="col-2 mt-auto">
+            <Form.Check
+                type="checkbox"
+                label="Include Archived"
+                checked={includeArchived || false}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIncludeArchived((e.target as HTMLInputElement).checked)}
+            />
+        </Form.Group>
     </>
 }
 
@@ -100,6 +112,7 @@ export function SearchResultsPage() {
     const [filterRunId, setFilterRunId] = useState("");
     const [filterProtocolId, setFilterProtocolId] = useState("");
     const [filterCreator, setFilterCreator] = useState("");
+    const [includeArchived, setIncludeArchived] = useState(false);
 
     const users = useRecoilValue(usersQuery({ queryTime }));
     const results = useRecoilValue(searchQuery({ queryTime, filterParams }));
@@ -133,12 +146,14 @@ export function SearchResultsPage() {
                 filterRunId={filterRunId}
                 filterProtocolId={filterProtocolId}
                 filterCreator={filterCreator}
+                includeArchived={includeArchived}
                 setFilterPlateId={setFilterPlateId}
                 setFilterSampleId={setFilterSampleId}
                 setFilterReagentId={setFilterReagentId}
                 setFilterRunId={setFilterRunId}
                 setFilterProtocolId={setFilterProtocolId}
                 setFilterCreator={setFilterCreator}
+                setIncludeArchived={setIncludeArchived}
             />
             {/* TODO: General text search */}
             <Button
@@ -162,6 +177,9 @@ export function SearchResultsPage() {
                     }
                     if (filterCreator) {
                         params['creator'] = filterCreator;
+                    }
+                    if (includeArchived) {
+                        params['archived'] = 'true';
                     }
                     setFilterParams(params);
                     setQueryTime(moment().format());

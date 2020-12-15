@@ -49,11 +49,17 @@ reagent_param = {
 }
 
 
-def all_protocols():
-    return Protocol.query.filter(Protocol.is_deleted != True)
+def all_protocols(include_archived=False):
+    query = Protocol.query
+    if not include_archived:
+        query = query.filter(Protocol.is_deleted != True)
+    return query
 
-def all_runs():
-    return Run.query.filter(Run.is_deleted != True)
+def all_runs(include_archived=False):
+    query = Run.query
+    if not include_archived:
+        query = query.filter(Run.is_deleted != True)
+    return query
 
 def filter_by_plate_label(run_version_query, plate_id):
     return run_version_query.filter(
@@ -98,6 +104,7 @@ class ProtocolsResource(Resource):
         reagent = request.args.get('reagent')
         sample = request.args.get('sample')
         creator = request.args.get('creator')
+        archived = request.args.get('archived') == 'true' if request.args.get('archived') else False
 
         protocols_queries = []
         runs_queries = []
@@ -109,51 +116,51 @@ class ProtocolsResource(Resource):
                 all_protocols().filter(Protocol.id == protocol)
             )
             runs_queries.append(
-                all_runs()\
+                all_runs(archived)\
                     .join(ProtocolVersion, ProtocolVersion.id == Run.protocol_version_id)\
                     .filter(ProtocolVersion.protocol_id == protocol)
             )
         if run:
             protocols_queries.append(
-                all_protocols()\
+                all_protocols(archived)\
                     .join(ProtocolVersion, ProtocolVersion.protocol_id == Protocol.id)\
                     .join(Run, Run.protocol_version_id == ProtocolVersion.id)\
                     .filter(Run.id == run)
             )
             runs_queries.append(
-                all_runs().filter(Run.id == run)
+                all_runs(archived).filter(Run.id == run)
             )
         if plate:
-            run_version_query = all_runs()\
+            run_version_query = all_runs(archived)\
                 .join(RunVersion, RunVersion.id == Run.version_id)
             runs_subquery = filter_by_plate_label(run_version_query, plate)
             runs_queries.append(runs_subquery)
 
-            run_version_query = all_protocols()\
+            run_version_query = all_protocols(archived)\
                 .join(ProtocolVersion, ProtocolVersion.protocol_id == Protocol.id)\
                 .join(Run, Run.protocol_version_id == ProtocolVersion.id)\
                 .join(RunVersion, RunVersion.id == Run.version_id)
             protocols_subquery = filter_by_plate_label(run_version_query, plate)
             protocols_queries.append(protocols_subquery)
         if reagent:
-            run_version_query = all_runs()\
+            run_version_query = all_runs(archived)\
                 .join(RunVersion, RunVersion.id == Run.version_id)
             runs_subquery = filter_by_reagent_label(run_version_query, reagent)
             runs_queries.append(runs_subquery)
 
-            run_version_query = all_protocols()\
+            run_version_query = all_protocols(archived)\
                 .join(ProtocolVersion, ProtocolVersion.protocol_id == Protocol.id)\
                 .join(Run, Run.protocol_version_id == ProtocolVersion.id)\
                 .join(RunVersion, RunVersion.id == Run.version_id)
             protocols_subquery = filter_by_reagent_label(run_version_query, reagent)
             protocols_queries.append(protocols_subquery)
         if sample:
-            run_version_query = all_runs()\
+            run_version_query = all_runs(archived)\
                 .join(RunVersion, RunVersion.id == Run.version_id)
             runs_subquery = filter_by_sample_label(run_version_query, sample)
             runs_queries.append(runs_subquery)
 
-            run_version_query = all_protocols()\
+            run_version_query = all_protocols(archived)\
                 .join(ProtocolVersion, ProtocolVersion.protocol_id == Protocol.id)\
                 .join(Run, Run.protocol_version_id == ProtocolVersion.id)\
                 .join(RunVersion, RunVersion.id == Run.version_id)
@@ -161,12 +168,12 @@ class ProtocolsResource(Resource):
             protocols_queries.append(protocols_subquery)
         if creator:
             protocols_queries.append(
-                all_protocols()\
+                all_protocols(archived)\
                     .filter(Protocol.id == protocol)\
                     .filter(Protocol.created_by == creator)
             )
             runs_queries.append(
-                all_runs()\
+                all_runs(archived)\
                     .filter(Run.id == run)
                     .filter(Run.created_by == creator)
             )
@@ -177,7 +184,7 @@ class ProtocolsResource(Resource):
         if len(runs_queries) == 0:
             runs_queries.append(Run.query.filter(Run.is_deleted != True))
         if len(samples_queries) == 0:
-            samples_queries.append(get_samples(sample_id=sample, plate_id=plate, protocol_id=protocol, run_id=run, created_by=creator))
+            samples_queries.append(get_samples(sample_id=sample, plate_id=plate, protocol_id=protocol, run_id=run, created_by=creator, include_archived=archived))
 
         # Only return the intersection of all queries.
         protocols_query = reduce(lambda a, b: a.intersect(b), protocols_queries)

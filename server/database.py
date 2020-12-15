@@ -202,7 +202,7 @@ def update_sample(run, sample_id, override):
     run.current.data["sampleOverrides"][sample_id] = override
     flag_modified(run, "data")
 
-def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None, created_by=None):
+def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None, created_by=None, include_archived=False):
     sample_params = {}
     result_params = {}
     if sample_id is not None:
@@ -234,8 +234,8 @@ def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None, cr
         f"FROM public.run, public.run_version, public.protocol_version, {sample_plate_mappings}, {sample_samples}, {sample_sample} "
         "WHERE public.run_version.id = public.run.version_id "
         "AND public.protocol_version.id = public.run.protocol_version_id "
-        "AND sample::jsonb->'sampleLabel' IS NOT NULL "
-        "AND public.run.is_deleted IS NOT TRUE " +\
+        "AND sample::jsonb->'sampleLabel' IS NOT NULL " +\
+        ("AND public.run.is_deleted IS NOT TRUE " if not include_archived else "") +\
         ("AND (sample::jsonb->'sampleLabel')::text = :sample_id " if sample_id is not None else "") +\
         ("AND samples.key = :plate_id " if plate_id is not None else "") +\
         ("AND public.run.id = :run_id " if run_id is not None else "") +\
