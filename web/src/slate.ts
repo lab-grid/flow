@@ -24,3 +24,12 @@ export function deserializeSlateFromText(str: string): Node[] {
         }
     })
 }
+
+export const initialSlateValue: Node[] = [
+    {
+        type: 'paragraph',
+        children: [
+            { text: '' }
+        ],
+    }
+];

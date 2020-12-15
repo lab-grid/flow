@@ -9,7 +9,7 @@ export function DocumentTitleEditor({className, disabled, targetName, targetPath
     targetName: string;
     targetPath: string;
     name?: string;
-    setName: (name: string | null) => void;
+    setName: (name?: string) => void;
 }) {
     const [showSharingModal, setShowSharingModal] = useState(false);
 

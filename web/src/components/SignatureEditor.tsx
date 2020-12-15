@@ -18,7 +18,7 @@ export function SignatureEditor({className, disabled, label, signature, signedOn
             <Form.Control
                 className="flow-signature"
                 type="text"
-                value={signature}
+                value={signature || ""}
                 disabled={true}
             />
             <InputGroup.Append>
