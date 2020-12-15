@@ -100,53 +100,61 @@ export default function App() {
           <ProfileMenu />
         </Suspense>
       </Navbar>
-      <div className="container">
-        <Switch>
-          <Route path="/search">
-            <ErrorBoundary FallbackComponent={ErrorFallback}>
-              <Suspense fallback={<LoadingPage />}>
+      <Switch>
+        <Route path="/search">
+          <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <Suspense fallback={<LoadingPage />}>
+              <div className="container">
                 <SearchResultsPage />
-              </Suspense>
-            </ErrorBoundary>
-          </Route>
-          <Route path="/protocol/:id">
-            <ErrorBoundary FallbackComponent={ErrorFallback}>
-              <Suspense fallback={<LoadingPage />}>
-                <ProtocolEditorPage />
-              </Suspense>
-            </ErrorBoundary>
-          </Route>
-          <Route path="/run/:id">
-            <ErrorBoundary FallbackComponent={ErrorFallback}>
-              <Suspense fallback={<LoadingPage />}>
+              </div>
+            </Suspense>
+          </ErrorBoundary>
+        </Route>
+        <Route path="/protocol/:id">
+          <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <Suspense fallback={<LoadingPage />}>
+              <ProtocolEditorPage />
+            </Suspense>
+          </ErrorBoundary>
+        </Route>
+        <Route path="/run/:id">
+          <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <Suspense fallback={<LoadingPage />}>
+              <div className="container">
                 <RunEditorPage />
-              </Suspense>
-            </ErrorBoundary>
-          </Route>
-          <Route path="/profile">
-            <ErrorBoundary FallbackComponent={ErrorFallback}>
-              <Suspense fallback={<LoadingPage />}>
+              </div>
+            </Suspense>
+          </ErrorBoundary>
+        </Route>
+        <Route path="/profile">
+          <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <Suspense fallback={<LoadingPage />}>
+              <div className="container">
                 <ProfilePage />
-              </Suspense>
-            </ErrorBoundary>
-          </Route>
-          <Route path="/profile/:id">
-            <ErrorBoundary FallbackComponent={ErrorFallback}>
-              <Suspense fallback={<LoadingPage />}>
+              </div>
+            </Suspense>
+          </ErrorBoundary>
+        </Route>
+        <Route path="/profile/:id">
+          <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <Suspense fallback={<LoadingPage />}>
+              <div className="container">
                 <ProfilePage />
-              </Suspense>
-            </ErrorBoundary>
-          </Route>
-          <Route path="/">
-            <ErrorBoundary FallbackComponent={ErrorFallback}>
-              <Suspense fallback={<LoadingPage />}>
+              </div>
+            </Suspense>
+          </ErrorBoundary>
+        </Route>
+        <Route path="/">
+          <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <Suspense fallback={<LoadingPage />}>
+              <div className="container">
                 <HomePage />
-              </Suspense>
-            </ErrorBoundary>
-          </Route>
-          {/* <Redirect from="/profile" to={`/profile/${user.id}`} /> */}
-        </Switch>
-      </div>
+              </div>
+            </Suspense>
+          </ErrorBoundary>
+        </Route>
+        {/* <Redirect from="/profile" to={`/profile/${user.id}`} /> */}
+      </Switch>
       {errors && <div className="errors-overlay">
         {errors.map(error => <Toast>
           <Toast.Header>

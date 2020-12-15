@@ -19,7 +19,25 @@ import { SavedIndicator } from "./SavedIndicator";
 import { SignatureEditor } from "./SignatureEditor";
 import { SlateInput } from "./SlateInput";
 
-export function ProtocolEditor({ loggedInUser, protocol, setProtocol, protocolUpsert, runUpsert, onDelete }: {
+function newRun(protocol: Protocol): Run {
+    return {
+        status: 'todo',
+        sections: protocol.sections && protocol.sections.map(section => ({
+            definition: section,
+            blocks: section.blocks && section.blocks.map(definition => ({
+                type: definition.type,
+                definition,
+            } as Block)),
+        } as Section)),
+        protocol,
+    };
+}
+
+export function ProtocolEditor({ disableSharing, disableDelete, disablePrint, disableSave, loggedInUser, protocol, setProtocol, protocolUpsert, runUpsert, onDelete }: {
+    disableSharing?: boolean;
+    disableDelete?: boolean;
+    disablePrint?: boolean;
+    disableSave?: boolean;
     loggedInUser?: User;
     protocol?: Protocol;
     setProtocol: (protocol: Protocol) => void;
@@ -61,7 +79,7 @@ export function ProtocolEditor({ loggedInUser, protocol, setProtocol, protocolUp
             newSections.splice(hoverIndex, 0, dragSection);
             setProtocol({...protocol, sections: newSections});
         },
-        [protocol],
+        [protocol, setProtocol],
     );
     const deleteSection = (sectionId?: string) => {
         if (sectionId) {
@@ -96,21 +114,9 @@ export function ProtocolEditor({ loggedInUser, protocol, setProtocol, protocolUp
             return;
         }
 
-        // Create new run
-        const newRun: Run = {
-            status: 'todo',
-            sections: protocol.sections && protocol.sections.map(section => ({
-                definition: section,
-                blocks: section.blocks && section.blocks.map(definition => ({
-                    type: definition.type,
-                    definition,
-                } as Block)),
-            } as Section)),
-            protocol,
-        };
         setFormSaving(true);
         try {
-            const created = await runUpsert(newRun);
+            const created = await runUpsert(newRun(protocol));
             // Redirect to the new run page editor
             history.push(`/run/${created.id}`);
             return created;
@@ -131,6 +137,9 @@ export function ProtocolEditor({ loggedInUser, protocol, setProtocol, protocolUp
     return <>
         <Form>
             <DocumentTitleEditor
+                disableSharing={disableSharing}
+                disableDelete={disableDelete}
+                disablePrint={disablePrint}
                 className="bg-secondary pt-4 pb-3 px-2"
                 disabled={isSigned || isWitnessed}
                 targetName="Protocol"
@@ -171,7 +180,7 @@ export function ProtocolEditor({ loggedInUser, protocol, setProtocol, protocolUp
             )}
 
             {
-                !isSigned && !isWitnessed && <div className="row">
+                !isSigned && !isWitnessed && <div className="d-flex">
                     <Button
                         className="col-auto my-3 mx-auto"
                         onClick={() => addSection({ id: uuid.v4() })}
@@ -181,7 +190,7 @@ export function ProtocolEditor({ loggedInUser, protocol, setProtocol, protocolUp
                 </div>
             }
 
-            <div className="row">
+            <div className="d-flex">
                 <SignatureEditor
                     className="col-4 ml-auto"
                     label="Protocol Signature"
@@ -202,7 +211,7 @@ export function ProtocolEditor({ loggedInUser, protocol, setProtocol, protocolUp
                 />
             </div>
 
-            <div className="row">
+            <div className="d-flex">
                 <SignatureEditor
                     className="col-4 ml-auto"
                     disabled={!isSigned}
@@ -224,7 +233,7 @@ export function ProtocolEditor({ loggedInUser, protocol, setProtocol, protocolUp
                 />
             </div>
 
-            <div className="row">
+            {!disableSave && <div className="d-flex">
                 <Button
                     className="col-auto"
                     variant="success"
@@ -242,7 +251,7 @@ export function ProtocolEditor({ loggedInUser, protocol, setProtocol, protocolUp
                     className="col-auto mr-auto my-auto"
                     savedOn={formSavedTime}
                 />
-            </div>
+            </div>}
         </Form>
     </>;
 }

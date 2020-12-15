@@ -14,7 +14,11 @@ import { SaveButton } from "./SaveButton";
 import { SavedIndicator } from "./SavedIndicator";
 import { SlateInput } from "./SlateInput";
 
-export function RunEditor({samples, run, setRun, runUpsert, onDelete}: {
+export function RunEditor({disableSharing, disableDelete, disablePrint, disableSave, samples, run, setRun, runUpsert, onDelete}: {
+    disableSharing?: boolean;
+    disableDelete?: boolean;
+    disablePrint?: boolean;
+    disableSave?: boolean;
     samples: SampleResult[];
     run?: Run;
     setRun: (run: Run) => void;
@@ -79,6 +83,9 @@ export function RunEditor({samples, run, setRun, runUpsert, onDelete}: {
     return <>
         <Form className="mt-4 container">
             <DocumentTitle
+                disableSharing={disableSharing}
+                disableDelete={disableDelete}
+                disablePrint={disablePrint}
                 className="row"
                 targetName="Run"
                 targetPath={`/run/${run.id}`}
@@ -117,7 +124,7 @@ export function RunEditor({samples, run, setRun, runUpsert, onDelete}: {
             </div>
             <ResultsTable results={samples || []} />
 
-            <div className="row">
+            {!disableSave && <div className="row">
                 <SaveButton
                     className="col-auto ml-3"
                     onClick={() => syncRun()}
@@ -127,7 +134,7 @@ export function RunEditor({samples, run, setRun, runUpsert, onDelete}: {
                     className="col-auto mr-auto my-auto"
                     savedOn={formSavedTime}
                 />
-            </div>
+            </div>}
         </Form>
     </>;
 }

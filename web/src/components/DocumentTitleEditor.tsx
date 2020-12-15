@@ -3,7 +3,10 @@ import { Button, ButtonGroup, Col, Form } from "react-bootstrap";
 import { Printer, Share, Trash } from "react-bootstrap-icons";
 import { SharingModal } from "./SharingModal";
 
-export function DocumentTitleEditor({className, disabled, targetName, targetPath, name, setName, onDelete}: {
+export function DocumentTitleEditor({disableSharing, disableDelete, disablePrint, className, disabled, targetName, targetPath, name, setName, onDelete}: {
+    disableSharing?: boolean;
+    disableDelete?: boolean;
+    disablePrint?: boolean;
     className?: string;
     disabled?: boolean;
     targetName: string;
@@ -28,25 +31,25 @@ export function DocumentTitleEditor({className, disabled, targetName, targetPath
                     />
                 </Form.Group>
             </Col>
-            <Col xs="auto">
+            {(!disableSharing || !disableDelete || !disablePrint) && <Col xs="auto">
                 <ButtonGroup size="lg">
-                    <Button variant="secondary" onClick={() => setShowSharingModal(true)}>
+                    {!disableSharing && <Button variant="secondary" onClick={() => setShowSharingModal(true)}>
                         <Share /> Share
-                    </Button>
-                    <Button variant="secondary" onClick={onDelete}>
+                    </Button>}
+                    {!disableDelete && <Button variant="secondary" onClick={onDelete}>
                         <Trash />
-                    </Button>
-                    <Button variant="secondary" onClick={() => window.print()}>
+                    </Button>}
+                    {!disablePrint && <Button variant="secondary" onClick={() => window.print()}>
                         <Printer />
-                    </Button>
+                    </Button>}
                 </ButtonGroup>
-            </Col>
+            </Col>}
         </Form.Row>
-        <SharingModal
+        {!disableSharing && <SharingModal
             show={showSharingModal}
             setShow={show => setShowSharingModal(show || false)}
             targetName={targetName}
             targetPath={targetPath}
-        />
+        />}
     </>
 }

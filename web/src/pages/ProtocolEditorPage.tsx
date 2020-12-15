@@ -5,9 +5,24 @@ import { initialProtocol, Protocol } from '../models/protocol';
 import { auth0State } from '../state/atoms';
 import { deleteProtocol, protocolQuery, upsertProtocol, upsertRun, userQuery } from '../state/selectors';
 import moment from 'moment';
-import { initialRun, Run } from '../models/run';
+import { initialRun, Run, Section } from '../models/run';
 import { ProtocolEditor } from '../components/ProtocolEditor';
 import { RunEditor } from '../components/RunEditor';
+import { Block } from '../models/block';
+
+function newRun(protocol: Protocol): Run {
+    return {
+        status: 'todo',
+        sections: protocol.sections && protocol.sections.map(section => ({
+            definition: section,
+            blocks: section.blocks && section.blocks.map(definition => ({
+                type: definition.type,
+                definition,
+            } as Block)),
+        } as Section)),
+        protocol,
+    };
+}
 
 export interface ProtocolEditorPageParams {
     id: string;
@@ -17,12 +32,15 @@ export function ProtocolEditorPage() {
     const history = useHistory();
     const [protocolTimestamp, setProtocolTimestamp] = useState("");
     const [currentProtocol, setCurrentProtocol] = useState<Protocol>({});
-    const [currentRun, setCurrentRun] = useState<Run>({});
     const { id } = useParams<ProtocolEditorPageParams>();
     const [userTimestamp] = useState("");
     const { user: auth0User } = useRecoilValue(auth0State);
     const loggedInUser = useRecoilValue(userQuery({userId: auth0User && auth0User.sub, queryTime: userTimestamp}));
     const protocol = useRecoilValue(protocolQuery({ protocolId: parseInt(id), queryTime: protocolTimestamp }));
+    const [currentRun, setCurrentRun] = useState<Run>({
+        ...initialRun,
+        ...(protocol ? newRun(protocol) : {}),
+    });
 
     const protocolUpsert = useRecoilCallback(({ snapshot }) => async (protocol: Protocol) => {
         try {
@@ -51,21 +69,12 @@ export function ProtocolEditorPage() {
         setCurrentRun({
             ...initialRun,
             ...currentRun,
-            protocol,
+            ...newRun(protocol),
         });
     }
 
-    return <div className="d-md-flex h-md-100 align-items-center">
-        <div className="col-md-6 p-0 h-md-100">
-            <RunEditor
-                runUpsert={async run => run}
-                samples={[]}
-                setRun={setCurrentRun}
-                run={{...initialRun, ...currentRun}}
-                onDelete={() => {}}
-            />
-        </div>
-        <div className="col-md-6 p-0 h-md-100">
+    return <div className="d-flex px-3 pb-3">
+        <div className="col p-0">
             <ProtocolEditor
                 runUpsert={runUpsert}
                 protocolUpsert={protocolUpsert}
@@ -77,6 +86,19 @@ export function ProtocolEditorPage() {
                 }}
                 loggedInUser={loggedInUser}
                 onDelete={protocolArchive}
+            />
+        </div>
+        <div className="col p-0">
+            <RunEditor
+                runUpsert={async run => run}
+                samples={[]}
+                setRun={setCurrentRun}
+                run={{...initialRun, ...currentRun}}
+                onDelete={() => {}}
+                disableSharing={true}
+                disableDelete={true}
+                disablePrint={true}
+                disableSave={true}
             />
         </div>
     </div>;

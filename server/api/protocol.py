@@ -124,7 +124,7 @@ class ProtocolResource(Resource):
         db.session.commit()
         return versioned_row_to_dict(api, protocol, protocol.current)
 
-    @api.doc(security='token', model=success_output, params={'purge': purge_param)
+    @api.doc(security='token', model=success_output, params={'purge': purge_param})
     @requires_auth
     @requires_scope('write:protocols')
     @requires_access()

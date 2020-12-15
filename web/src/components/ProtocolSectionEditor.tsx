@@ -62,7 +62,7 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
 
     return <>
         <Form.Group>
-          <h3 className="row"><Form.Label>Protocol section {index + 1}:</Form.Label></h3>
+          <h3><Form.Label>Protocol section {index + 1}:</Form.Label></h3>
           <Form.Control
             disabled={disabled}
             type="text"
@@ -83,7 +83,7 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
         
 
         {
-            !disabled && <div className="row">
+            !disabled && <div className="d-flex">
                 <Dropdown className="col-auto my-3 mx-auto">
                     <Dropdown.Toggle variant="success" id="block-add">
                         Add a new block
