@@ -97,6 +97,7 @@ class ProtocolsResource(Resource):
         plate = request.args.get('plate')
         reagent = request.args.get('reagent')
         sample = request.args.get('sample')
+        creator = request.args.get('creator')
 
         protocols_queries = []
         runs_queries = []
@@ -158,6 +159,17 @@ class ProtocolsResource(Resource):
                 .join(RunVersion, RunVersion.id == Run.version_id)
             protocols_subquery = filter_by_sample_label(run_version_query, sample)
             protocols_queries.append(protocols_subquery)
+        if creator:
+            protocols_queries.append(
+                all_protocols()\
+                    .filter(Protocol.id == protocol)\
+                    .filter(Protocol.created_by == creator)
+            )
+            runs_queries.append(
+                all_runs()\
+                    .filter(Run.id == run)
+                    .filter(Run.created_by == creator)
+            )
 
         # Add a basic non-deleted items query if no filters were specified.
         if len(protocols_queries) == 0:
@@ -165,7 +177,7 @@ class ProtocolsResource(Resource):
         if len(runs_queries) == 0:
             runs_queries.append(Run.query.filter(Run.is_deleted != True))
         if len(samples_queries) == 0:
-            samples_queries.append(get_samples(sample_id=sample, plate_id=plate, protocol_id=protocol, run_id=run))
+            samples_queries.append(get_samples(sample_id=sample, plate_id=plate, protocol_id=protocol, run_id=run, created_by=creator))
 
         # Only return the intersection of all queries.
         protocols_query = reduce(lambda a, b: a.intersect(b), protocols_queries)

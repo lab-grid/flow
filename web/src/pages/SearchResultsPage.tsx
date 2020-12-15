@@ -3,35 +3,42 @@ import { Button, Form } from "react-bootstrap";
 import { useRecoilValue } from "recoil";
 import { ProtocolsTable } from "../components/ProtocolsTable";
 import { RunsTable } from "../components/RunsTable";
-import { searchQuery } from "../state/selectors";
+import { searchQuery, usersQuery } from "../state/selectors";
 import moment from 'moment';
 import { ResultsTable } from "../components/ResultsTable";
 import { exportProtocolsToCSV } from "../models/protocol";
 import { exportRunsToCSV } from "../models/run";
 import { exportSampleResultsToCSV } from "../models/sample-result";
+import { User } from "../models/user";
 
 function ParametricSearch({
+    users,
     filterPlateId,
     filterSampleId,
     filterReagentId,
     filterRunId,
     filterProtocolId,
+    filterCreator,
     setFilterPlateId,
     setFilterSampleId,
     setFilterReagentId,
     setFilterRunId,
     setFilterProtocolId,
+    setFilterCreator,
 }: {
+    users?: User[];
     filterPlateId: string;
     filterSampleId: string;
     filterReagentId: string;
     filterRunId: string;
     filterProtocolId: string;
+    filterCreator: string;
     setFilterPlateId: (plateId: string) => void;
     setFilterSampleId: (sampleId: string) => void;
     setFilterReagentId: (reagentId: string) => void;
     setFilterRunId: (runId: string) => void;
     setFilterProtocolId: (protocolId: string) => void;
+    setFilterCreator: (creator: string) => void;
 }) {
     return <>
         <Form.Group className="col-2 mt-auto">
@@ -69,6 +76,18 @@ function ParametricSearch({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterProtocolId((e.target as HTMLInputElement).value)}
             />
         </Form.Group>
+        <Form.Group className="col-2 mt-auto">
+            <Form.Label>Creator</Form.Label>
+            <Form.Control
+                as="select"
+                value={filterCreator || ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterCreator((e.target as HTMLInputElement).value)}
+            >
+                {users && users.map(user =>
+                    <option key={user.id} value={user.id}>{user.fullName || user.email || user.id}</option>
+                )}
+            </Form.Control>
+        </Form.Group>
     </>
 }
 
@@ -80,7 +99,9 @@ export function SearchResultsPage() {
     const [filterReagentId, setFilterReagentId] = useState("");
     const [filterRunId, setFilterRunId] = useState("");
     const [filterProtocolId, setFilterProtocolId] = useState("");
+    const [filterCreator, setFilterCreator] = useState("");
 
+    const users = useRecoilValue(usersQuery({ queryTime }));
     const results = useRecoilValue(searchQuery({ queryTime, filterParams }));
 
     const exportProtocols = () => {
@@ -105,16 +126,19 @@ export function SearchResultsPage() {
     return <div className="container mt-4">
         <Form className="row">
             <ParametricSearch
+                users={users}
                 filterPlateId={filterPlateId}
                 filterSampleId={filterSampleId}
                 filterReagentId={filterReagentId}
                 filterRunId={filterRunId}
                 filterProtocolId={filterProtocolId}
+                filterCreator={filterCreator}
                 setFilterPlateId={setFilterPlateId}
                 setFilterSampleId={setFilterSampleId}
                 setFilterReagentId={setFilterReagentId}
                 setFilterRunId={setFilterRunId}
                 setFilterProtocolId={setFilterProtocolId}
+                setFilterCreator={setFilterCreator}
             />
             {/* TODO: General text search */}
             <Button
@@ -135,6 +159,9 @@ export function SearchResultsPage() {
                     }
                     if (filterProtocolId) {
                         params['protocol'] = filterProtocolId;
+                    }
+                    if (filterCreator) {
+                        params['creator'] = filterCreator;
                     }
                     setFilterParams(params);
                     setQueryTime(moment().format());

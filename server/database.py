@@ -202,7 +202,7 @@ def update_sample(run, sample_id, override):
     run.current.data["sampleOverrides"][sample_id] = override
     flag_modified(run, "data")
 
-def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None):
+def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None, created_by=None):
     sample_params = {}
     result_params = {}
     if sample_id is not None:
@@ -216,6 +216,9 @@ def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None):
     if protocol_id is not None:
         sample_params["protocol_id"] = protocol_id
         result_params["protocol_id"] = protocol_id
+    if created_by is not None:
+        sample_params["created_by"] = created_by
+        result_params["created_by"] = created_by
 
     sample_plate_id = "samples.key AS plate_id"
     sample_plate_row = "(sample::jsonb->'row')::int AS plate_row"
@@ -236,7 +239,8 @@ def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None):
         ("AND (sample::jsonb->'sampleLabel')::text = :sample_id " if sample_id is not None else "") +\
         ("AND samples.key = :plate_id " if plate_id is not None else "") +\
         ("AND public.run.id = :run_id " if run_id is not None else "") +\
-        ("AND public.protocol_version.protocol_id = :protocol_id " if protocol_id is not None else "")
+        ("AND public.protocol_version.protocol_id = :protocol_id " if protocol_id is not None else "") +\
+        ("AND public.run.created_by = :created_by " if created_by is not None else "")
     ).bindparams(**sample_params).columns(
         plate_id=db.String,
         plate_row=db.Integer,
@@ -263,7 +267,8 @@ def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None):
         "AND public.protocol_version.id = public.run.protocol_version_id " +\
         ("AND (result::jsonb->'plateLabel')::text = :plate_id " if plate_id is not None else "") +\
         ("AND public.run.id = :run_id " if run_id is not None else "") +\
-        ("AND public.protocol_version.protocol_id = :protocol_id " if protocol_id is not None else "")
+        ("AND public.protocol_version.protocol_id = :protocol_id " if protocol_id is not None else "") +\
+        ("AND public.run.created_by = :created_by " if created_by is not None else "")
     ).bindparams(**result_params).columns(
         plate_id=db.String,
         plate_row=db.Integer,
