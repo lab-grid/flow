@@ -158,6 +158,19 @@ export function upsertUser(auth0ClientFn: () => Auth0Client | undefined, user: U
 
 
 // ----------------------------------------------------------------------------
+// Deletes --------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+export function deleteProtocol(auth0ClientFn: () => Auth0Client | undefined, id: number): Promise<void> {
+  return apiFetch(labflowOptions, auth0ClientFn, "DELETE", `protocol/${id}`);
+}
+
+export function deleteRun(auth0ClientFn: () => Auth0Client | undefined, id: number): Promise<void> {
+  return apiFetch(labflowOptions, auth0ClientFn, "DELETE", `run/${id}`);
+}
+
+
+// ----------------------------------------------------------------------------
 // Other ----------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 

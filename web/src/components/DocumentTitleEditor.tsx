@@ -1,15 +1,16 @@
 import React, { useState } from "react";
-import { Button, Col, Form } from "react-bootstrap";
-import { Share } from "react-bootstrap-icons";
+import { Button, ButtonGroup, Col, Form } from "react-bootstrap";
+import { Printer, Share, Trash } from "react-bootstrap-icons";
 import { SharingModal } from "./SharingModal";
 
-export function DocumentTitleEditor({className, disabled, targetName, targetPath, name, setName}: {
+export function DocumentTitleEditor({className, disabled, targetName, targetPath, name, setName, onDelete}: {
     className?: string;
     disabled?: boolean;
     targetName: string;
     targetPath: string;
     name?: string;
     setName: (name?: string) => void;
+    onDelete: () => void;
 }) {
     const [showSharingModal, setShowSharingModal] = useState(false);
 
@@ -28,13 +29,17 @@ export function DocumentTitleEditor({className, disabled, targetName, targetPath
                 </Form.Group>
             </Col>
             <Col xs="auto">
-                <Button
-                    variant="secondary"
-                    size="lg"
-                    onClick={() => setShowSharingModal(true)}
-                >
-                    <Share /> Share
-                </Button>
+                <ButtonGroup size="lg">
+                    <Button variant="secondary" onClick={() => setShowSharingModal(true)}>
+                        <Share /> Share
+                    </Button>
+                    <Button variant="secondary" onClick={onDelete}>
+                        <Trash />
+                    </Button>
+                    <Button variant="secondary" onClick={() => window.print()}>
+                        <Printer />
+                    </Button>
+                </ButtonGroup>
             </Col>
         </Form.Row>
         <SharingModal

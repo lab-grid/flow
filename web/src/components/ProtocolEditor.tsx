@@ -19,12 +19,13 @@ import { SavedIndicator } from "./SavedIndicator";
 import { SignatureEditor } from "./SignatureEditor";
 import { SlateInput } from "./SlateInput";
 
-export function ProtocolEditor({ loggedInUser, protocol, setProtocol, protocolUpsert, runUpsert }: {
+export function ProtocolEditor({ loggedInUser, protocol, setProtocol, protocolUpsert, runUpsert, onDelete }: {
     loggedInUser?: User;
     protocol?: Protocol;
     setProtocol: (protocol: Protocol) => void;
     protocolUpsert: (protocol: Protocol) => Promise<Protocol>;
     runUpsert: (run: Run) => Promise<Run>;
+    onDelete: () => void;
 }) {
     const history = useHistory();
     const [formSaving, setFormSaving] = useState<boolean>(false);
@@ -136,6 +137,7 @@ export function ProtocolEditor({ loggedInUser, protocol, setProtocol, protocolUp
                 targetPath={`/protocol/${protocol.id}`}
                 name={protocol.name}
                 setName={name => setProtocol({...protocol, name})}
+                onDelete={onDelete}
             />
             <Form.Row className="bg-secondary px-2">
                 <Col>

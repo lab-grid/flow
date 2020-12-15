@@ -32,6 +32,11 @@ version_id_param = {
     'in': 'query',
     'type': 'int'
 }
+purge_param = {
+    'description': 'Purge after deleting',
+    'in': 'query',
+    'type': 'boolean'
+}
 user_id_param = {
     'description': 'String identifier for a user account',
     'in': 'path',
@@ -154,16 +159,21 @@ class RunResource(Resource):
         db.session.commit()
         return run_to_dict(run, run.current)
 
-    @api.doc(security='token', model=success_output)
+    @api.doc(security='token', model=success_output, params={'purge': purge_param})
     @requires_auth
     @requires_scope('write:runs')
     @requires_access()
     def delete(self, run_id):
+        purge = request.args.get('purge') == 'true' if request.args.get('purge') else False
+
         run = Run.query.get(run_id)
         if not run or run.is_deleted:
             abort(404)
             return
-        run.is_deleted = True
+        if purge:
+            db.session.delete(run)
+        else:
+            run.is_deleted = True
         db.session.commit()
         delete_policy(path=f"/run/{str(run.id)}")
         return {

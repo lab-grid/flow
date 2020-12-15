@@ -14,11 +14,12 @@ import { SaveButton } from "./SaveButton";
 import { SavedIndicator } from "./SavedIndicator";
 import { SlateInput } from "./SlateInput";
 
-export function RunEditor({samples, run, setRun, runUpsert}: {
+export function RunEditor({samples, run, setRun, runUpsert, onDelete}: {
     samples: SampleResult[];
     run?: Run;
     setRun: (run: Run) => void;
     runUpsert: (run: Run) => Promise<Run>;
+    onDelete: () => void;
 }) {
     const [formSaving, setFormSaving] = useState<boolean>(false);
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
@@ -82,6 +83,7 @@ export function RunEditor({samples, run, setRun, runUpsert}: {
                 targetName="Run"
                 targetPath={`/run/${run.id}`}
                 name={humanizeRunName(run)}
+                onDelete={onDelete}
             />
             <br></br>
             <Form.Group>

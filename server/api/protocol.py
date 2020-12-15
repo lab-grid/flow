@@ -28,6 +28,11 @@ version_id_param = {
     'in': 'query',
     'type': 'int'
 }
+purge_param = {
+    'description': 'Purge after deleting',
+    'in': 'query',
+    'type': 'boolean'
+}
 user_id_param = {
     'description': 'String identifier for a user account',
     'in': 'path',
@@ -119,16 +124,21 @@ class ProtocolResource(Resource):
         db.session.commit()
         return versioned_row_to_dict(api, protocol, protocol.current)
 
-    @api.doc(security='token', model=success_output)
+    @api.doc(security='token', model=success_output, params={'purge': purge_param)
     @requires_auth
     @requires_scope('write:protocols')
     @requires_access()
     def delete(self, protocol_id):
+        purge = request.args.get('purge') == 'true' if request.args.get('purge') else False
+
         protocol = Protocol.query.get(protocol_id)
         if not protocol or protocol.is_deleted:
             abort(404)
             return
-        protocol.is_deleted = True
+        if purge:
+            db.session.delete(protocol)
+        else:
+            protocol.is_deleted = True
         db.session.commit()
         delete_policy(path=f"/protocol/{str(protocol.id)}")
         return {

@@ -1,35 +1,20 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue } from 'recoil';
-import { Protocol } from '../models/protocol';
+import { initialProtocol, Protocol } from '../models/protocol';
 import { auth0State } from '../state/atoms';
-import { protocolQuery, upsertProtocol, upsertRun, userQuery } from '../state/selectors';
+import { deleteProtocol, protocolQuery, upsertProtocol, upsertRun, userQuery } from '../state/selectors';
 import moment from 'moment';
-import { Run } from '../models/run';
+import { initialRun, Run } from '../models/run';
 import { ProtocolEditor } from '../components/ProtocolEditor';
-import { initialSlateValue, serializeSlate } from '../slate';
 import { RunEditor } from '../components/RunEditor';
-
-const initialRun: Run = {
-    sections: [],
-    sampleOverrides: [],
-    status: "todo",
-    notes: serializeSlate(initialSlateValue),
-};
-
-const initialProtocol: Protocol = {
-    name: '',
-    description: serializeSlate(initialSlateValue),
-    sections: [],
-    signature: '',
-    witness: '',
-};
 
 export interface ProtocolEditorPageParams {
     id: string;
 }
 
 export function ProtocolEditorPage() {
+    const history = useHistory();
     const [protocolTimestamp, setProtocolTimestamp] = useState("");
     const [currentProtocol, setCurrentProtocol] = useState<Protocol>({});
     const [currentRun, setCurrentRun] = useState<Run>({});
@@ -52,6 +37,14 @@ export function ProtocolEditorPage() {
         const { auth0Client } = await snapshot.getPromise(auth0State);
         return await upsertRun(() => auth0Client, run);
     });
+    const protocolArchive = useRecoilCallback(({ snapshot }) => async () => {
+        try {
+            const { auth0Client } = await snapshot.getPromise(auth0State);
+            return await deleteProtocol(() => auth0Client, parseInt(id));
+        } finally {
+            history.push(`/`);
+        }
+    });
 
     const updateProtocol = (protocol: Protocol) => {
         setCurrentProtocol(protocol);
@@ -69,6 +62,7 @@ export function ProtocolEditorPage() {
                 samples={[]}
                 setRun={setCurrentRun}
                 run={{...initialRun, ...currentRun}}
+                onDelete={() => {}}
             />
         </div>
         <div className="col-md-6 p-0 h-md-100">
@@ -82,6 +76,7 @@ export function ProtocolEditorPage() {
                     ...currentProtocol,
                 }}
                 loggedInUser={loggedInUser}
+                onDelete={protocolArchive}
             />
         </div>
     </div>;

@@ -2,6 +2,7 @@ import { Audited } from "./audited";
 import { BlockDefinition } from "./block-definition";
 import moment from 'moment';
 import { exportAsDownload, objectsToCSV } from "../utils";
+import { serializeSlate, initialSlateValue } from "../slate";
 
 export interface SectionDefinition {
     id?: string;
@@ -50,3 +51,11 @@ export function exportProtocolsToCSV(filename: string, protocols: Protocol[], he
     csv += objectsToCSV(protocols, protocolToRow);
     exportAsDownload(filename, csv);
 }
+
+export const initialProtocol: Protocol = {
+    name: '',
+    description: serializeSlate(initialSlateValue),
+    sections: [],
+    signature: '',
+    witness: '',
+};

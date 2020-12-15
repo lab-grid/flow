@@ -1,25 +1,18 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue } from 'recoil';
-import { Run } from '../models/run';
+import { initialRun, Run } from '../models/run';
 import { auth0State } from '../state/atoms';
-import { runQuery, runSamplesQuery, upsertRun } from '../state/selectors';
-import { initialSlateValue, serializeSlate } from '../slate';
+import { deleteRun, runQuery, runSamplesQuery, upsertRun } from '../state/selectors';
 import moment from 'moment';
 import { RunEditor } from '../components/RunEditor';
-
-const initialRun: Run = {
-    sections: [],
-    sampleOverrides: [],
-    status: "todo",
-    notes: serializeSlate(initialSlateValue),
-};
 
 export interface RunEditorPageParams {
     id: string;
 }
 
 export function RunEditorPage() {
+    const history = useHistory();
     const [runTimestamp, setRunTimestamp] = useState("");
     const [currentRun, setCurrentRun] = useState<Run>({});
     const { id } = useParams<RunEditorPageParams>();
@@ -34,11 +27,20 @@ export function RunEditorPage() {
             setCurrentRun({});
         }
     });
+    const runArchive = useRecoilCallback(({ snapshot }) => async () => {
+        try {
+            const { auth0Client } = await snapshot.getPromise(auth0State);
+            return await deleteRun(() => auth0Client, parseInt(id));
+        } finally {
+            history.push(`/`);
+        }
+    });
 
     return <RunEditor
         runUpsert={runUpsert}
         samples={samples}
         setRun={setCurrentRun}
         run={{...initialRun, ...run, ...currentRun}}
+        onDelete={runArchive}
     />
 }

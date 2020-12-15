@@ -4,6 +4,7 @@ import { Protocol, SectionDefinition } from "./protocol";
 import moment from 'moment';
 import { exportAsDownload, objectsToCSV } from "../utils";
 import { SampleResult } from "./sample-result";
+import { serializeSlate, initialSlateValue } from "../slate";
 
 export type RunStatus = 'todo' | 'in-progress' | 'completed';
 
@@ -85,3 +86,10 @@ export function calculateRunStatus(run?: Run): RunStatus {
 
     return 'todo';
 }
+
+export const initialRun: Run = {
+    sections: [],
+    sampleOverrides: [],
+    status: "todo",
+    notes: serializeSlate(initialSlateValue),
+};
