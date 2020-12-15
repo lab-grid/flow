@@ -316,9 +316,11 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
     setPlatePrimers: (platePrimers: { [label: string]: string }) => void;
 }) {
     const plates = mappings && Object.keys(mappings);
+    const plateIds = definition.plates && definition.plates.map(plate => plate.id);
     const inputRows: JSX.Element[] = [];
     for (let i = 0; i < (definition.plateCount || 0); i++) {
         const label = plates && plates[i];
+        const id = plateIds && plateIds[i];
         inputRows.push(<tr key={i}>
             <th>Input Plate {i}</th>
             <td>
@@ -333,11 +335,11 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
                         setMappings(newMappings);
                     }}
                     platePrimers={definition.platePrimers}
-                    platePrimer={platePrimers && label && platePrimers[label]}
+                    platePrimer={platePrimers && id && platePrimers[id]}
                     setPlatePrimer={primer => {
-                        if (label && primer) {
+                        if (id && primer) {
                             const newPrimers = { ...platePrimers };
-                            newPrimers[label] = primer;
+                            newPrimers[id] = primer;
                             setPlatePrimers(newPrimers);
                         }
                     }}
@@ -614,6 +616,8 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
             </div>
         );
     }
+
+    console.log('props', props);
 
     switch (props.block.type) {
         case 'text-question': {

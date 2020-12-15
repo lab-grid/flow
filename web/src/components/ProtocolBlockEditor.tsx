@@ -48,7 +48,7 @@ function ProtocolBlockNameEditor({ disabled, name, setName, deleteStep }: {
                 <FormControl
                     disabled={disabled}
                     placeholder="Enter a step name"
-                    value={name}
+                    value={name || ""}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
                 />
                 {!disabled &&
@@ -269,7 +269,7 @@ function ProtocolBlockPlateCountEditor({ disabled, label, plateCount, setPlateCo
             disabled={disabled}
             type="number"
             placeholder="Enter a number: 4"
-            value={plateCount}
+            value={plateCount || ""}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPlateCount(parseInt((e.target as HTMLInputElement).value))}
         />
     </Form.Group>
@@ -528,7 +528,13 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     label="Number of plates to transfer"
                     plateCount={block.plateCount}
                     setPlateCount={plateCount => {
-                        let plates = block.plates || Array(plateCount).map(() => ({id: uuid.v4()}));
+                        let plates = block.plates;
+                        if (!plates) {
+                            plates = Array(plateCount || 0);
+                            for (let i = 0; i < (plateCount || 0); i++) {
+                                plates[i] = {id: uuid.v4()};
+                            }
+                        }
                         if (plates.length !== plateCount) {
                             const newPlates: BlockPlate[] = [];
                             for (let i = 0; i < (plateCount || 0); i++) {
