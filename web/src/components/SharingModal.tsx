@@ -8,6 +8,7 @@ import { auth0State } from '../state/atoms';
 import { groupsQuery, policyQuery, usersQuery } from '../state/selectors';
 import { PoliciesTable } from './PoliciesTable';
 import moment from 'moment';
+import { useModalTracking } from '../analytics';
 
 export interface SharingModalProps {
     targetName: string;
@@ -18,6 +19,7 @@ export interface SharingModalProps {
 }
 
 export function SharingModal(props: SharingModalProps) {
+    useModalTracking("share");
     const [policiesTimestamp, setPoliciesTimestamp] = useState("");
     const [usersTimestamp] = useState("");
     const [groupsTimestamp] = useState("");

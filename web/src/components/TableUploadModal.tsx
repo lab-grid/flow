@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Form, Modal } from 'react-bootstrap';
 import * as xlsx from 'xlsx';
+import { useModalTracking } from '../analytics';
 
 export function getHeadersFromData(data: tableRow[]): cellHeader[] {
     if (!data.length) {
@@ -24,6 +25,7 @@ type arrayRow = cellData[]
 type tableRow = objectRow | arrayRow;
 
 export function TableUploadModal<T={[field: string]: any}>(props: TableUploadModalProps<T>) {
+    useModalTracking("table-upload");
     const [sheetName, setSheetName] = useState("");
     const [sheetNames, setSheetNames] = useState<string[]>([]);
     const [headers, setHeaders] = useState<cellHeader[]>([]);

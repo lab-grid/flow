@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom';
+import { BrowserRouter } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './custom-theme.scss'
 import './index.css'
@@ -17,7 +18,9 @@ ReactDOM.render(
     <RecoilRoot>
       <DndProvider backend={HTML5Backend}>
         <Suspense fallback={<LoadingPage />}>
-          <App />
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
         </Suspense>
       </DndProvider>
     </RecoilRoot>

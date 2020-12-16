@@ -15,6 +15,9 @@ export interface LabflowOptions {
 
     // Auth type options
     auth0Options?: Auth0ClientOptions;
+
+    // Google Analytics config
+    measurementId?: string;
 }
 
 export const labflowOptions: LabflowOptions = {
@@ -22,6 +25,8 @@ export const labflowOptions: LabflowOptions = {
     apiURL: parseAPIURL(),
 
     auth0Options: parseAuth0Options(),
+
+    measurementId: parseMeasurementId(),
 };
 
 
@@ -92,4 +97,8 @@ function parseAuth0Options(): Auth0ClientOptions | undefined {
         default:
             return;
     }
+}
+
+function parseMeasurementId(): string | undefined {
+    return getEnv('REACT_APP_MEASUREMENT_ID');
 }
