@@ -149,9 +149,7 @@ export default function App() {
       <Route path="/">
         <ErrorBoundary FallbackComponent={ErrorFallback}>
           <Suspense fallback={<LoadingPage />}>
-            <div className="container">
-              <HomePage />
-            </div>
+            <HomePage />
           </Suspense>
         </ErrorBoundary>
       </Route>
