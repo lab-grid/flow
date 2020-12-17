@@ -33,12 +33,15 @@ function newRun(protocol: Protocol): Run {
     };
 }
 
-export function ProtocolEditor({ disableSharing, disableDelete, disablePrint, disableSave, loggedInUser, protocol, setProtocol, protocolUpsert, runUpsert, onDelete }: {
+export function ProtocolEditor({ disableSharing, disableDelete, disablePrint, disableSave, disablePreview, loggedInUser, showPreview, setShowPreview, protocol, setProtocol, protocolUpsert, runUpsert, onDelete }: {
     disableSharing?: boolean;
     disableDelete?: boolean;
     disablePrint?: boolean;
     disableSave?: boolean;
+    disablePreview?: boolean;
     loggedInUser?: User;
+    showPreview?: boolean;
+    setShowPreview: (showPreview: boolean) => void;
     protocol?: Protocol;
     setProtocol: (protocol: Protocol) => void;
     protocolUpsert: (protocol: Protocol) => Promise<Protocol>;
@@ -140,10 +143,13 @@ export function ProtocolEditor({ disableSharing, disableDelete, disablePrint, di
                 disableSharing={disableSharing}
                 disableDelete={disableDelete}
                 disablePrint={disablePrint}
+                disablePreview={disablePreview}
                 className="bg-secondary pt-4 pb-3 px-2"
                 disabled={isSigned || isWitnessed}
                 targetName="Protocol"
                 targetPath={`/protocol/${protocol.id}`}
+                showPreview={showPreview}
+                setShowPreview={setShowPreview}
                 name={protocol.name}
                 setName={name => setProtocol({...protocol, name})}
                 onDelete={onDelete}

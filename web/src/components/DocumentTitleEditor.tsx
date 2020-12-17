@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 import { Button, ButtonGroup, Col, Form } from "react-bootstrap";
-import { Printer, Share, Trash } from "react-bootstrap-icons";
+import { ChevronLeft, ChevronRight, Printer, Share, Trash } from "react-bootstrap-icons";
 import { SharingModal } from "./SharingModal";
 
-export function DocumentTitleEditor({disableSharing, disableDelete, disablePrint, className, disabled, targetName, targetPath, name, setName, onDelete}: {
+export function DocumentTitleEditor({disableSharing, disableDelete, disablePrint, disablePreview, className, disabled, targetName, targetPath, showPreview, setShowPreview, name, setName, onDelete}: {
     disableSharing?: boolean;
     disableDelete?: boolean;
     disablePrint?: boolean;
+    disablePreview?: boolean;
     className?: string;
     disabled?: boolean;
     targetName: string;
     targetPath: string;
+    showPreview?: boolean;
+    setShowPreview: (showPreview: boolean) => void;
     name?: string;
     setName: (name?: string) => void;
     onDelete: () => void;
@@ -41,6 +44,9 @@ export function DocumentTitleEditor({disableSharing, disableDelete, disablePrint
                     </Button>}
                     {!disablePrint && <Button variant="secondary" onClick={() => window.print()}>
                         <Printer />
+                    </Button>}
+                    {!disablePreview && <Button variant="secondary" onClick={() => setShowPreview(!showPreview)} active={showPreview}>
+                        {showPreview ? <ChevronLeft /> : <ChevronRight />}
                     </Button>}
                 </ButtonGroup>
             </Col>}

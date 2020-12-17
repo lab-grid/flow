@@ -117,8 +117,13 @@ interface plateLabelRow {
 
 const cellRegex = /^([A-Za-z]+)([0-9]+)$/;
 
-function cellToRowCol(cell: string): [number, number] {
-    const [, rowRaw, columnRaw] = cell.match(cellRegex);
+function cellToRowCol(cell: string): [number, number] | undefined {
+    const cellMatchGroups = cell.match(cellRegex);
+    if (!cellMatchGroups) {
+        return undefined;
+    }
+
+    const [, rowRaw, columnRaw] = cellMatchGroups;
 
     let row = 0;
     const lowerRowRaw = rowRaw.toLocaleLowerCase();
@@ -134,7 +139,12 @@ function cellToCoordinate(cell?: string): PlateCoordinate {
         return {};
     }
 
-    const [row, col] = cellToRowCol(cell);
+    const coordinates = cellToRowCol(cell);
+    if (!coordinates) {
+        return {};
+    }
+
+    const [row, col] = coordinates;
     return { row, col };
 }
 
@@ -237,13 +247,17 @@ function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
                 console.warn('Found a row without a cell!', row);
                 return;
             }
-            const [plateRow, plateCol] = cellToRowCol(plateCell);
-            const result: PlateResult = {
-                ...withoutCell,
-                plateRow,
-                plateCol,
-            };
-            results.push(result);
+            const coordinates = cellToRowCol(plateCell);
+            if (coordinates) {
+                const [plateRow, plateCol] = coordinates;
+                results.push({
+                    ...withoutCell,
+                    plateRow,
+                    plateCol,
+                });
+            } else {
+                results.push(withoutCell);
+            }
         }
         if (results.length === 0) {
             console.warn('Uploaded table contained no data', data, results);
@@ -340,7 +354,7 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
     setPlatePrimers: (platePrimers: { [label: string]: string }) => void;
 }) {
     const plates = mappings && Object.keys(mappings);
-    const plateIds = definition.plates && definition.plates.map(plate => plate.id);
+    const plateIds = definition.plates && definition.plates.filter(plate => !!plate).map(plate => plate.id);
     const inputRows: JSX.Element[] = [];
     for (let i = 0; i < (definition.plateCount || 0); i++) {
         const label = plates && plates[i];

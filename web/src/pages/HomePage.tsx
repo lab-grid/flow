@@ -12,9 +12,9 @@ import { protocolsQuery, runsQuery, upsertProtocol, upsertRun } from '../state/s
 import moment from 'moment';
 import { LoadingPage } from '../components/LoadingPage';
 import { FetchError } from '../state/api';
-import ReactGridLayout, { WidthProvider } from 'react-grid-layout';
+import { Responsive, WidthProvider } from 'react-grid-layout';
 
-const GridLayout = WidthProvider(ReactGridLayout);
+const GridLayout = WidthProvider(Responsive);
 
 export function HomePage() {
     const [runsTimestamp, setRunsTimestamp] = React.useState("");
@@ -85,7 +85,7 @@ export function HomePage() {
         </div>
         <GridLayout
             className="d-flex"
-            cols={24}
+            cols={{lg: 24, md: 12, sm: 12, xs: 12, xxs: 12 }}
             rowHeight={30}
             isDraggable={editDashboard}
         >

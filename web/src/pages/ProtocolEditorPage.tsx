@@ -32,6 +32,7 @@ export function ProtocolEditorPage() {
     const history = useHistory();
     const [protocolTimestamp, setProtocolTimestamp] = useState("");
     const [currentProtocol, setCurrentProtocol] = useState<Protocol>({});
+    const [showPreview, setShowPreview] = useState(false);
     const { id } = useParams<ProtocolEditorPageParams>();
     const [userTimestamp] = useState("");
     const { user: auth0User } = useRecoilValue(auth0State);
@@ -73,33 +74,44 @@ export function ProtocolEditorPage() {
         });
     }
 
-    return <div className="d-flex px-3 pb-3">
-        <div className="col p-0">
-            <ProtocolEditor
-                runUpsert={runUpsert}
-                protocolUpsert={protocolUpsert}
-                setProtocol={updateProtocol}
-                protocol={{
-                    ...initialProtocol,
-                    ...protocol,
-                    ...currentProtocol,
-                }}
-                loggedInUser={loggedInUser}
-                onDelete={protocolArchive}
-            />
-        </div>
-        <div className="col p-0">
-            <RunEditor
-                runUpsert={async run => run}
-                samples={[]}
-                setRun={setCurrentRun}
-                run={{...initialRun, ...currentRun}}
-                onDelete={() => {}}
-                disableSharing={true}
-                disableDelete={true}
-                disablePrint={true}
-                disableSave={true}
-            />
-        </div>
+    const protocolCol = <div className="col p-0">
+        <ProtocolEditor
+            runUpsert={runUpsert}
+            protocolUpsert={protocolUpsert}
+            setProtocol={updateProtocol}
+            protocol={{
+                ...initialProtocol,
+                ...protocol,
+                ...currentProtocol,
+            }}
+            showPreview={showPreview}
+            setShowPreview={setShowPreview}
+            loggedInUser={loggedInUser}
+            onDelete={protocolArchive}
+        />
     </div>;
+    const runCol = <div className="col p-0">
+        <RunEditor
+            runUpsert={async run => run}
+            samples={[]}
+            setRun={setCurrentRun}
+            run={{...initialRun, ...currentRun}}
+            onDelete={() => {}}
+            disableSharing={true}
+            disableDelete={true}
+            disablePrint={true}
+            disableSave={true}
+        />
+    </div>;
+
+    if (showPreview) {
+        return <div className="d-flex px-3 pb-3">
+            {protocolCol}
+            {runCol}
+        </div>
+    } else {
+        return <div className="container pb-3">
+            {protocolCol}
+        </div>
+    }
 }
