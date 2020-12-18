@@ -283,6 +283,7 @@ def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None, cr
     
     signers = db.func.jsonb_path_query(RunVersion.data, '$.sections[*].signature')
     witnesses = db.func.jsonb_path_query(RunVersion.data, '$.sections[*].witness')
+    completed_on = RunVersion.data['sections'][-1]['signedOn']
 
     return db.session\
         .query(
@@ -297,6 +298,7 @@ def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None, cr
             result_query.c.result,
             signers,
             witnesses,
+            completed_on,
         )\
         .filter(and_(
             sample_query.c.plate_row == result_query.c.plate_row,
@@ -319,4 +321,5 @@ def run_to_sample(sample):
         'result': sample[8],
         'signers': sample[9],
         'witnesses': sample[10],
+        'completedOn': sample[11],
     }
