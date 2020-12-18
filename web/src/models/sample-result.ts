@@ -16,6 +16,8 @@ export interface SampleResult {
     signers?: string[];
     witnesses?: string[];
 
+    plateLots?: string[];
+
     completedOn?: string;
 }
 
@@ -40,9 +42,10 @@ export function sampleResultToRow(sampleResult: SampleResult): string {
         sampleResult.runID || '',
         sampleResult.protocolID || '',
         sampleResult.result || '',
-        sampleResult.signers || [],
-        sampleResult.witnesses || [],
+        (sampleResult.signers || []).join('; '),
+        (sampleResult.witnesses || []).join('; '),
         (sampleResult.completedOn && moment(sampleResult.completedOn).format("LLLL")) || '',
+        (sampleResult.plateLots || []).join('; '),
     ].join(',');
 }
 

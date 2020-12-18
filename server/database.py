@@ -281,10 +281,6 @@ def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None, cr
     )
     result_query = result_subquery.alias('aggResult')
     
-    signers = db.func.jsonb_path_query(RunVersion.data, '$.sections[*].signature')
-    witnesses = db.func.jsonb_path_query(RunVersion.data, '$.sections[*].witness')
-    completed_on = RunVersion.data['sections'][-1]['signedOn']
-
     return db.session\
         .query(
             sample_query.c.protocol_id,
@@ -296,9 +292,7 @@ def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None, cr
             result_query.c.marker1,
             result_query.c.marker2,
             result_query.c.result,
-            signers,
-            witnesses,
-            completed_on,
+            RunVersion.data,
         )\
         .filter(and_(
             sample_query.c.plate_row == result_query.c.plate_row,
@@ -309,6 +303,11 @@ def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None, cr
         ))
 
 def run_to_sample(sample):
+    run_data = sample[9]
+    signers = {section['signature'] for section in run_data['sections'] if 'signature' in section and section['signature']}
+    witnesses = {section['witness'] for section in run_data['sections'] if 'witness' in section and section['witness']}
+    plate_lots = {block['plateLot'] for section in run_data['sections'] if 'blocks' in section and section['blocks'] for block in section['blocks'] if 'plateLot' in block and block['plateLot']}
+
     return {
         'protocolID': sample[0],
         'runID': sample[1],
@@ -319,7 +318,8 @@ def run_to_sample(sample):
         'marker1': sample[6],
         'marker2': sample[7],
         'result': sample[8],
-        'signers': sample[9],
-        'witnesses': sample[10],
-        'completedOn': sample[11],
+        'signers': [s for s in signers],
+        'witnesses': [w for w in witnesses],
+        'completedOn': run_data['sections'][-1]['signedOn'],
+        'plateLots': [l for l in plate_lots],
     }

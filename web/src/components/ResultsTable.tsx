@@ -34,8 +34,12 @@ export function ResultsTable({ className, results }: ResultsProps) {
                         <td>
                             {result.protocolID && <Link to={`/protocol/${result.protocolID}`}>{result.protocolID}</Link>}
                         </td>
-                        <td>{result.signers}</td>
-                        <td>{result.witnesses}</td>
+                        <td>
+                            {result.signers && (result.signers.length === 1 ? result.signers[0] : <ul>{result.signers.map(signer => <li>{signer}</li>)}</ul>)}
+                        </td>
+                        <td>
+                            {result.witnesses && (result.witnesses.length === 1 ? result.witnesses[0] : <ul>{result.witnesses.map(witness => <li>{witness}</li>)}</ul>)}
+                        </td>
                         <td>{result.completedOn && moment(result.completedOn).format("LLLL")}</td>
                     </tr>
                 ))}
