@@ -13,8 +13,8 @@ export interface SampleResult {
     plateRow?: number;
     plateCol?: number;
 
-    signer?: string;
-    witness?: string;
+    signers?: string[];
+    witnesses?: string[];
 
     completedOn?: string;
 }
@@ -29,8 +29,8 @@ export const sampleResultHeader = [
     'runID',
     'protocolID',
     'result',
-    'signer',
-    'witness',
+    'signers',
+    'witnesses',
     'completedOn',
 ].join(',');
 
@@ -40,8 +40,8 @@ export function sampleResultToRow(sampleResult: SampleResult): string {
         sampleResult.runID || '',
         sampleResult.protocolID || '',
         sampleResult.result || '',
-        sampleResult.signer || '',
-        sampleResult.witness || '',
+        sampleResult.signers || [],
+        sampleResult.witnesses || [],
         (sampleResult.completedOn && moment(sampleResult.completedOn).format("LLLL")) || '',
     ].join(',');
 }

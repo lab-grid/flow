@@ -34,8 +34,8 @@ export function ResultsTable({ className, results }: ResultsProps) {
                         <td>
                             {result.protocolID && <Link to={`/protocol/${result.protocolID}`}>{result.protocolID}</Link>}
                         </td>
-                        <td>{result.signer}</td>
-                        <td>{result.witness}</td>
+                        <td>{result.signers}</td>
+                        <td>{result.witnesses}</td>
                         <td>{result.completedOn && moment(result.completedOn).format("LLLL")}</td>
                     </tr>
                 ))}

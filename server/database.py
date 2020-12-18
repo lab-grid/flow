@@ -280,6 +280,9 @@ def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None, cr
         protocol_id=db.Integer,
     )
     result_query = result_subquery.alias('aggResult')
+    
+    signers = db.func.jsonb_path_query(RunVersion.data, '$.sections[*].signature')
+    witnesses = db.func.jsonb_path_query(RunVersion.data, '$.sections[*].witness')
 
     return db.session\
         .query(
@@ -292,11 +295,15 @@ def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None, cr
             result_query.c.marker1,
             result_query.c.marker2,
             result_query.c.result,
+            signers,
+            witnesses,
         )\
         .filter(and_(
             sample_query.c.plate_row == result_query.c.plate_row,
             sample_query.c.plate_col == result_query.c.plate_col,
             sample_query.c.plate_id == result_query.c.plate_id,
+            Run.id == sample_query.c.run_id,
+            Run.version_id == RunVersion.id,
         ))
 
 def run_to_sample(sample):
@@ -310,4 +317,6 @@ def run_to_sample(sample):
         'marker1': sample[6],
         'marker2': sample[7],
         'result': sample[8],
+        'signers': sample[9],
+        'witnesses': sample[10],
     }
