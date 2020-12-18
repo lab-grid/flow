@@ -5,12 +5,13 @@ import { Link } from "react-router-dom";
 import { SampleResult } from "../models/sample-result";
 
 export interface ResultsProps {
+    className?: string;
     results: SampleResult[];
 }
 
-export function ResultsTable({ results }: ResultsProps) {
+export function ResultsTable({ className, results }: ResultsProps) {
     return (
-        <Table striped bordered hover>
+        <Table className={className} striped bordered hover>
             <thead>
                 <tr>
                     <th>Sample ID</th>
@@ -24,7 +25,7 @@ export function ResultsTable({ results }: ResultsProps) {
             </thead>
             <tbody>
                 {results.map(result => (
-                    <tr key={`${result.protocolID}-${result.runID}-${result.sampleID}`}>
+                    <tr key={`${result.protocolID}-${result.runID}-${result.sampleID}-${result.marker1}-${result.marker2}`}>
                         <td>{result.sampleID || <i>Unknown</i>}</td>
                         <td>{result.result || <i>Unknown</i>}</td>
                         <td>

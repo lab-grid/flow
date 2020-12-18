@@ -5,10 +5,11 @@ import { Link } from "react-router-dom";
 import { Protocol } from "../models/protocol";
 
 export interface ProtocolsProps {
+    className?: string;
     protocols: Protocol[];
 }
 
-export function ProtocolsTable({ protocols }: ProtocolsProps) {
+export function ProtocolsTable({ className, protocols }: ProtocolsProps) {
     return (
         <Table striped bordered hover>
             <thead>

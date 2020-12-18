@@ -5,12 +5,13 @@ import { Link } from "react-router-dom";
 import { humanizeRunName, Run } from "../models/run";
 
 export interface RunsProps {
+    className?: string;
     runs: Run[];
 }
 
-export function RunsTable({ runs }: RunsProps) {
+export function RunsTable({ className, runs }: RunsProps) {
     return (
-        <Table striped bordered hover>
+        <Table className={className} striped bordered hover>
             <thead>
                 <tr>
                     <th>ID</th>

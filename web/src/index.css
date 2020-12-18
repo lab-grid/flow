@@ -39,6 +39,12 @@ code {
 }
 
 
+.auto-scroll {
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+
 .errors-overlay {
   position: fixed;
   bottom: 0;

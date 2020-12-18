@@ -16,6 +16,7 @@ import { SearchResultsPage } from './pages/SearchResultsPage';
 import { auth0State, errorsState } from './state/atoms';
 import { serverHealth } from './state/selectors';
 import { useGoogleAnalytics, usePageTracking } from './analytics';
+import { DashboardPage } from './pages/DashboardPage';
 
 function ErrorFallback({ error, resetErrorBoundary }: {
   error: Error;
@@ -143,6 +144,13 @@ export default function App() {
             <div className="container">
               <ProfilePage />
             </div>
+          </Suspense>
+        </ErrorBoundary>
+      </Route>
+      <Route path="/dashboard">
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<LoadingPage />}>
+            <DashboardPage />
           </Suspense>
         </ErrorBoundary>
       </Route>

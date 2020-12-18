@@ -375,6 +375,7 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
                     platePrimers={definition.platePrimers}
                     platePrimer={platePrimers && id && platePrimers[id]}
                     setPlatePrimer={primer => {
+                        console.log("setPlatePrimer:", id, primer, platePrimers, mappings, definition);
                         if (id && primer) {
                             const newPrimers = { ...platePrimers };
                             newPrimers[id] = primer;

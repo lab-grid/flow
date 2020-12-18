@@ -5,12 +5,13 @@ import { ChevronUp, ChevronDown } from "react-bootstrap-icons";
 import { Link } from "react-router-dom";
 import { Protocol } from "../models/protocol";
 
-export function ProtocolCard({protocol}: {
+export function ProtocolCard({className, protocol}: {
+    className?: string;
     protocol: Protocol;
 }) {
     const [showDetails, setShowDetails] = useState(false);
 
-    return <Card>
+    return <Card className={className}>
         <Card.Header>
             <span className="col my-auto">
                 <Link to={`/protocol/${protocol.id}`}>{protocol.id}</Link> - <b>{protocol.name}</b>

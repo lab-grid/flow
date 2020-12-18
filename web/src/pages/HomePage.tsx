@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Button, Dropdown, Form } from 'react-bootstrap';
+import { Button, Dropdown } from 'react-bootstrap';
 import { useHistory } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue, useRecoilState } from 'recoil';
 import { ProtocolsTable } from '../components/ProtocolsTable';
@@ -12,14 +12,10 @@ import { protocolsQuery, runsQuery, upsertProtocol, upsertRun } from '../state/s
 import moment from 'moment';
 import { LoadingPage } from '../components/LoadingPage';
 import { FetchError } from '../state/api';
-import { Responsive, WidthProvider } from 'react-grid-layout';
-
-const GridLayout = WidthProvider(Responsive);
 
 export function HomePage() {
     const [runsTimestamp, setRunsTimestamp] = React.useState("");
     const [protocolsTimestamp, setProtocolsTimestamp] = React.useState("");
-    const [editDashboard, setEditDashboard] = React.useState(false);
     const history = useHistory();
     const protocols = useRecoilValue(protocolsQuery({ queryTime: protocolsTimestamp }));
     const runs = useRecoilValue(runsQuery({ queryTime: runsTimestamp }));
@@ -72,63 +68,42 @@ export function HomePage() {
         setProtocolsTimestamp(moment().format());
     }
 
-    return <>
-        <div className="d-flex mt-4 mr-4">
-            <Form.Check
-                className="ml-auto"
-                type="switch"
-                id="edit-dashboard"
-                label="Edit"
-                checked={editDashboard}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditDashboard((e.target as HTMLInputElement).checked)}
-            />
+    return <div className="container">
+        <div className="row mt-4">
+            <Suspense fallback={<LoadingPage />}>
+                <ProtocolsTable protocols={protocols} />
+            </Suspense>
         </div>
-        <GridLayout
-            className="d-flex"
-            cols={{lg: 24, md: 12, sm: 12, xs: 12, xxs: 12 }}
-            rowHeight={30}
-            isDraggable={editDashboard}
-        >
-            <div key="protocols-table" data-grid={{x: 0, y: 0, w: 12, h: 16}} className="px-4">
-                <div className="row mt-4">
-                    <Suspense fallback={<LoadingPage />}>
-                        <ProtocolsTable protocols={protocols} />
-                    </Suspense>
-                </div>
-                <div className="row">
-                    <div className="col text-center">
-                        <Button className="mr-3" variant="primary" onClick={refresh}>Refresh</Button>
-                        <Button variant="success" onClick={createProtocol}>Create Protocol</Button>
-                    </div>
-                </div>
+        <div className="row">
+            <div className="col text-center">
+                <Button className="mr-3" variant="primary" onClick={refresh}>Refresh</Button>
+                <Button variant="success" onClick={createProtocol}>Create Protocol</Button>
             </div>
-            <div key="runs-table" data-grid={{x: 12, y: 0, w: 12, h: 16}} className="px-4">
-                <div className="row mt-4">
-                    <Suspense fallback={<LoadingPage />}>
-                        <RunsTable runs={runs} />
-                    </Suspense>
-                </div>
-                <div className="row">
-                    <div className="col text-center">
-                        <Button className="mr-3" variant="primary" onClick={refresh}>Refresh</Button>
-                        <Dropdown className="d-inline">
-                            <Dropdown.Toggle variant="success">Create Run</Dropdown.Toggle>
-                            <Dropdown.Menu>
-                                {
-                                    protocols.map(protocol =>
-                                        <Dropdown.Item key={protocol.id} onClick={createRun(protocol)}>
-                                            {protocol.name || <i>Untitled Protocol</i>}
-                                        </Dropdown.Item>
-                                    )
-                                }
-                                {
-                                    !protocols.length && <Dropdown.Item disabled={true}>No protocols found!</Dropdown.Item>
-                                }
-                            </Dropdown.Menu>
-                        </Dropdown>
-                    </div>
-                </div>
+        </div>
+        <div className="row mt-4">
+            <Suspense fallback={<LoadingPage />}>
+                <RunsTable runs={runs} />
+            </Suspense>
+        </div>
+        <div className="row">
+            <div className="col text-center">
+                <Button className="mr-3" variant="primary" onClick={refresh}>Refresh</Button>
+                <Dropdown className="d-inline">
+                    <Dropdown.Toggle variant="success">Create Run</Dropdown.Toggle>
+                    <Dropdown.Menu>
+                        {
+                            protocols.map(protocol =>
+                                <Dropdown.Item key={protocol.id} onClick={createRun(protocol)}>
+                                    {protocol.name || <i>Untitled Protocol</i>}
+                                </Dropdown.Item>
+                            )
+                        }
+                        {
+                            !protocols.length && <Dropdown.Item disabled={true}>No protocols found!</Dropdown.Item>
+                        }
+                    </Dropdown.Menu>
+                </Dropdown>
             </div>
-        </GridLayout>
-    </>;
+        </div>
+    </div>;
 }

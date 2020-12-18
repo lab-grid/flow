@@ -16,12 +16,13 @@ function runStatusToVariant(status: RunStatus): string {
     }
 }
 
-export function RunCard({run}: {
+export function RunCard({className, run}: {
+    className?: string;
     run: Run;
 }) {
     const [showDetails, setShowDetails] = useState(false);
 
-    return <Card bg={run.status && runStatusToVariant(run.status)}>
+    return <Card className={className} bg={run.status && runStatusToVariant(run.status)}>
         <Card.Header>
             <span className="col my-auto">
                 <Link to={`/run/${run.id}`}>{run.id}</Link> - (Protocol: <b>{run.protocol}</b>)
