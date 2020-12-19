@@ -77,7 +77,7 @@ export function RunEditor({disableSharing, disableDelete, disablePrint, disableS
         if (!samples) {
             return;
         }
-        exportSampleResultsToCSV(`export-sample-results-${moment().format()}`, samples, true);
+        exportSampleResultsToCSV(`export-sample-results-${moment().format()}.csv`, samples, true);
     };
 
     return <>

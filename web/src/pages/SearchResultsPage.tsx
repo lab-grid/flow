@@ -121,19 +121,19 @@ export function SearchResultsPage() {
         if (!results.protocols) {
             return;
         }
-        exportProtocolsToCSV(`export-protocols-${moment().format()}`, results.protocols, true);
+        exportProtocolsToCSV(`export-protocols-${moment().format()}.csv`, results.protocols, true);
     };
     const exportRuns = () => {
         if (!results.runs) {
             return;
         }
-        exportRunsToCSV(`export-runs-${moment().format()}`, results.runs, true);
+        exportRunsToCSV(`export-runs-${moment().format()}.csv`, results.runs, true);
     };
     const exportSamples = () => {
         if (!results.samples) {
             return;
         }
-        exportSampleResultsToCSV(`export-sample-results-${moment().format()}`, results.samples, true);
+        exportSampleResultsToCSV(`export-sample-results-${moment().format()}.csv`, results.samples, true);
     };
 
     return <div className="container mt-4">

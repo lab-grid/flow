@@ -81,6 +81,7 @@ export interface EndPlateSequencerBlock {
     type: 'end-plate-sequencer';
     definition: EndPlateSequencerBlockDefinition;
 
+    attachment?: string;
     plateSequencingResults?: PlateResult[];
     timestampLabel?: string;
     endedOn?: string;

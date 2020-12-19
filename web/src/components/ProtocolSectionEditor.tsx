@@ -96,7 +96,8 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
                         <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'plate-add-reagent' })}>Add Reagent to Plate</Dropdown.Item>
                         <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'start-timestamp' })}>Start Timestamp</Dropdown.Item>
                         <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'end-timestamp' })}>End Timestamp</Dropdown.Item>
-                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'plate-sequencer' })}>Run Plate Sequencer</Dropdown.Item>
+                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'start-plate-sequencer' })}>Start Plate Sequencer</Dropdown.Item>
+                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'end-plate-sequencer' })}>End Plate Sequencer</Dropdown.Item>
                     </Dropdown.Menu>
                 </Dropdown>
             </div>
