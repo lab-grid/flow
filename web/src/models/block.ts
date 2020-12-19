@@ -1,6 +1,14 @@
-import { CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition } from "./block-definition";
+import { CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition } from "./block-definition";
 
-export type Block = TextQuestionBlock | OptionsQuestionBlock | CalculatorBlock | PlateSamplerBlock | PlateAddReagentBlock | PlateSequencerBlock | StartTimestampBlock | EndTimestampBlock;
+export type Block = TextQuestionBlock
+    | OptionsQuestionBlock
+    | CalculatorBlock
+    | PlateSamplerBlock
+    | PlateAddReagentBlock
+    | StartPlateSequencerBlock
+    | EndPlateSequencerBlock
+    | StartTimestampBlock
+    | EndTimestampBlock;
 
 export interface TextQuestionBlock {
     type: 'text-question';
@@ -60,14 +68,22 @@ export interface EndTimestampBlock {
     endedOn?: string;
 }
 
-export interface PlateSequencerBlock {
-    type: 'plate-sequencer';
-    definition: PlateSequencerBlockDefinition;
+export interface StartPlateSequencerBlock {
+    type: 'start-plate-sequencer';
+    definition: StartPlateSequencerBlockDefinition;
 
     plateLabels?: string[];
-    plateSequencingResults?: PlateResult[];
     timestampLabel?: string;
     startedOn?: string;
+}
+
+export interface EndPlateSequencerBlock {
+    type: 'end-plate-sequencer';
+    definition: EndPlateSequencerBlockDefinition;
+
+    plateSequencingResults?: PlateResult[];
+    timestampLabel?: string;
+    endedOn?: string;
 }
 
 export interface PlateResult {

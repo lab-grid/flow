@@ -2,8 +2,8 @@ import moment from 'moment';
 import React, { useState } from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
 import { UpcScan } from 'react-bootstrap-icons';
-import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, PlateSequencerBlock, Block, PlateCoordinate, PlateResult, StartTimestampBlock, EndTimestampBlock, CalculatorBlock } from '../models/block';
-import { BlockPrimer, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, EndPlateSequencerBlock, Block, PlateCoordinate, PlateResult, StartTimestampBlock, EndTimestampBlock, CalculatorBlock, StartPlateSequencerBlock } from '../models/block';
+import { BlockPrimer, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition } from '../models/block-definition';
 import { TableUploadModal } from './TableUploadModal';
 import { Calculator } from './Calculator';
 import DatePicker from "react-datepicker";
@@ -463,13 +463,11 @@ function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPl
     </>;
 }
 
-function RunBlockPlateSequencerEditor({ disabled, definition, plateLabels, setPlateLabels, results, setResults, timestampLabel, setTimestampLabel, startedOn, setStartedOn }: {
+function RunBlockStartPlateSequencerEditor({ disabled, definition, plateLabels, setPlateLabels, timestampLabel, setTimestampLabel, startedOn, setStartedOn }: {
     disabled?: boolean;
-    definition: PlateSequencerBlockDefinition;
+    definition: StartPlateSequencerBlockDefinition;
     plateLabels?: string[];
     setPlateLabels: (plateLabels?: string[]) => void;
-    results?: PlateResult[];
-    setResults: (results?: PlateResult[]) => void;
     timestampLabel?: string;
     setTimestampLabel: (timestampLabel?: string) => void;
     startedOn?: string;
@@ -538,6 +536,53 @@ function RunBlockPlateSequencerEditor({ disabled, definition, plateLabels, setPl
                 />
                 <InputGroup.Append>
                     <Button variant="secondary" onClick={() => setStartedOn(moment().format())}>Now</Button>
+                </InputGroup.Append>
+            </InputGroup>
+        </Form.Group>
+    </>
+}
+
+function RunBlockEndPlateSequencerEditor({ disabled, definition, results, setResults, timestampLabel, setTimestampLabel, endedOn, setEndedOn }: {
+    disabled?: boolean;
+    definition: EndPlateSequencerBlockDefinition;
+    results?: PlateResult[];
+    setResults: (results?: PlateResult[]) => void;
+    timestampLabel?: string;
+    setTimestampLabel: (timestampLabel?: string) => void;
+    endedOn?: string;
+    setEndedOn: (startedOn?: string) => void;
+}) {
+    return <>
+        <h4 className="row">{definition.name}</h4>
+        <Form.Group className="col">
+            <Form.Label>Timestamp ID/Label</Form.Label>
+            <Form.Control
+                disabled={disabled}
+                type="text"
+                placeholder="Enter a label or ID here..."
+                aria-placeholder="Enter a label or ID here..."
+                value={timestampLabel}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTimestampLabel((e.target as HTMLInputElement).value)}
+            />
+        </Form.Group>
+        <Form.Group className="col">
+            <Form.Label>Ended On</Form.Label>
+            <InputGroup>
+                <DatePicker
+                    selected={endedOn ? moment(endedOn).toDate() : undefined}
+                    onChange={start => {
+                        if (start && (start instanceof Date)) {
+                            setEndedOn(moment(start).format());
+                        }
+                    }}
+                    placeholderText="Click here to set a date/time..."
+                    todayButton="Now"
+                    showTimeSelect
+                    dateFormat="Pp"
+                    customInput={<Form.Control />}
+                />
+                <InputGroup.Append>
+                    <Button variant="secondary" onClick={() => setEndedOn(moment().format())}>Now</Button>
                 </InputGroup.Append>
             </InputGroup>
         </Form.Group>
@@ -724,20 +769,33 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                 />
             );
         }
-        case 'plate-sequencer': {
-            const block: PlateSequencerBlock = props.block;
+        case 'start-plate-sequencer': {
+            const block: StartPlateSequencerBlock = props.block;
             return (
-                <RunBlockPlateSequencerEditor
+                <RunBlockStartPlateSequencerEditor
                     disabled={props.disabled}
                     definition={block.definition}
                     plateLabels={block.plateLabels}
-                    setPlateLabels={plateLabels => props.setBlock({ ...block, type: 'plate-sequencer', plateLabels })}
-                    results={props.block && props.block.plateSequencingResults}
-                    setResults={plateSequencingResults => props.setBlock({ ...block, type: 'plate-sequencer', plateSequencingResults })}
+                    setPlateLabels={plateLabels => props.setBlock({ ...block, type: 'start-plate-sequencer', plateLabels })}
                     timestampLabel={block.timestampLabel}
-                    setTimestampLabel={timestampLabel => props.setBlock({ ...block, type: 'plate-sequencer', timestampLabel })}
+                    setTimestampLabel={timestampLabel => props.setBlock({ ...block, type: 'start-plate-sequencer', timestampLabel })}
                     startedOn={block.startedOn}
-                    setStartedOn={startedOn => props.setBlock({ ...block, type: 'plate-sequencer', startedOn })}
+                    setStartedOn={startedOn => props.setBlock({ ...block, type: 'start-plate-sequencer', startedOn })}
+                />
+            );
+        }
+        case 'end-plate-sequencer': {
+            const block: EndPlateSequencerBlock = props.block;
+            return (
+                <RunBlockEndPlateSequencerEditor
+                    disabled={props.disabled}
+                    definition={block.definition}
+                    results={props.block && props.block.plateSequencingResults}
+                    setResults={plateSequencingResults => props.setBlock({ ...block, type: 'end-plate-sequencer', plateSequencingResults })}
+                    timestampLabel={block.timestampLabel}
+                    setTimestampLabel={timestampLabel => props.setBlock({ ...block, type: 'end-plate-sequencer', timestampLabel })}
+                    endedOn={block.endedOn}
+                    setEndedOn={endedOn => props.setBlock({ ...block, type: 'end-plate-sequencer', endedOn })}
                 />
             );
         }

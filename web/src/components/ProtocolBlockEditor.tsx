@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup } from 'react-bootstrap';
 import { GripHorizontal, Trash } from 'react-bootstrap-icons';
-import { BlockDefinition, BlockOption, BlockPlate, BlockPlateMarkerEntry, BlockPrimer, BlockVariable, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, PlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition } from '../models/block-definition';
+import { BlockDefinition, BlockOption, BlockPlate, BlockPlateMarkerEntry, BlockPrimer, BlockVariable, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition } from '../models/block-definition';
 import { trimEmpty } from '../utils';
 import * as uuid from 'uuid';
 import { TableUploadModal } from './TableUploadModal';
 
-export function humanizeBlockType(blockType: "text-question" | "options-question" | "calculator" | "plate-sampler" | "plate-add-reagent" | "start-timestamp" | "end-timestamp" | "plate-sequencer" | undefined): string {
+export function humanizeBlockType(blockType: "text-question" | "options-question" | "calculator" | "plate-sampler" | "plate-add-reagent" | "start-timestamp" | "end-timestamp" | "start-plate-sequencer" | "end-plate-sequencer" | undefined): string {
     switch (blockType) {
         case 'text-question':
             return 'Answer Question';
@@ -22,8 +22,10 @@ export function humanizeBlockType(blockType: "text-question" | "options-question
             return 'Start Timestamp';
         case 'end-timestamp':
             return 'End Timestamp';
-        case 'plate-sequencer':
-            return 'Run Plate Sequencer';
+        case 'start-plate-sequencer':
+            return 'Start Plate Sequencer';
+        case 'end-plate-sequencer':
+            return 'End Plate Sequencer';
         default:
             return `Error: Unrecognized block type: ${blockType}`;
     }
@@ -31,7 +33,7 @@ export function humanizeBlockType(blockType: "text-question" | "options-question
 
 function BlockLabel({ index, blockType }: {
     index: number;
-    blockType?: "text-question" | "options-question" | "calculator" | "plate-sampler" | "plate-add-reagent" | "start-timestamp" | "end-timestamp" | "plate-sequencer";
+    blockType?: "text-question" | "options-question" | "calculator" | "plate-sampler" | "plate-add-reagent" | "start-timestamp" | "end-timestamp" | "start-plate-sequencer" | "end-plate-sequencer";
 }) {
     return <div className="mb-2">
         <GripHorizontal /> Step {index+1} - {humanizeBlockType(blockType)}
@@ -606,14 +608,14 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                 />
             </>;
         }
-        case 'plate-sequencer': {
-            const block: PlateSequencerBlockDefinition = props.block;
+        case 'start-plate-sequencer': {
+            const block: StartPlateSequencerBlockDefinition = props.block;
             return <>
                 <BlockLabel index={props.index} blockType={block.type} />
                 <ProtocolBlockNameEditor
                     disabled={props.disabled}
                     name={block.name}
-                    setName={name => props.setBlock({ ...block, type: 'plate-sequencer', name })}
+                    setName={name => props.setBlock({ ...block, type: 'start-plate-sequencer', name })}
                     deleteStep={props.deleteBlock}
                 />
                 <ProtocolBlockPlatesEditor
@@ -621,7 +623,7 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     label="Plate to sequence"
                     plateSizes={[384]}
                     plates={block.plates}
-                    setPlates={plates => props.setBlock({ ...block, type: 'plate-sequencer', plates })}
+                    setPlates={plates => props.setBlock({ ...block, type: 'start-plate-sequencer', plates })}
                 />
                 <ProtocolBlockPlateCountEditor
                     disabled={props.disabled}
@@ -636,13 +638,25 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                             }
                             plates = newPlates;
                         }
-                        props.setBlock({ ...block, type: 'plate-sequencer', plateCount, plates });
+                        props.setBlock({ ...block, type: 'start-plate-sequencer', plateCount, plates });
                     }}
+                />
+            </>;
+        }
+        case 'end-plate-sequencer': {
+            const block: EndPlateSequencerBlockDefinition = props.block;
+            return <>
+                <BlockLabel index={props.index} blockType={block.type} />
+                <ProtocolBlockNameEditor
+                    disabled={props.disabled}
+                    name={block.name}
+                    setName={name => props.setBlock({ ...block, type: 'end-plate-sequencer', name })}
+                    deleteStep={props.deleteBlock}
                 />
                 <ProtocolBlockMarkersUploader
                     disabled={props.disabled}
                     plateMarkers={block.plateMarkers}
-                    setPlateMarkers={plateMarkers => props.setBlock({ ...block, type: 'plate-sequencer', plateMarkers })}
+                    setPlateMarkers={plateMarkers => props.setBlock({ ...block, type: 'end-plate-sequencer', plateMarkers })}
                 />
             </>;
         }

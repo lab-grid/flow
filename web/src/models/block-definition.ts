@@ -1,4 +1,12 @@
-export type BlockDefinition = TextQuestionBlockDefinition | OptionsQuestionBlockDefinition | CalculatorBlockDefinition | PlateSamplerBlockDefinition | PlateAddReagentBlockDefinition | PlateSequencerBlockDefinition | StartTimestampBlockDefinition | EndTimestampBlockDefinition;
+export type BlockDefinition = TextQuestionBlockDefinition
+    | OptionsQuestionBlockDefinition
+    | CalculatorBlockDefinition
+    | PlateSamplerBlockDefinition
+    | PlateAddReagentBlockDefinition
+    | StartPlateSequencerBlockDefinition
+    | EndPlateSequencerBlockDefinition
+    | StartTimestampBlockDefinition
+    | EndTimestampBlockDefinition;
 
 export interface BlockOption {
     id: string;
@@ -93,12 +101,19 @@ export interface EndTimestampBlockDefinition {
     name?: string;
 }
 
-export interface PlateSequencerBlockDefinition {
-    type: 'plate-sequencer';
+export interface StartPlateSequencerBlockDefinition {
+    type: 'start-plate-sequencer';
 
     id?: string;
     name?: string;
     plates?: BlockPlate[];
     plateCount?: number;
+}
+
+export interface EndPlateSequencerBlockDefinition {
+    type: 'end-plate-sequencer';
+
+    id?: string;
+    name?: string;
     plateMarkers?: {[markers: string]: BlockPlateMarkerEntry};
 }
