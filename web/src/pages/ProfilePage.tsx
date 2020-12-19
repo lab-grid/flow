@@ -57,18 +57,16 @@ export function ProfilePage() {
         setFormSaving(true);
         try {
             const { auth0Client } = await snapshot.getPromise(auth0State);
-            return await upsertUser(() => auth0Client, user);
+            const result = await upsertUser(() => auth0Client, user);
+            setFormSavedTime(moment().format());
+            return result;
         } catch (e) {
-            if (e instanceof FetchError) {
-                const err: FetchError = e;
-                setErrors({
-                    ...errors,
-                    errors: [...(errors.errors || []), err],
-                });
-            }
+            setErrors({
+                ...errors,
+                errors: errors.errors ? [...errors.errors, e] : [e],
+            });
         } finally {
             setFormSaving(false);
-            setFormSavedTime(moment().format());
             setUserTimestamp(moment().format());
         }
     });

@@ -80,7 +80,6 @@ class UserResource(Resource):
     @requires_access()
     def get(self, user_id):
         user_id = urllib.parse.unquote(user_id)
-        print('user_id = ' + user_id, file=sys.stderr)
         version_id = int(request.args.get('version_id')) if request.args.get('version_id') else None
 
         if version_id:

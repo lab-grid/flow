@@ -9,6 +9,7 @@ from six.moves.urllib.request import urlopen
 from jose import jwt
 
 from flask import request, _request_ctx_stack
+from flask_cors import cross_origin
 
 from server import app, api
 
@@ -28,6 +29,7 @@ class AuthError(Exception):
         self.error = error
         self.status_code = status_code
 
+@cross_origin()
 @api.errorhandler(AuthError)
 def handle_auth_error(ex):
     """Flask error handler"""

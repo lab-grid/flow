@@ -47,8 +47,8 @@ code {
 
 .errors-overlay {
   position: fixed;
-  bottom: 0;
-  right: 0;
+  bottom: 24px;
+  right: 24px;
 }
 
 

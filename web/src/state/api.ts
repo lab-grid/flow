@@ -9,6 +9,9 @@ export class FetchError extends Error {
         public readonly name: string = "FetchError"
     ) {
         super(message);
+
+        // Set the prototype explicitly.
+        Object.setPrototypeOf(this, FetchError.prototype);
     }
 }
 
@@ -36,11 +39,23 @@ export async function apiFetch(options: LabflowOptions, auth0ClientFn: () => Aut
                 const token = await auth0Client.getTokenSilently();
                 const response = await fetchWithBearerToken(method, `${options.apiURL}/${path}`, token, newBody);
                 if (!response.ok) {
-                    throw new FetchError(
+                    const fetchErr = new FetchError(
                         `Request to ${options.apiURL}/${path} failed: ${response.status} ${response.statusText}`,
                         response,
                         await response.text(),
                     );
+                    console.log('throwing exception: ', fetchErr);
+                    try {
+                        throw fetchErr;
+                    } catch (err) {
+                        console.log('caught this exception in try/catch test: ', err);
+                    }
+                    throw fetchErr;
+                    // throw new FetchError(
+                    //     `Request to ${options.apiURL}/${path} failed: ${response.status} ${response.statusText}`,
+                    //     response,
+                    //     await response.text(),
+                    // );
                 }
                 return await response.json();
             } else {

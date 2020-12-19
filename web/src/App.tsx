@@ -4,7 +4,7 @@ import { InfoCircleFill } from 'react-bootstrap-icons';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import { ErrorBoundary } from 'react-error-boundary';
 import {  Route, Link, Switch } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { LoadingPage } from './components/LoadingPage';
 import { ProfileMenu, ProfileMenuLoading } from './components/ProfileMenu';
 import { labflowOptions } from './config';
@@ -41,7 +41,7 @@ export default function App() {
   useGoogleAnalytics();
   usePageTracking();
   const { auth0Client, isAuthenticated } = useRecoilValue(auth0State);
-  const { errors } = useRecoilValue(errorsState);
+  const [{ errors }, setErrorsState] = useRecoilState(errorsState);
   const serverInfo = useRecoilValue(serverHealth);
   if (!isAuthenticated) {
     switch (labflowOptions.authProvider) {
@@ -59,7 +59,7 @@ export default function App() {
     }
   }
 
-  return <>
+  return <ErrorBoundary FallbackComponent={ErrorFallback}>
     <Navbar bg="dark" variant="dark">
       <Navbar.Brand>
         <Link className="product-name" to="/">
@@ -164,12 +164,12 @@ export default function App() {
       {/* <Redirect from="/profile" to={`/profile/${user.id}`} /> */}
     </Switch>
     {errors && <div className="errors-overlay">
-      {errors.map(error => <Toast>
+      {errors.map((error, i) => <Toast onClose={() => setErrorsState({ errors: errors.filter((_, index) => i !== index) })}>
         <Toast.Header>
           <strong className="mr-auto">Error: {error.name}</strong>
         </Toast.Header>
         <Toast.Body>{error.message}</Toast.Body>
       </Toast>)}
     </div>}
-  </>;
+  </ErrorBoundary>;
 }
