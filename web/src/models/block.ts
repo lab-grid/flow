@@ -10,6 +10,8 @@ export type Block = TextQuestionBlock
     | StartTimestampBlock
     | EndTimestampBlock;
 
+export type BlockAttachment = {[filename: string]: string};
+
 export interface TextQuestionBlock {
     type: 'text-question';
     definition: TextQuestionBlockDefinition;
@@ -81,7 +83,7 @@ export interface EndPlateSequencerBlock {
     type: 'end-plate-sequencer';
     definition: EndPlateSequencerBlockDefinition;
 
-    attachment?: string;
+    attachments?: BlockAttachment;
     plateSequencingResults?: PlateResult[];
     timestampLabel?: string;
     endedOn?: string;

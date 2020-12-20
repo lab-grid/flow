@@ -1,8 +1,8 @@
 import moment from 'moment';
 import React, { useState } from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
-import { UpcScan } from 'react-bootstrap-icons';
-import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, EndPlateSequencerBlock, Block, PlateCoordinate, PlateResult, StartTimestampBlock, EndTimestampBlock, CalculatorBlock, StartPlateSequencerBlock } from '../models/block';
+import { Trash, UpcScan } from 'react-bootstrap-icons';
+import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, EndPlateSequencerBlock, Block, PlateCoordinate, PlateResult, StartTimestampBlock, EndTimestampBlock, CalculatorBlock, StartPlateSequencerBlock, BlockAttachment } from '../models/block';
 import { BlockPrimer, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition } from '../models/block-definition';
 import { TableUploadModal } from './TableUploadModal';
 import { Calculator } from './Calculator';
@@ -309,27 +309,44 @@ function fileToBase64(file: File): Promise<string | ArrayBuffer | null> {
 function RunBlockFileUploader({ disabled, label, fileData, setFileData }: {
     disabled?: boolean;
     label?: string;
-    fileData?: string;
-    setFileData: (fileData?: string) => void;
+    fileData?: BlockAttachment;
+    setFileData: (fileData?: BlockAttachment) => void;
 }) {
     const uploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files && e.target.files[0]
-        if (file) {
-            const data = await fileToBase64(file);
-            if (data) {
-                setFileData(data.toString());
+        if (!e.target.files) {
+            return;
+        }
+        const result: BlockAttachment = fileData ? {...fileData} : {};
+        for (const file of e.target.files) {
+            if (file) {
+                const data = await fileToBase64(file);
+                if (data) {
+                    result[file.name] = data.toString();
+                }
             }
         }
+        setFileData(result);
     };
+    const deleteFile = (filename: string) => {
+        const newFileData = {...fileData};
+        delete newFileData[filename];
+        setFileData(newFileData);
+    }
 
     return <>
         <Form.Group>
-            <Form.Label>{label} {fileData && <a href={`data:application/octet-stream;base64,${fileData}`} download="extraAnalysisData.pdf">(download)</a>}</Form.Label>
+            <Form.Label>{label}</Form.Label>
             <Form.File
                 disabled={disabled}
-                label={fileData ? "File saved. Upload new file" : "Upload a file"}
+                label={fileData ? "File saved. Upload new file(s)" : "Upload new file(s)"}
                 onChange={uploadFile}
             />
+            {Object.entries(fileData || {}).map(([filename, data]) =>
+                <div className="d-flex">
+                    <a className="mr-auto my-auto" href={data} download={filename}>{filename}</a>
+                    <Button variant="outline-danger" size="sm" onClick={() => deleteFile(filename)}><Trash /></Button>
+                </div>
+            )}
         </Form.Group>
     </>
 }
@@ -579,11 +596,11 @@ function RunBlockStartPlateSequencerEditor({ disabled, definition, plateLabels, 
     </>
 }
 
-function RunBlockEndPlateSequencerEditor({ disabled, definition, attachment, setAttachment, results, setResults, timestampLabel, setTimestampLabel, endedOn, setEndedOn }: {
+function RunBlockEndPlateSequencerEditor({ disabled, definition, attachments, setAttachments, results, setResults, timestampLabel, setTimestampLabel, endedOn, setEndedOn }: {
     disabled?: boolean;
     definition: EndPlateSequencerBlockDefinition;
-    attachment?: string;
-    setAttachment: (attachment?: string) => void;
+    attachments?: BlockAttachment;
+    setAttachments: (attachment?: BlockAttachment) => void;
     results?: PlateResult[];
     setResults: (results?: PlateResult[]) => void;
     timestampLabel?: string;
@@ -633,8 +650,8 @@ function RunBlockEndPlateSequencerEditor({ disabled, definition, attachment, set
         <RunBlockFileUploader
             label="Analysis data"
             disabled={disabled}
-            fileData={attachment}
-            setFileData={setAttachment}
+            fileData={attachments}
+            setFileData={setAttachments}
         />
     </>
 }
@@ -835,8 +852,8 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                 <RunBlockEndPlateSequencerEditor
                     disabled={props.disabled}
                     definition={block.definition}
-                    attachment={props.block && props.block.attachment}
-                    setAttachment={attachment => props.setBlock({ ...block, type: 'end-plate-sequencer', attachment })}
+                    attachments={props.block && props.block.attachments}
+                    setAttachments={attachment => props.setBlock({ ...block, type: 'end-plate-sequencer', attachments: attachment })}
                     results={props.block && props.block.plateSequencingResults}
                     setResults={plateSequencingResults => props.setBlock({ ...block, type: 'end-plate-sequencer', plateSequencingResults })}
                     timestampLabel={block.timestampLabel}

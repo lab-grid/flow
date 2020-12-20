@@ -135,7 +135,7 @@ class UserVersion(BaseVersionModel):
     __tablename__ = 'user_version'
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(64), db.ForeignKey('user.id'))
+    user_id = db.Column(db.String(64), db.ForeignKey('user.id', ondelete='CASCADE'))
     data = db.Column(JSONB)
 
     user = db.relationship('User', primaryjoin='UserVersion.user_id==User.id')
@@ -146,13 +146,25 @@ class User(BaseModel):
     id = db.Column(db.String(64), primary_key=True)
     version_id = db.Column(db.Integer, db.ForeignKey('user_version.id', use_alter=True))
 
-    current = db.relationship(UserVersion, primaryjoin='User.version_id==UserVersion.id', post_update=True)
+    current = db.relationship(
+        UserVersion,
+        primaryjoin='User.version_id==UserVersion.id',
+        post_update=True,
+    )
+    history = db.relationship(
+        UserVersion,
+        primaryjoin='User.id==UserVersion.user_id',
+        post_update=True,
+        back_populates="user",
+        cascade="all, delete",
+        order_by=UserVersion.updated_on,
+    )
 
 class ProtocolVersion(BaseVersionModel):
     __tablename__ = 'protocol_version'
 
     id = db.Column(db.Integer, primary_key=True)
-    protocol_id = db.Column(db.Integer, db.ForeignKey('protocol.id'))
+    protocol_id = db.Column(db.Integer, db.ForeignKey('protocol.id', ondelete='CASCADE'))
     data = db.Column(JSONB)
 
     protocol = db.relationship('Protocol', primaryjoin='ProtocolVersion.protocol_id==Protocol.id')
@@ -163,13 +175,25 @@ class Protocol(BaseModel):
     id = db.Column(db.Integer, primary_key=True)
     version_id = db.Column(db.Integer, db.ForeignKey('protocol_version.id', use_alter=True))
 
-    current = db.relationship(ProtocolVersion, primaryjoin='Protocol.version_id==ProtocolVersion.id', post_update=True)
+    current = db.relationship(
+        ProtocolVersion,
+        primaryjoin='Protocol.version_id==ProtocolVersion.id',
+        post_update=True,
+    )
+    history = db.relationship(
+        ProtocolVersion,
+        primaryjoin='Protocol.id==ProtocolVersion.protocol_id',
+        post_update=True,
+        back_populates="protocol",
+        cascade="all, delete",
+        order_by=UserVersion.updated_on,
+    )
 
 class RunVersion(BaseVersionModel):
     __tablename__ = 'run_version'
 
     id = db.Column(db.Integer, primary_key=True)
-    run_id = db.Column(db.Integer, db.ForeignKey('run.id'))
+    run_id = db.Column(db.Integer, db.ForeignKey('run.id', ondelete='CASCADE'))
     data = db.Column(JSONB)
 
     run = db.relationship('Run', primaryjoin='RunVersion.run_id==Run.id')
@@ -181,8 +205,62 @@ class Run(BaseModel):
     version_id = db.Column(db.Integer, db.ForeignKey('run_version.id', use_alter=True))
     protocol_version_id = db.Column(db.Integer, db.ForeignKey('protocol_version.id', use_alter=True))
 
-    current = db.relationship(RunVersion, primaryjoin='Run.version_id==RunVersion.id', post_update=True)
-    protocol_version = db.relationship(ProtocolVersion, primaryjoin='Run.protocol_version_id==ProtocolVersion.id')
+    current = db.relationship(
+        RunVersion,
+        primaryjoin='Run.version_id==RunVersion.id',
+        post_update=True,
+    )
+    protocol_version = db.relationship(
+        ProtocolVersion,
+        primaryjoin='Run.protocol_version_id==ProtocolVersion.id',
+    )
+    history = db.relationship(
+        RunVersion,
+        primaryjoin='Run.id==RunVersion.run_id',
+        post_update=True,
+        back_populates="run",
+        cascade="all, delete",
+        order_by=UserVersion.updated_on,
+    )
+
+# class SampleVersion(BaseVersionModel):
+#     __tablename__ = 'sample_version'
+
+#     id = db.Column(db.Integer, primary_key=True)
+#     sample_id = db.Column(db.Integer, db.ForeignKey('sample.id', ondelete='CASCADE'))
+#     data = db.Column(JSONB)
+
+#     sample = db.relationship('Sample', primaryjoin='SampleVersion.sample_id==Sample.id')
+
+# class Sample(BaseModel):
+#     __tablename__ = 'sample'
+
+#     id = db.Column(db.Integer, primary_key=True)
+#     version_id = db.Column(db.Integer, db.ForeignKey('sample_version.id', use_alter=True))
+#     protocol_version_id = db.Column(db.Integer, db.ForeignKey('protocol_version.id', use_alter=True))
+#     run_version_id = db.Column(db.Integer, db.ForeignKey('run_version.id', use_alter=True))
+
+#     current = db.relationship(
+#         SampleVersion,
+#         primaryjoin='Sample.version_id==SampleVersion.id',
+#         post_update=True,
+#     )
+#     protocol_version = db.relationship(
+#         ProtocolVersion,
+#         primaryjoin='Sample.protocol_version_id==ProtocolVersion.id',
+#     )
+#     run_version = db.relationship(
+#         RunVersion,
+#         primaryjoin='Sample.run_version_id==RunVersion.id',
+#     )
+#     history = db.relationship(
+#         SampleVersion,
+#         primaryjoin='Sample.id==SampleVersion.sample_id',
+#         post_update=True,
+#         back_populates="sample",
+#         cascade="all, delete",
+#         order_by=UserVersion.updated_on,
+#     )
 
 
 # -----------------------------------------------------------------------------

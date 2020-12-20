@@ -5,7 +5,6 @@ import { CheckCircle } from 'react-bootstrap-icons';
 import { useParams } from 'react-router-dom';
 import { useRecoilCallback, useRecoilState, useRecoilValue } from 'recoil';
 import { User } from '../models/user';
-import { FetchError } from '../state/api';
 import { auth0State, errorsState } from '../state/atoms';
 import { upsertUser, userQuery } from '../state/selectors';
 
