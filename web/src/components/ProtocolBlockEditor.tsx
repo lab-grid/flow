@@ -377,7 +377,7 @@ function ProtocolBlockFormulaEditor({ disabled, formula, setFormula, variables, 
 }) {
     return <>
         <Form.Group>
-            <Form.Label>Formula (<a href="https://formulajs.info/functions/">Supported Functions</a>)</Form.Label>
+            <Form.Label>Formula (<a href="https://mathjs.org/docs/expressions/syntax.html">Syntax</a>)</Form.Label>
             <Form.Control
                 disabled={disabled}
                 type="text"

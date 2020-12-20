@@ -16,10 +16,17 @@ export function Calculator(props: CalculatorProps) {
     const parsedFormula = props.formula && math.parse && math.parse(props.formula);
     const compiledFormula = parsedFormula && parsedFormula.compile();
 
+    const currentValues = props.values ? {...props.values} : {};
+    for (const variable of (props.variables || [])) {
+        if (!currentValues[variable.name]) {
+            currentValues[variable.name] = variable.defaultValue || 0;
+        }
+    }
+
     let evaluatedFormula: any = undefined;
     // let formulaPretty: string | undefined = undefined;
     try {
-        evaluatedFormula = compiledFormula && compiledFormula.evaluate(props.values || {});
+        evaluatedFormula = compiledFormula && compiledFormula.evaluate(currentValues);
         // formulaPretty = parsedFormula && parsedFormula.toHtml();
     } catch (ex) {
         evaluatedFormula = `ERROR: ${ex.message}`;
@@ -48,10 +55,10 @@ export function Calculator(props: CalculatorProps) {
                     <Form.Control
                         type="number"
                         disabled={props.disabled}
-                        placeholder={`${(props.variables && props.variables[i] && props.variables[i].defaultValue) || 0}`}
-                        value={(props.values && props.values[variable.name]) || 0}
+                        placeholder={`${(props.variables && props.variables[i] && props.variables[i].defaultValue) || "0"}`}
+                        value={(props.values && props.values[variable.name]) || ""}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                            const newValues = props.values ? {...props.values} : {};
+                            const newValues = {...currentValues};
                             newValues[variable.name] = parseInt((e.target as HTMLInputElement).value);
                             props.setValues(newValues);
                         }}

@@ -92,6 +92,7 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
                     <Dropdown.Menu>
                         <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'text-question' })}>Text Question</Dropdown.Item>
                         <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'options-question' })}>Options Question</Dropdown.Item>
+                        <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'calculator' })}>Calculator</Dropdown.Item>
                         <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'plate-sampler' })}>Run Plate Sampler</Dropdown.Item>
                         <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'plate-add-reagent' })}>Add Reagent to Plate</Dropdown.Item>
                         <Dropdown.Item onClick={() => addBlock({ id: uuid.v4(), type: 'start-timestamp' })}>Start Timestamp</Dropdown.Item>
