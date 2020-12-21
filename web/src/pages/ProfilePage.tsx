@@ -52,23 +52,6 @@ export function ProfilePage() {
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
     const { id } = useParams<ProfilePageParams>();
     const [errors, setErrors] = useRecoilState(errorsState);
-    const userUpsert = useRecoilCallback(({ snapshot }) => async (user: User) => {
-        setFormSaving(true);
-        try {
-            const { auth0Client } = await snapshot.getPromise(auth0State);
-            const result = await upsertUser(() => auth0Client, user);
-            setFormSavedTime(moment().format());
-            return result;
-        } catch (e) {
-            setErrors({
-                ...errors,
-                errors: errors.errors ? [...errors.errors, e] : [e],
-            });
-        } finally {
-            setFormSaving(false);
-            setUserTimestamp(moment().format());
-        }
-    });
     const { user: auth0User } = useRecoilValue(auth0State);
     const user = useRecoilValue(userQuery({userId: id || (auth0User && auth0User.sub), queryTime: userTimestamp}));
 
@@ -81,8 +64,26 @@ export function ProfilePage() {
     const currentAvatar = (user && user.avatar) || (isFirstLogin && auth0User && auth0User.picture) || '';
     // const currentRoles = (user && user.roles) || [];
 
+    const userUpsert = useRecoilCallback(({ snapshot }) => async (user: User) => {
+        setFormSaving(true);
+        try {
+            const { auth0Client } = await snapshot.getPromise(auth0State);
+            const result = await upsertUser(() => auth0Client, user, !isFirstLogin);
+            setFormSavedTime(moment().format());
+            return result;
+        } catch (e) {
+            setErrors({
+                ...errors,
+                errors: errors.errors ? [...errors.errors, e] : [e],
+            });
+        } finally {
+            setFormSaving(false);
+            setUserTimestamp(moment().format());
+        }
+    });
+
     const syncUser = (override?: User) => userUpsert(Object.assign({
-        id,
+        id: id || (auth0User && auth0User.sub),
         email: currentEmail,
         fullName: currentFullName,
         avatar: currentAvatar,
