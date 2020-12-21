@@ -3,7 +3,7 @@ from flask_restx import Resource, fields, Namespace
 
 from functools import wraps
 
-from server import db
+from server import app, db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
 from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Protocol, ProtocolVersion
 
@@ -65,7 +65,7 @@ class ProtocolsResource(Resource):
     def post(self):
         protocol_dict = request.json
         protocol = Protocol()
-        protocol_version = ProtocolVersion(data=strip_metadata(protocol_dict))
+        protocol_version = ProtocolVersion(data=strip_metadata(protocol_dict), server_version=app.config['SERVER_VERSION'])
         protocol_version.protocol = protocol
         protocol.current = protocol_version
         add_owner(protocol)
@@ -116,7 +116,7 @@ class ProtocolResource(Resource):
         if not change_allowed(versioned_row_to_dict(api, protocol, protocol.current), protocol_dict):
             abort(403)
             return
-        protocol_version = ProtocolVersion(data=strip_metadata(protocol_dict))
+        protocol_version = ProtocolVersion(data=strip_metadata(protocol_dict), server_version=app.config['SERVER_VERSION'])
         protocol_version.protocol = protocol
         add_updator(protocol_version)
         protocol.current = protocol_version

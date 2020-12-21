@@ -4,7 +4,7 @@ from flask_restx import Resource, fields, Namespace
 
 from functools import wraps
 
-from server import db
+from server import app, db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
 from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol, update_sample, get_samples, run_to_sample
 
@@ -97,7 +97,7 @@ class RunsResource(Resource):
             abort(400)
             return
         run = Run()
-        run_version = RunVersion(data=strip_metadata(run_dict))
+        run_version = RunVersion(data=strip_metadata(run_dict), server_version=app.config['SERVER_VERSION'])
         run_version.run = run
         run.current = run_version
         run.protocol_version_id = protocol.version_id
@@ -151,7 +151,7 @@ class RunResource(Resource):
         if not change_allowed(run_to_dict(run, run.current), run_dict):
             abort(403)
             return
-        run_version = RunVersion(data=strip_metadata(run_dict))
+        run_version = RunVersion(data=strip_metadata(run_dict), server_version=app.config['SERVER_VERSION'])
         run_version.run = run
         add_updator(run_version)
         run.current = run_version

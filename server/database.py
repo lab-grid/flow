@@ -76,6 +76,10 @@ def versioned_row_to_dict(api, row, row_version):
         d['version_id'] = row_version.id
     if row_version.updated_on:
         d['updated_on'] = row_version.updated_on
+    if row_version.server_version:
+        d['server_version'] = row_version.server_version
+    if row_version.webapp_version:
+        d['webapp_version'] = row_version.webapp_version
     if row_version.updated_by:
         try:
             d['updated_by'] = row_version.updator.current.data["email"]
@@ -97,6 +101,7 @@ def strip_metadata(model):
     d.pop('created_by', None)
     d.pop('updated_on', None)
     d.pop('updated_by', None)
+    d.pop('server_version', None)
     return d
 
 
@@ -121,6 +126,8 @@ class BaseModel(db.Model):
 class BaseVersionModel(db.Model):
     __abstract__ = True
 
+    server_version = db.Column(db.String(40))
+    webapp_version = db.Column(db.String(40))
     updated_on = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
     @declared_attr

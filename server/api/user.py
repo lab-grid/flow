@@ -60,7 +60,7 @@ class UsersResource(Resource):
         # Drop the roles field if it was provided.
         user_dict.pop('roles', None)
         user = User(id=request.current_user["sub"] if request.current_user["sub"] else 42)
-        user_version = UserVersion(data=strip_metadata(user_dict))
+        user_version = UserVersion(data=strip_metadata(user_dict), server_version=app.config['SERVER_VERSION'])
         user_version.user = user
         user.current = user_version
         add_owner(user)
@@ -113,7 +113,7 @@ class UserResource(Resource):
         if not user or user.is_deleted:
             abort(404)
             return
-        user_version = UserVersion(data=strip_metadata(user_dict))
+        user_version = UserVersion(data=strip_metadata(user_dict), server_version=app.config['SERVER_VERSION'])
         user_version.user = user
         add_updator(user_version)
         user.current = user_version
