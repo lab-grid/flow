@@ -104,6 +104,18 @@ def strip_metadata(model):
     d.pop('server_version', None)
     return d
 
+def run_to_sample(sample):
+    d = copy.deepcopy(sample.current.data) if sample.current and sample.current.data else {}
+    if sample.sample_id:
+        d['sampleID'] = sample.sample_id
+    if sample.plate_id:
+        d['plateID'] = sample.plate_id
+    if sample.run_version and sample.run_version.run_id:
+        d['runID'] = sample.run_version.run_id
+    if sample.protocol_version and sample.protocol_version.protocol_id:
+        d['protocolID'] = sample.protocol_version.protocol_id
+    return d
+
 
 # Tables ----------------------------------------------------------------------
 
@@ -230,181 +242,76 @@ class Run(BaseModel):
         order_by=UserVersion.updated_on,
     )
 
-# class SampleVersion(BaseVersionModel):
-#     __tablename__ = 'sample_version'
+class SampleVersion(BaseVersionModel):
+    __tablename__ = 'sample_version'
 
-#     id = db.Column(db.Integer, primary_key=True)
-#     sample_id = db.Column(db.Integer, db.ForeignKey('sample.id', ondelete='CASCADE'))
-#     data = db.Column(JSONB)
+    id = db.Column(db.Integer, primary_key=True)
 
-#     sample = db.relationship('Sample', primaryjoin='SampleVersion.sample_id==Sample.id')
+    sample_id = db.Column(db.String(64))
+    plate_id = db.Column(db.String(64))
+    run_version_id = db.Column(db.Integer, db.ForeignKey('sample.run_version_id'))
+    protocol_version_id = db.Column(db.Integer, db.ForeignKey('sample.protocol_version_id'))
 
-# class Sample(BaseModel):
-#     __tablename__ = 'sample'
+    data = db.Column(JSONB)
 
-#     id = db.Column(db.Integer, primary_key=True)
-#     version_id = db.Column(db.Integer, db.ForeignKey('sample_version.id', use_alter=True))
-#     protocol_version_id = db.Column(db.Integer, db.ForeignKey('protocol_version.id', use_alter=True))
-#     run_version_id = db.Column(db.Integer, db.ForeignKey('run_version.id', use_alter=True))
+    sample = db.relationship(
+        'Sample',
+        primaryjoin='SampleVersion.sample_id==Sample.sample_id AND SampleVersion.plate_id==Sample.plate_id AND SampleVersion.run_version_id==Sample.run_version_id AND SampleVersion.protocol_version_id==Sample.protocol_version_id'
+    )
 
-#     current = db.relationship(
-#         SampleVersion,
-#         primaryjoin='Sample.version_id==SampleVersion.id',
-#         post_update=True,
-#     )
-#     protocol_version = db.relationship(
-#         ProtocolVersion,
-#         primaryjoin='Sample.protocol_version_id==ProtocolVersion.id',
-#     )
-#     run_version = db.relationship(
-#         RunVersion,
-#         primaryjoin='Sample.run_version_id==RunVersion.id',
-#     )
-#     history = db.relationship(
-#         SampleVersion,
-#         primaryjoin='Sample.id==SampleVersion.sample_id',
-#         post_update=True,
-#         back_populates="sample",
-#         cascade="all, delete",
-#         order_by=UserVersion.updated_on,
-#     )
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            [sample_id, plate_id, run_version_id, protocol_version_id],
+            ['sample.sample_id', 'sample.plate_id', 'sample.run_version_id', 'sample.protocol_version_id'],
+        ),
+        {},
+    )
+
+class Sample(BaseModel):
+    __tablename__ = 'sample'
+
+    sample_id = db.Column(db.String(64), primary_key=True)
+    plate_id = db.Column(db.String(64), primary_key=True)
+    run_version_id = db.Column(db.Integer, db.ForeignKey('run_version.id', use_alter=True), primary_key=True)
+    protocol_version_id = db.Column(db.Integer, db.ForeignKey('protocol_version.id', use_alter=True), primary_key=True)
+
+    version_id = db.Column(db.Integer, db.ForeignKey('sample_version.id', use_alter=True))
+
+    current = db.relationship(
+        SampleVersion,
+        primaryjoin='Sample.version_id==SampleVersion.id',
+        post_update=True,
+    )
+    protocol_version = db.relationship(
+        ProtocolVersion,
+        primaryjoin='Sample.protocol_version_id==ProtocolVersion.id',
+    )
+    run_version = db.relationship(
+        RunVersion,
+        primaryjoin='Sample.run_version_id==RunVersion.id',
+    )
+    history = db.relationship(
+        SampleVersion,
+        primaryjoin='Sample.sample_id==SampleVersion.sample_id AND Sample.plate_id==SampleVersion.plate_id AND Sample.run_version_id==SampleVersion.run_version_id AND Sample.protocol_version_id==SampleVersion.protocol_version_id',
+        post_update=True,
+        back_populates="sample",
+        cascade="all, delete",
+        order_by=SampleVersion.updated_on,
+    )
 
 
 # -----------------------------------------------------------------------------
-# Samples
+# Fake Data Generation --------------------------------------------------------
 # -----------------------------------------------------------------------------
 
-# sample_view = PGView(
-#     schema="public",
-#     signature="sample_view",
-#     # TODO: Come up with a query that generates a samples table.
-#     definition="select block.val from public.run join public.run_version on public.run.version_id = public.run_version.id join lateral json_array_elements(public.run_version.data::json->'sections') as sec(val) on true join lateral json_array_elements(sec.val::json->'blocks') as block(val) on true"
-# )
+def fake_plate_sampler_upload():
+    pass
 
-def update_sample(run, sample_id, override):
-    if "sampleOverrides" not in run.current.data:
-        run.current.data["sampleOverrides"] = {}
-    run.current.data["sampleOverrides"][sample_id] = override
-    flag_modified(run, "data")
+def fake_plate_sequencer_results_upload():
+    pass
 
-def get_samples(sample_id=None, plate_id=None, protocol_id=None, run_id=None, created_by=None, include_archived=False):
-    sample_params = {}
-    result_params = {}
-    if sample_id is not None:
-        sample_params["sample_id"] = sample_id
-    if plate_id is not None:
-        sample_params["plate_id"] = plate_id
-        result_params["plate_id"] = plate_id
-    if run_id is not None:
-        sample_params["run_id"] = run_id
-        result_params["run_id"] = run_id
-    if protocol_id is not None:
-        sample_params["protocol_id"] = protocol_id
-        result_params["protocol_id"] = protocol_id
-    if created_by is not None:
-        sample_params["created_by"] = created_by
-        result_params["created_by"] = created_by
+def fake_run():
+    pass
 
-    sample_plate_id = "samples.key AS plate_id"
-    sample_plate_row = "(sample::jsonb->'row')::int AS plate_row"
-    sample_plate_col = "(sample::jsonb->'col')::int AS plate_col"
-    sample_sample_id = "(sample::jsonb->'sampleLabel')::text AS sample_id"
-    sample_run_id = "public.run.id as run_id"
-    sample_protocol_id = "public.protocol_version.protocol_id as protocol_id"
-    sample_plate_mappings = "jsonb_path_query(public.run_version.data, '$.sections[*].blocks[*].plateMappings') AS plate_mappings"
-    sample_samples = "jsonb_each(plate_mappings) AS samples"
-    sample_sample = "jsonb_path_query(samples.value, '$[*]') AS sample"
-    sample_subquery = text(
-        f"SELECT {sample_plate_id}, {sample_plate_row}, {sample_plate_col}, {sample_sample_id}, {sample_run_id}, {sample_protocol_id} "
-        f"FROM public.run, public.run_version, public.protocol_version, {sample_plate_mappings}, {sample_samples}, {sample_sample} "
-        "WHERE public.run_version.id = public.run.version_id "
-        "AND public.protocol_version.id = public.run.protocol_version_id "
-        "AND sample::jsonb->'sampleLabel' IS NOT NULL " +\
-        ("AND public.run.is_deleted IS NOT TRUE " if not include_archived else "") +\
-        ("AND (sample::jsonb->'sampleLabel')::text = :sample_id " if sample_id is not None else "") +\
-        ("AND samples.key = :plate_id " if plate_id is not None else "") +\
-        ("AND public.run.id = :run_id " if run_id is not None else "") +\
-        ("AND public.protocol_version.protocol_id = :protocol_id " if protocol_id is not None else "") +\
-        ("AND public.run.created_by = :created_by " if created_by is not None else "")
-    ).bindparams(**sample_params).columns(
-        plate_id=db.String,
-        plate_row=db.Integer,
-        plate_col=db.Integer,
-        sample_id=db.String,
-        run_id=db.Integer,
-        protocol_id=db.Integer,
-    )
-    sample_query = sample_subquery.alias('aggSample')
-
-    result_plate_id = "(result::jsonb->'plateLabel')::text AS plate_id"
-    result_plate_row = "(result::jsonb->'plateRow')::int AS plate_row"
-    result_plate_col = "(result::jsonb->'plateCol')::int AS plate_col"
-    result_plate_marker1 = "(result::jsonb->'marker1')::text AS marker1"
-    result_plate_marker2 = "(result::jsonb->'marker2')::text AS marker2"
-    result_classification = "(result::jsonb->'classification')::text AS result"
-    result_run_id = "public.run.id as run_id"
-    result_protocol_id = "public.protocol_version.protocol_id as protocol_id"
-    result_result = "jsonb_path_query(public.run_version.data, '$.sections[*].blocks[*].plateSequencingResults[*]') AS result"
-    result_subquery = text(
-        f"SELECT {result_plate_id}, {result_plate_row}, {result_plate_col}, {result_plate_marker1}, {result_plate_marker2}, {result_classification}, {result_run_id}, {result_protocol_id} "
-        f"FROM public.run, public.run_version, public.protocol_version, {result_result} "
-        "WHERE public.run_version.id = public.run.version_id "
-        "AND public.protocol_version.id = public.run.protocol_version_id " +\
-        ("AND (result::jsonb->'plateLabel')::text = :plate_id " if plate_id is not None else "") +\
-        ("AND public.run.id = :run_id " if run_id is not None else "") +\
-        ("AND public.protocol_version.protocol_id = :protocol_id " if protocol_id is not None else "") +\
-        ("AND public.run.created_by = :created_by " if created_by is not None else "")
-    ).bindparams(**result_params).columns(
-        plate_id=db.String,
-        plate_row=db.Integer,
-        plate_col=db.Integer,
-        marker1=db.String,
-        marker2=db.String,
-        result=db.String,
-        run_id=db.Integer,
-        protocol_id=db.Integer,
-    )
-    result_query = result_subquery.alias('aggResult')
-    
-    return db.session\
-        .query(
-            sample_query.c.protocol_id,
-            sample_query.c.run_id,
-            sample_query.c.plate_id,
-            sample_query.c.plate_row,
-            sample_query.c.plate_col,
-            sample_query.c.sample_id,
-            result_query.c.marker1,
-            result_query.c.marker2,
-            result_query.c.result,
-            RunVersion.data,
-        )\
-        .filter(and_(
-            sample_query.c.plate_row == result_query.c.plate_row,
-            sample_query.c.plate_col == result_query.c.plate_col,
-            sample_query.c.plate_id == result_query.c.plate_id,
-            Run.id == sample_query.c.run_id,
-            Run.version_id == RunVersion.id,
-        ))
-
-def run_to_sample(sample):
-    run_data = sample[9]
-    signers = {section['signature'] for section in run_data['sections'] if 'signature' in section and section['signature']}
-    witnesses = {section['witness'] for section in run_data['sections'] if 'witness' in section and section['witness']}
-    plate_lots = {block['plateLot'] for section in run_data['sections'] if 'blocks' in section and section['blocks'] for block in section['blocks'] if 'plateLot' in block and block['plateLot']}
-
-    return {
-        'protocolID': sample[0],
-        'runID': sample[1],
-        'plateID': sample[2],
-        'plateRow': sample[3],
-        'plateCol': sample[4],
-        'sampleID': sample[5],
-        'marker1': sample[6],
-        'marker2': sample[7],
-        'result': sample[8],
-        'signers': [s for s in signers],
-        'witnesses': [w for w in witnesses],
-        'completedOn': run_data['sections'][-1]['signedOn'],
-        'plateLots': [l for l in plate_lots],
-    }
+def fake_protocol():
+    pass

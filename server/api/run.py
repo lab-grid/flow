@@ -6,7 +6,7 @@ from functools import wraps
 
 from server import app, db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
-from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol, update_sample, get_samples, run_to_sample
+from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol, run_to_sample, Sample, SampleVersion
 
 from api.utils import change_allowed, success_output, add_owner, add_updator
 
@@ -68,6 +68,58 @@ def extract_protocol_id(run_dict):
     return None
 
 
+def get_samples(run, run_version):
+    samples = []
+    results = {}
+    signers = []
+    witnesses = []
+    lots = []
+    if not run_version.data['sections']:
+        return samples
+    for section in run_version.data['sections']:
+        if section['signature']:
+            signers.append(section['signature'])
+        if section['witness']:
+            signers.append(section['witness'])
+
+        if not section['blocks']:
+            continue
+        for block in section['blocks']:
+            if block['plateLot']:
+                lots.append(block['plateLot'])
+
+            if block['type'] == 'plate-sampler' and block['plateMappings']:
+                for plate_id, sample in block['plateMappings'].items():
+                    sample = Sample(
+                        sample_id=sample['sampleLabel'],
+                        plate_id=plate_id,
+                    )
+                    sample_version = SampleVersion(
+                        data={
+                            'plateRow': sample.row,
+                            'plateCol': sample.col,
+                        },
+                        sample=sample,
+                        server_version=app.config['SERVER_VERSION'],
+                    )
+                    sample.run_version = run_version
+                    sample.protocol_version_id = run.protocol_version_id
+                    sample.current = sample_version
+                    samples.append(sample)            
+            if block['type'] == 'end-plate-sequencer' and block['plateSequencingResults']:
+                for result in block['plateSequencingResults']:
+                    results[f"{result['plateLabel']}-{result['plateRow']}-{result['plateCol']}"] = result
+    for sample in samples:
+        result = results[f"{sample.plate_id}-{sample.current.data['plateRow']}-{sample.current.data['plateCol']}"]
+        sample.current.data['marker1'] = result['marker1']
+        sample.current.data['marker2'] = result['marker2']
+        sample.current.data['result'] = result['classification']
+        sample.current.data['signers'] = signers
+        sample.current.data['witnesses'] = witnesses
+        sample.current.data['plateLots'] = lots
+    return samples
+
+
 @api.route('/run')
 class RunsResource(Resource):
     @api.doc(security='token', model=runs_output)
@@ -103,6 +155,9 @@ class RunsResource(Resource):
         run.protocol_version_id = protocol.version_id
         add_owner(run)
         db.session.add_all([run, run_version])
+        samples = get_samples(run, run_version)
+        for sample in samples:
+            db.session.merge(sample)
         db.session.commit()
         add_policy(path=f"/run/{str(run.id)}", method="GET")
         add_policy(path=f"/run/{str(run.id)}", method="PUT")
@@ -156,6 +211,9 @@ class RunResource(Resource):
         add_updator(run_version)
         run.current = run_version
         db.session.add(run_version)
+        samples = get_samples(run, run_version)
+        for sample in samples:
+            db.session.merge(sample)
         db.session.commit()
         return run_to_dict(run, run.current)
 
@@ -251,10 +309,15 @@ class RunSamplesResource(Resource):
     @requires_auth
     @requires_scope('read:runs')
     def get(self, run_id):
+        run = Run.query.get(run_id)
+        if not run or run.is_deleted:
+            abort(404)
+            return
         return [
             run_to_sample(sample)
             for sample
-            in get_samples(run_id=run_id).distinct()
+            # in get_samples(run=run, run_version=run.current).distinct()
+            in Sample.query.filter(Sample.run_version_id == run.version_id).all()
             if check_access(path=f"/run/{str(run_id)}", method="GET")
         ]
 
@@ -267,24 +330,33 @@ class RunSampleResource(Resource):
     @requires_scope('read:runs')
     @requires_access()
     def get(self, run_id, sample_id):
-        sample = get_samples(run_id=run_id, sample_id=sample_id).first()
-        return run_to_sample(sample)
-
-    @api.doc(security='token', model=success_output, body=sample_input)
-    @requires_auth
-    @requires_scope('write:runs')
-    @requires_access()
-    def put(self, run_id, sample_id):
-        override_dict = request.json
         run = Run.query.get(run_id)
         if not run or run.is_deleted:
             abort(404)
             return
-        if not change_allowed(run_to_dict(run, run.current), run_dict):
+        sample = Sample.query.filter(Sample.run_version_id == run.version_id).filter(Sample.sample_id == sample_id).first()
+        # sample = get_samples(run=run, run_version=run.current, sample_id=sample_id).first()
+        return run_to_sample(sample)
+
+    @api.doc(security='token', model=sample_output, body=sample_input)
+    @requires_auth
+    @requires_scope('write:runs')
+    @requires_access()
+    def put(self, run_id, sample_id):
+        sample_dict = request.json
+        # This field shouldn't be updated by users.
+        # sample_dict.pop('protocol', None)
+        sample = Sample.query.filter(Sample.sample_version_id == sample.version_id).filter(Sample.sample_id == sample_id).first()
+        if not sample or sample.is_deleted:
+            abort(404)
+            return
+        if not change_allowed(run_to_dict(run, run.current), {}):
             abort(403)
             return
-        update_sample(run, sample_id, override_dict)
+        sample_version = SampleVersion(data=strip_metadata(sample_dict), server_version=app.config['SERVER_VERSION'])
+        sample_version.sample = sample
+        add_updator(sample_version)
+        sample.current = sample_version
+        db.session.add(sample_version)
         db.session.commit()
-        return {
-            'success': True
-        }
+        return run_to_sample(sample)

@@ -76,5 +76,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "mocker-data-generator": "^2.10.0"
   }
 }
