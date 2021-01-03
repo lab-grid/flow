@@ -11,6 +11,7 @@ from database import versioned_row_to_dict, Protocol, ProtocolVersion, Run, RunV
 
 from api.protocol import protocol_output
 from api.run import run_output
+from api.utils import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, protocol_id_param, run_id_param, version_id_param, purge_param, user_id_param, method_param, sample_id_param, protocol_param, plate_param, sample_param, reagent_param, creator_param, archived_param, page_param, per_page_param
 
 
 api = Namespace('search-results', description='Operations for searching for runs and protocols with various filters.', path='/')
@@ -20,43 +21,6 @@ search_results = api.model('SearchResults', {
     'protocols': fields.List(fields.Nested(protocol_output)),
     'runs': fields.List(fields.Nested(run_output))
 })
-
-
-protocol_param = {
-    'description': 'Numeric ID for a protocol to filter by',
-    'in': 'query',
-    'type': 'int'
-}
-run_param = {
-    'description': 'Numeric ID for a run to filter by',
-    'in': 'query',
-    'type': 'int'
-}
-plate_param = {
-    'description': 'Identifier for a plate to filter by',
-    'in': 'query',
-    'type': 'string'
-}
-sample_param = {
-    'description': 'Identifier for a sample to filter by',
-    'in': 'query',
-    'type': 'string'
-}
-reagent_param = {
-    'description': 'Identifier for a reagent to filter by',
-    'in': 'query',
-    'type': 'string'
-}
-page_param = {
-    'description': 'Page number if using pagination',
-    'in': 'query',
-    'type': 'int'
-}
-per_page_param = {
-    'description': 'Maximum number of records returned per page if using pagination',
-    'in': 'query',
-    'type': 'int'
-}
 
 
 def all_protocols(include_archived=False):
@@ -77,25 +41,6 @@ def all_samples(include_archived=False):
         query = query.filter(Sample.is_deleted != True)
     return query
 
-def filter_by_plate_label(run_version_query, plate_id):
-    return run_version_query.filter(
-        or_(
-            func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].plateLabels["{plate_id}"]'),
-            func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].mappings["{plate_id}"]'),
-            func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plateLabel ? (@ == "{plate_id}"))')
-        )
-    )
-
-def filter_by_reagent_label(run_version_query, reagent_id):
-    return run_version_query.filter(
-        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].definition.reagentLabel ? (@ == "{reagent_id}"))')
-    )
-
-def filter_by_sample_label(run_version_query, sample_id):
-    return run_version_query.filter(
-        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plateMappings[*].sampleLabel ? (@ == "{sample_id}"))')
-    )
-
 
 @api.route('/search')
 class ProtocolsResource(Resource):
@@ -108,6 +53,8 @@ class ProtocolsResource(Resource):
             'plate': plate_param,
             'sample': sample_param,
             'reagent': reagent_param,
+            'creator': creator_param,
+            'archived': archived_param,
             'page': page_param,
             'per_page': per_page_param,
         }

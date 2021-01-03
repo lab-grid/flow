@@ -19,7 +19,7 @@ export function HomePage() {
     const [protocolsPage, setProtocolsPage] = React.useState(1);
     const [runsPage, setRunsPage] = React.useState(1);
     const history = useHistory();
-    const protocols = useRecoilValue(protocolsQuery({ queryTime: protocolsTimestamp, filterParams: { page: `${protocolsPage}` } }));
+    const { protocols, pageCount: protocolsPageCount } = useRecoilValue(protocolsQuery({ queryTime: protocolsTimestamp, filterParams: { page: `${protocolsPage}` } }));
     const { runs, pageCount: runsPageCount } = useRecoilValue(runsQuery({ queryTime: runsTimestamp, filterParams: { page: `${runsPage}` } }));
     const [errors, setErrors] = useRecoilState(errorsState);
     const protocolUpsert = useRecoilCallback(({ snapshot }) => async (protocol: Protocol) => {
@@ -73,7 +73,7 @@ export function HomePage() {
     return <div className="container">
         <div className="row mt-4">
             <Suspense fallback={<LoadingPage />}>
-                <ProtocolsTable protocols={protocols} />
+                <ProtocolsTable protocols={protocols || []} page={protocolsPage} pageCount={protocolsPageCount} onPageChange={setProtocolsPage} />
             </Suspense>
         </div>
         <div className="row">
@@ -94,14 +94,14 @@ export function HomePage() {
                     <Dropdown.Toggle variant="success">Create Run</Dropdown.Toggle>
                     <Dropdown.Menu>
                         {
-                            protocols.map(protocol =>
+                            protocols && protocols.map(protocol =>
                                 <Dropdown.Item key={protocol.id} onClick={createRun(protocol)}>
                                     {protocol.name || <i>Untitled Protocol</i>}
                                 </Dropdown.Item>
                             )
                         }
                         {
-                            !protocols.length && <Dropdown.Item disabled={true}>No protocols found!</Dropdown.Item>
+                            (!protocols || !protocols.length) && <Dropdown.Item disabled={true}>No protocols found!</Dropdown.Item>
                         }
                     </Dropdown.Menu>
                 </Dropdown>

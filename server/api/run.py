@@ -8,7 +8,7 @@ from server import app, db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
 from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol, run_to_sample, Sample, SampleVersion
 
-from api.utils import change_allowed, success_output, add_owner, add_updator
+from api.utils import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, change_allowed, success_output, add_owner, add_updator, run_id_param, version_id_param, purge_param, user_id_param, method_param, sample_id_param, protocol_param, plate_param, sample_param, reagent_param, creator_param, archived_param, page_param, per_page_param
 
 
 api = Namespace('runs', description='Extra-Simple operations on runs.', path='/')
@@ -28,48 +28,6 @@ samples_output = api.model('SamplesOutput', {
     'page': fields.Integer(),
     'pageCount': fields.Integer(),
 })
-
-
-run_id_param = {
-    'description': 'Numeric ID for a run',
-    'in': 'path',
-    'type': 'int'
-}
-version_id_param = {
-    'description': 'Specify this query parameter to retrieve a specific run version',
-    'in': 'query',
-    'type': 'int'
-}
-purge_param = {
-    'description': 'Purge after deleting',
-    'in': 'query',
-    'type': 'boolean'
-}
-user_id_param = {
-    'description': 'String identifier for a user account',
-    'in': 'path',
-    'type': 'string'
-}
-method_param = {
-    'description': 'Action identifier (GET|POST|PUT|DELETE)',
-    'in': 'path',
-    'type': 'string'
-}
-sample_id_param = {
-    'description': 'ID for a sample',
-    'in': 'path',
-    'type': 'string'
-}
-page_param = {
-    'description': 'Page number if using pagination',
-    'in': 'query',
-    'type': 'int'
-}
-per_page_param = {
-    'description': 'Maximum number of records returned per page if using pagination',
-    'in': 'query',
-    'type': 'int'
-}
 
 
 def run_to_dict(run, run_version):
@@ -137,23 +95,91 @@ def get_samples(run, run_version):
         sample.current.data['plateLots'] = lots
     return samples
 
+def all_runs(include_archived=False):
+    query = Run.query
+    if not include_archived:
+        query = query.filter(Run.is_deleted != True)
+    return query
+
+def all_samples(run, include_archived=False):
+    query = Sample.query
+    if not include_archived:
+        query = query\
+            .filter(Sample.is_deleted != True)\
+            .filter(Sample.run_version_id == run.version_id)
+    return query
+
 
 @api.route('/run')
 class RunsResource(Resource):
-    @api.doc(security='token', model=runs_output, params={'page': page_param, 'per_page': per_page_param})
+    @api.doc(security='token', model=runs_output, params={
+        'protocol': protocol_param,
+        'plate': plate_param,
+        'sample': sample_param,
+        'reagent': reagent_param,
+        'creator': creator_param,
+        'archived': archived_param,
+        'page': page_param,
+        'per_page': per_page_param,
+    })
     @requires_auth
     @requires_scope('read:runs')
     def get(self):
+        protocol = int(request.args.get('protocol')) if request.args.get('protocol') else None
+        plate = request.args.get('plate')
+        reagent = request.args.get('reagent')
+        sample = request.args.get('sample')
+        creator = request.args.get('creator')
+        archived = request.args.get('archived') == 'true' if request.args.get('archived') else False
+
+        runs_queries = []
+
+        # Add filter specific queries. These will be intersected later on.
+        if protocol:
+            runs_queries.append(
+                all_runs(archived)\
+                    .join(ProtocolVersion, ProtocolVersion.id == Run.protocol_version_id)\
+                    .filter(ProtocolVersion.protocol_id == protocol)
+            )
+        if plate:
+            run_version_query = all_runs(archived)\
+                .join(RunVersion, RunVersion.id == Run.version_id)
+            runs_subquery = filter_by_plate_label(run_version_query, plate)
+            runs_queries.append(runs_subquery)
+        if reagent:
+            run_version_query = all_runs(archived)\
+                .join(RunVersion, RunVersion.id == Run.version_id)
+            runs_subquery = filter_by_reagent_label(run_version_query, reagent)
+            runs_queries.append(runs_subquery)
+        if sample:
+            run_version_query = all_runs(archived)\
+                .join(RunVersion, RunVersion.id == Run.version_id)
+            runs_subquery = filter_by_sample_label(run_version_query, sample)
+            runs_queries.append(runs_subquery)
+        if creator:
+            runs_queries.append(
+                all_runs(archived)\
+                    # .filter(Run.id == run)
+                    .filter(Run.created_by == creator)
+            )
+
+        # Add a basic non-deleted items query if no filters were specified.
+        if len(runs_queries) == 0:
+            runs_queries.append(all_runs(archived))
+
+        # Only return the intersection of all queries.
+        runs_query = reduce(lambda a, b: a.intersect(b), runs_queries)
+
         results = {}
         if request.args.get('page') is not None or request.args.get('per_page') is not None:
             page = int(request.args.get('page')) if request.args.get('page') else 1
             per_page = int(request.args.get('per_page')) if request.args.get('per_page') else 20
-            page_query = Run.query.filter(Run.is_deleted != True).paginate(page=page, per_page=per_page)
+            page_query = runs_query.distinct().paginate(page=page, per_page=per_page)
             results['page'] = page_query.page
             results['pageCount'] = page_query.pages
             query = page_query.items
         else:
-            query = Run.query.filter(Run.is_deleted != True).all()
+            query = runs_query.distinct()
 
         results['runs'] = [
             run_to_dict(run, run.current)
@@ -340,34 +366,67 @@ class RunSamplesResource(Resource):
     @requires_auth
     @requires_scope('read:runs')
     def get(self, run_id):
+        if not check_access(path=f"/run/{str(run_id)}", method="GET"):
+            abort(403)
+            return
         run = Run.query.get(run_id)
         if not run or run.is_deleted:
             abort(404)
             return
-        
+
+        protocol = int(request.args.get('protocol')) if request.args.get('protocol') else None
+        plate = request.args.get('plate')
+        reagent = request.args.get('reagent')
+        creator = request.args.get('creator')
+        archived = request.args.get('archived') == 'true' if request.args.get('archived') else False
+
+        samples_queries = []
+
+        # Add filter specific queries. These will be intersected later on.
+        if protocol:
+            samples_queries.append(
+                all_samples(archived)\
+                    .join(ProtocolVersion, ProtocolVersion.id == Sample.protocol_version_id)\
+                    .filter(ProtocolVersion.protocol_id == protocol)
+            )
+        if plate:
+            samples_queries.append(
+                all_samples(archived)\
+                    .filter(Sample.plate_id == plate)
+            )
+        if reagent:
+            run_version_query = all_samples(archived)\
+                .join(RunVersion, RunVersion.id == Sample.run_version_id)
+            samples_subquery = filter_by_reagent_label(run_version_query, reagent)
+            samples_queries.append(samples_subquery)
+        if creator:
+            samples_queries.append(
+                all_samples(archived)\
+                    .filter(Sample.created_by == creator)
+            )
+
+        # Add a basic non-deleted items query if no filters were specified.
+        if len(samples_queries) == 0:
+            samples_queries.append(all_samples(archived))
+
+        # Only return the intersection of all queries.
+        samples_query = reduce(lambda a, b: a.intersect(b), samples_queries)
+
         results = {}
         if request.args.get('page') is not None or request.args.get('per_page') is not None:
             page = int(request.args.get('page')) if request.args.get('page') else 1
             per_page = int(request.args.get('per_page')) if request.args.get('per_page') else 20
-            page_query = Sample.query\
-                .filter(Sample.run_version_id == run.version_id)\
-                .filter(Sample.is_deleted != True)\
-                .paginate(page=page, per_page=per_page)\
+            page_query = samples_query.distinct().paginate(page=page, per_page=per_page)
             results['page'] = page_query.page
             results['pageCount'] = page_query.pages
             query = page_query.items
         else:
-            query = Sample.query\
-                .filter(Sample.run_version_id == run.version_id)\
-                .filter(Sample.is_deleted != True)\
-                .all()
+            query = samples_query.distinct()
 
         results['samples'] = [
             run_to_sample(sample)
             for sample
-            # in get_samples(run=run, run_version=run.current).distinct()
             in query
-            if check_access(path=f"/run/{str(run_id)}", method="GET")
         ]
         return results
 

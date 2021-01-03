@@ -117,6 +117,29 @@ def run_to_sample(sample):
     return d
 
 
+# Searching -------------------------------------------------------------------
+
+
+def filter_by_plate_label(run_version_query, plate_id):
+    return run_version_query.filter(
+        or_(
+            func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].plateLabels["{plate_id}"]'),
+            func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].mappings["{plate_id}"]'),
+            func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plateLabel ? (@ == "{plate_id}"))')
+        )
+    )
+
+def filter_by_reagent_label(run_version_query, reagent_id):
+    return run_version_query.filter(
+        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].definition.reagentLabel ? (@ == "{reagent_id}"))')
+    )
+
+def filter_by_sample_label(run_version_query, sample_id):
+    return run_version_query.filter(
+        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plateMappings[*].sampleLabel ? (@ == "{sample_id}"))')
+    )
+
+
 # Tables ----------------------------------------------------------------------
 
 class BaseModel(db.Model):

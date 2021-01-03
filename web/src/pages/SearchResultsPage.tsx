@@ -3,7 +3,7 @@ import { Button, Form } from "react-bootstrap";
 import { useRecoilValue } from "recoil";
 import { ProtocolsTable } from "../components/ProtocolsTable";
 import { RunsTable } from "../components/RunsTable";
-import { searchQuery, usersQuery } from "../state/selectors";
+import { protocolsQuery, runsQuery, samplesQuery, usersQuery } from "../state/selectors";
 import moment from 'moment';
 import { ResultsTable } from "../components/ResultsTable";
 import { exportProtocolsToCSV } from "../models/protocol";
@@ -105,6 +105,9 @@ function ParametricSearch({
 
 export function SearchResultsPage() {
     const [queryTime, setQueryTime] = useState("");
+    const [protocolsPage, setProtocolsPage] = useState(1);
+    const [runsPage, setRunsPage] = useState(1);
+    const [samplesPage, setSamplesPage] = useState(1);
     const [filterParams, setFilterParams] = useState<{[name: string]: string}>({});
     const [filterPlateId, setFilterPlateId] = useState("");
     const [filterSampleId, setFilterSampleId] = useState("");
@@ -114,26 +117,28 @@ export function SearchResultsPage() {
     const [filterCreator, setFilterCreator] = useState("");
     const [includeArchived, setIncludeArchived] = useState(false);
 
-    const users = useRecoilValue(usersQuery({ queryTime }));
-    const results = useRecoilValue(searchQuery({ queryTime, filterParams }));
+    const { users } = useRecoilValue(usersQuery({ queryTime }));
+    const { protocols, pageCount: protocolsPageCount } = useRecoilValue(protocolsQuery({ queryTime, filterParams }));
+    const { runs, pageCount: runsPageCount } = useRecoilValue(runsQuery({ queryTime, filterParams }));
+    const { samples, pageCount: samplesPageCount } = useRecoilValue(samplesQuery({ queryTime, filterParams }));
 
     const exportProtocols = () => {
-        if (!results.protocols) {
+        if (!protocols) {
             return;
         }
-        exportProtocolsToCSV(`export-protocols-${moment().format()}.csv`, results.protocols, true);
+        exportProtocolsToCSV(`export-protocols-${moment().format()}.csv`, protocols, true);
     };
     const exportRuns = () => {
-        if (!results.runs) {
+        if (!runs) {
             return;
         }
-        exportRunsToCSV(`export-runs-${moment().format()}.csv`, results.runs, true);
+        exportRunsToCSV(`export-runs-${moment().format()}.csv`, runs, true);
     };
     const exportSamples = () => {
-        if (!results.samples) {
+        if (!samples) {
             return;
         }
-        exportSampleResultsToCSV(`export-sample-results-${moment().format()}.csv`, results.samples, true);
+        exportSampleResultsToCSV(`export-sample-results-${moment().format()}.csv`, samples, true);
     };
 
     return <div className="container mt-4">
@@ -192,25 +197,25 @@ export function SearchResultsPage() {
             <small className="col-auto my-auto">Protocols (<i><a href="/#" onClick={exportProtocols}>Export to CSV</a></i>)</small>
             <hr className="col my-auto" />
             <small className="col-auto my-auto">
-                {(results && results.protocols && results.protocols.length) || 0}
+                {(protocols && protocols.length) || 0}
             </small>
         </div>
-        <ProtocolsTable protocols={(results && results.protocols) || []} />
+        <ProtocolsTable protocols={protocols || []} page={protocolsPage} pageCount={protocolsPageCount} onPageChange={setProtocolsPage} />
         <div className="row">
             <small className="col-auto my-auto">Runs (<i><a href="/#" onClick={exportRuns}>Export to CSV</a></i>)</small>
             <hr className="col my-auto" />
             <small className="col-auto my-auto">
-                {(results && results.runs && results.runs.length) || 0}
+                {(runs && runs.length) || 0}
             </small>
         </div>
-        <RunsTable runs={(results && results.runs) || []} />
+        <RunsTable runs={runs || []} page={runsPage} pageCount={runsPageCount} onPageChange={setRunsPage} />
         <div className="row">
             <small className="col-auto my-auto">Samples (<i><a href="/#" onClick={exportSamples}>Export to CSV</a></i>)</small>
             <hr className="col my-auto" />
             <small className="col-auto my-auto">
-                {(results && results.samples && results.samples.length) || 0}
+                {(samples && samples.length) || 0}
             </small>
         </div>
-        <ResultsTable results={(results && results.samples) || []} />
+        <ResultsTable results={samples || []} page={samplesPage} pageCount={samplesPageCount} onPageChange={setSamplesPage} />
     </div>
 }

@@ -81,6 +81,98 @@ def change_allowed(orig_dict, new_dict):
 
 
 # -----------------------------------------------------------------------------
+# Common Parameters -----------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+
+run_id_param = {
+    'description': 'Numeric ID for a run',
+    'in': 'path',
+    'type': 'int'
+}
+protocol_id_param = {
+    'description': 'Numeric ID for a protocol',
+    'in': 'path',
+    'type': 'int'
+}
+user_id_param = {
+    'description': 'String identifier for a user account',
+    'in': 'path',
+    'type': 'string'
+}
+sample_id_param = {
+    'description': 'String ID for a sample',
+    'in': 'path',
+    'type': 'string'
+}
+version_id_param = {
+    'description': 'Specify this query parameter to retrieve a specific record version',
+    'in': 'query',
+    'type': 'int'
+}
+purge_param = {
+    'description': 'Purge after deleting',
+    'in': 'query',
+    'type': 'boolean'
+}
+user_id_param = {
+    'description': 'String identifier for a user account',
+    'in': 'path',
+    'type': 'string'
+}
+protocol_param = {
+    'description': 'Numeric ID for a protocol to filter by',
+    'in': 'query',
+    'type': 'int'
+}
+run_param = {
+    'description': 'Numeric ID for a run to filter by',
+    'in': 'query',
+    'type': 'int'
+}
+plate_param = {
+    'description': 'Identifier for a plate to filter by',
+    'in': 'query',
+    'type': 'string'
+}
+sample_param = {
+    'description': 'Identifier for a sample to filter by',
+    'in': 'query',
+    'type': 'string'
+}
+reagent_param = {
+    'description': 'Identifier for a reagent to filter by',
+    'in': 'query',
+    'type': 'string'
+}
+creator_param = {
+    'description': 'ID of a creating user to filter by',
+    'in': 'query',
+    'type': 'string'
+}
+archived_param = {
+    'description': 'Determines if archived records are returned',
+    'in': 'query',
+    'type': 'boolean'
+}
+method_param = {
+    'description': 'Action identifier (GET|POST|PUT|DELETE)',
+    'in': 'path',
+    'type': 'string'
+}
+page_param = {
+    'description': 'Page number if using pagination',
+    'in': 'query',
+    'type': 'int'
+}
+per_page_param = {
+    'description': 'Maximum number of records returned per page if using pagination',
+    'in': 'query',
+    'type': 'int'
+}
+
+
+# -----------------------------------------------------------------------------
 # Miscellaneous ---------------------------------------------------------------
 # -----------------------------------------------------------------------------
 
