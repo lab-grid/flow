@@ -16,10 +16,18 @@ api = Namespace('runs', description='Extra-Simple operations on runs.', path='/'
 
 run_input = api.model('RunInput', {})
 run_output = api.model('RunOutput', { 'id': fields.Integer() })
-runs_output = fields.List(fields.Nested(run_output))
+runs_output = api.model('RunsOutput', {
+    'runs': fields.List(fields.Nested(run_output)),
+    'page': fields.Integer(),
+    'pageCount': fields.Integer(),
+})
 sample_input = api.model('SampleInput', {})
 sample_output = api.model('SampleOutput', { 'sampleID': fields.Integer() })
-samples_output = fields.List(fields.Nested(sample_output))
+samples_output = api.model('SamplesOutput', {
+    'samples': fields.List(fields.Nested(sample_output)),
+    'page': fields.Integer(),
+    'pageCount': fields.Integer(),
+})
 
 
 run_id_param = {
@@ -51,6 +59,16 @@ sample_id_param = {
     'description': 'ID for a sample',
     'in': 'path',
     'type': 'string'
+}
+page_param = {
+    'description': 'Page number if using pagination',
+    'in': 'query',
+    'type': 'int'
+}
+per_page_param = {
+    'description': 'Maximum number of records returned per page if using pagination',
+    'in': 'query',
+    'type': 'int'
 }
 
 
@@ -122,16 +140,28 @@ def get_samples(run, run_version):
 
 @api.route('/run')
 class RunsResource(Resource):
-    @api.doc(security='token', model=runs_output)
+    @api.doc(security='token', model=runs_output, params={'page': page_param, 'per_page': per_page_param})
     @requires_auth
     @requires_scope('read:runs')
     def get(self):
-        return [
+        results = {}
+        if request.args.get('page') is not None or request.args.get('per_page') is not None:
+            page = int(request.args.get('page')) if request.args.get('page') else 1
+            per_page = int(request.args.get('per_page')) if request.args.get('per_page') else 20
+            page_query = Run.query.filter(Run.is_deleted != True).paginate(page=page, per_page=per_page)
+            results['page'] = page_query.page
+            results['pageCount'] = page_query.pages
+            query = page_query.items
+        else:
+            query = Run.query.filter(Run.is_deleted != True).all()
+
+        results['runs'] = [
             run_to_dict(run, run.current)
             for run
-            in Run.query.filter(Run.is_deleted != True).all()
+            in query
             if check_access(path=f"/run/{str(run.id)}", method="GET")
         ]
+        return results
 
     @api.doc(security='token', model=run_output, body=run_input)
     @requires_auth
@@ -306,7 +336,7 @@ class RunPermissionResource(Resource):
 @api.route('/run/<int:run_id>/sample')
 @api.doc(params={'run_id': run_id_param})
 class RunSamplesResource(Resource):
-    @api.doc(security='token', model=samples_output)
+    @api.doc(security='token', model=samples_output, params={'page': page_param, 'per_page': per_page_param})
     @requires_auth
     @requires_scope('read:runs')
     def get(self, run_id):
@@ -314,13 +344,32 @@ class RunSamplesResource(Resource):
         if not run or run.is_deleted:
             abort(404)
             return
-        return [
+        
+        results = {}
+        if request.args.get('page') is not None or request.args.get('per_page') is not None:
+            page = int(request.args.get('page')) if request.args.get('page') else 1
+            per_page = int(request.args.get('per_page')) if request.args.get('per_page') else 20
+            page_query = Sample.query\
+                .filter(Sample.run_version_id == run.version_id)\
+                .filter(Sample.is_deleted != True)\
+                .paginate(page=page, per_page=per_page)\
+            results['page'] = page_query.page
+            results['pageCount'] = page_query.pages
+            query = page_query.items
+        else:
+            query = Sample.query\
+                .filter(Sample.run_version_id == run.version_id)\
+                .filter(Sample.is_deleted != True)\
+                .all()
+
+        results['samples'] = [
             run_to_sample(sample)
             for sample
             # in get_samples(run=run, run_version=run.current).distinct()
-            in Sample.query.filter(Sample.run_version_id == run.version_id).all()
+            in query
             if check_access(path=f"/run/{str(run_id)}", method="GET")
         ]
+        return results
 
 
 @api.route('/run/<int:run_id>/sample/<int:sample_id>')

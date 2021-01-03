@@ -3,15 +3,21 @@ import React from "react";
 import { Table } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { SampleResult } from "../models/sample-result";
+import { Paginator } from "./Paginator";
 
 export interface ResultsProps {
     className?: string;
     results: SampleResult[];
+
+    page?: number;
+    pageCount?: number;
+
+    onPageChange?: (page: number) => void;
 }
 
-export function ResultsTable({ className, results }: ResultsProps) {
-    return (
-        <Table className={className} striped bordered hover>
+export function ResultsTable({ className, results, page, pageCount, onPageChange }: ResultsProps) {
+    return <>
+        <Table className={className} striped bordered hover responsive>
             <thead>
                 <tr>
                     <th>Sample ID</th>
@@ -45,5 +51,10 @@ export function ResultsTable({ className, results }: ResultsProps) {
                 ))}
             </tbody>
         </Table>
-    );
+        {(page || pageCount) && <Paginator
+            page={page}
+            pageCount={pageCount}
+            onPageChange={onPageChange}
+        />}
+    </>;
 }

@@ -18,7 +18,11 @@ api = Namespace('users', description='Extra-Simple operations on users.', path='
 
 user_input = api.model('UserInput', {})
 user_output = api.model('UserOutput', { 'id': fields.Integer() })
-users_output = fields.List(fields.Nested(user_output))
+users_output = api.model('UsersOutput', {
+    'users': fields.List(fields.Nested(user_output)),
+    'page': fields.Integer(),
+    'pageCount': fields.Integer(),
+})
 
 
 user_id_param = {
@@ -31,6 +35,16 @@ version_id_param = {
     'in': 'query',
     'type': 'int'
 }
+page_param = {
+    'description': 'Page number if using pagination',
+    'in': 'query',
+    'type': 'int'
+}
+per_page_param = {
+    'description': 'Maximum number of records returned per page if using pagination',
+    'in': 'query',
+    'type': 'int'
+}
 
 
 def add_role(d):
@@ -40,20 +54,30 @@ def add_role(d):
 
 @api.route('/user')
 class UsersResource(Resource):
-    @api.doc(security='token', model=users_output)
+    @api.doc(security='token', model=users_output, params={'page': page_param, 'per_page': per_page_param})
     @requires_auth
-    # @requires_scope('read:users')
     def get(self):
-        return [
+        results = {}
+        if request.args.get('page') is not None or request.args.get('per_page') is not None:
+            page = int(request.args.get('page')) if request.args.get('page') else 1
+            per_page = int(request.args.get('per_page')) if request.args.get('per_page') else 20
+            page_query = User.query.filter(User.is_deleted != True).paginate(page=page, per_page=per_page)
+            results['page'] = page_query.page
+            results['pageCount'] = page_query.pages
+            query = page_query.items
+        else:
+            query = User.query.filter(User.is_deleted != True).all()
+
+        results['users'] = [
             add_role(versioned_row_to_dict(api, user, user.current))
             for user
-            in User.query.filter(User.is_deleted != True).all()
+            in query
             if check_access(path=f"/user/{user.id}", method="GET")
         ]
+        return results
 
     @api.doc(security='token', model=user_output, body=user_input)
     @requires_auth
-    # @requires_scope('write:users')
     # @requires_access()
     def post(self):
         user_dict = request.json
@@ -76,7 +100,6 @@ class UsersResource(Resource):
 class UserResource(Resource):
     @api.doc(security='token', model=user_output, params={'version_id': version_id_param})
     @requires_auth
-    # @requires_scope('read:users')
     @requires_access()
     def get(self, user_id):
         user_id = urllib.parse.unquote(user_id)
@@ -100,7 +123,6 @@ class UserResource(Resource):
 
     @api.doc(security='token', model=user_output, body=user_input)
     @requires_auth
-    # @requires_scope('write:users')
     @requires_access()
     def put(self, user_id):
         user_id = urllib.parse.unquote(user_id)

@@ -1,16 +1,16 @@
 import { selector, selectorFamily } from "recoil";
 import { labflowOptions } from "../config";
-import { Protocol } from "../models/protocol";
-import { Run } from "../models/run";
+import { Protocol, Protocols } from "../models/protocol";
+import { Run, Runs } from "../models/run";
 import { auth0State } from "./atoms";
 import { apiFetch, apiGetOne, FetchError, fetchWithoutAuth } from "./api";
-import { User } from "../models/user";
+import { User, Users } from "../models/user";
 import { Policy } from "../models/policy";
 import { SearchResults } from "../models/search-results";
 import { Auth0Client } from "@auth0/auth0-spa-js";
 import { Group } from "../models/group";
 import { ServerHealth } from "../models/server-health";
-import { SampleResult } from "../models/sample-result";
+import { SampleResult, SampleResults } from "../models/sample-result";
 
 
 function paramsToQuery(params?: {[name: string]: string}): string {
@@ -66,7 +66,7 @@ export const runSampleQuery = selectorFamily<SampleResult[], {
 // List Queries ---------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-export const protocolsQuery = selectorFamily<Protocol[], {
+export const protocolsQuery = selectorFamily<Protocols, {
   filterParams?: {[name: string]: string}
   queryTime: string;
 }>({
@@ -74,7 +74,7 @@ export const protocolsQuery = selectorFamily<Protocol[], {
   get: ({ filterParams }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `protocol${paramsToQuery(filterParams)}`),
 });
 
-export const runsQuery = selectorFamily<Run[], {
+export const runsQuery = selectorFamily<Runs, {
   filterParams?: {[name: string]: string}
   queryTime: string;
 }>({
@@ -82,7 +82,15 @@ export const runsQuery = selectorFamily<Run[], {
   get: ({ filterParams }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `run${paramsToQuery(filterParams)}`),
 });
 
-export const usersQuery = selectorFamily<User[], {
+export const samplesQuery = selectorFamily<SampleResults, {
+  filterParams?: {[name: string]: string}
+  queryTime: string;
+}>({
+  key: "samplesQuery",
+  get: ({ filterParams }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `sample${paramsToQuery(filterParams)}`),
+});
+
+export const usersQuery = selectorFamily<Users, {
   filterParams?: {[name: string]: string}
   queryTime: string;
 }>({
@@ -98,7 +106,7 @@ export const groupsQuery = selectorFamily<Group[], {
   get: ({ filterParams }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `group${paramsToQuery(filterParams)}`),
 });
 
-export const runSamplesQuery = selectorFamily<SampleResult[], {
+export const runSamplesQuery = selectorFamily<SampleResults, {
   runId: number;
   filterParams?: {[name: string]: string}
   queryTime: string;

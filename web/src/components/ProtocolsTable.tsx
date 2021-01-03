@@ -3,15 +3,21 @@ import React from "react";
 import { Table } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { Protocol } from "../models/protocol";
+import { Paginator } from "./Paginator";
 
 export interface ProtocolsProps {
     className?: string;
     protocols: Protocol[];
+
+    page?: number;
+    pageCount?: number;
+
+    onPageChange?: (page: number) => void;
 }
 
-export function ProtocolsTable({ className, protocols }: ProtocolsProps) {
-    return (
-        <Table striped bordered hover>
+export function ProtocolsTable({ className, protocols, page, pageCount, onPageChange }: ProtocolsProps) {
+    return <>
+        <Table className={className} striped bordered hover responsive>
             <thead>
                 <tr>
                     <th>ID</th>
@@ -35,5 +41,10 @@ export function ProtocolsTable({ className, protocols }: ProtocolsProps) {
                 ))}
             </tbody>
         </Table>
-    );
+        {(page || pageCount) && <Paginator
+            page={page}
+            pageCount={pageCount}
+            onPageChange={onPageChange}
+        />}
+    </>;
 }

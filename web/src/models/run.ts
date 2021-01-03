@@ -5,6 +5,7 @@ import moment from 'moment';
 import { exportAsDownload, objectsToCSV } from "../utils";
 import { SampleResult } from "./sample-result";
 import { serializeSlate, initialSlateValue } from "../slate";
+import { Paginated } from "./paginated";
 
 export type RunStatus = 'todo' | 'in-progress' | 'completed';
 
@@ -30,6 +31,10 @@ export interface Run extends Audited {
     sampleOverrides?: SampleResult[];
 
     protocol?: Protocol;
+}
+
+export interface Runs extends Paginated {
+    runs?: Run[];
 }
 
 export function humanizeRunName(run?: Run) {

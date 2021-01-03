@@ -47,6 +47,16 @@ reagent_param = {
     'in': 'query',
     'type': 'string'
 }
+page_param = {
+    'description': 'Page number if using pagination',
+    'in': 'query',
+    'type': 'int'
+}
+per_page_param = {
+    'description': 'Maximum number of records returned per page if using pagination',
+    'in': 'query',
+    'type': 'int'
+}
 
 
 def all_protocols(include_archived=False):
@@ -98,6 +108,8 @@ class ProtocolsResource(Resource):
             'plate': plate_param,
             'sample': sample_param,
             'reagent': reagent_param,
+            'page': page_param,
+            'per_page': per_page_param,
         }
     )
     @requires_auth
@@ -226,24 +238,37 @@ class ProtocolsResource(Resource):
         runs_query = reduce(lambda a, b: a.intersect(b), runs_queries)
         samples_query = reduce(lambda a, b: a.intersect(b), samples_queries)
 
+        # Handle pagination.
+        if request.args.get('page') is not None or request.args.get('per_page') is not None:
+            page = int(request.args.get('page')) if request.args.get('page') else 1
+            per_page = int(request.args.get('per_page')) if request.args.get('per_page') else 20
+
+            protocol_results = protocols_query.distinct().paginate(page=page, per_page=per_page).items
+            run_results = runs_query.distinct().paginate(page=page, per_page=per_page).items
+            sample_results = samples_query.distinct().paginate(page=page, per_page=per_page).items
+        else:
+            protocol_results = protocols_query.distinct()
+            run_results = runs_query.distinct()
+            sample_results = samples_query.distinct()
+
         # Convert database models to dictionaries and return the serch results.
         protocols = [
             versioned_row_to_dict(api, protocol, protocol.current)
             for protocol
-            in protocols_query.distinct()
+            in protocol_results
             if check_access(path=f"/protocol/{str(protocol.id)}", method="GET")
         ]
         runs = [
             versioned_row_to_dict(api, run, run.current)
             for run
-            in runs_query.distinct()
+            in run_results
             if check_access(path=f"/run/{str(run.id)}", method="GET")
         ]
         samples = [
             run_to_sample(sample)
             for sample
-            in samples_query.distinct()
-            # if check_access(path=f"/sample/{str(sample_id)}", method="GET")
+            in sample_results
+            if check_access(path=f"/run/{str(sample.run_version.run_id)}", method="GET")
         ]
         return {
             'protocols': protocols,

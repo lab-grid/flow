@@ -15,7 +15,11 @@ api = Namespace('protocols', description='Extra-Simple operations on protocols.'
 
 protocol_input = api.model('ProtocolInput', {})
 protocol_output = api.model('ProtocolOutput', { 'id': fields.Integer() })
-protocols_output = fields.List(fields.Nested(protocol_output))
+protocols_output = api.model('ProtocolsOutput', {
+    'protocols': fields.List(fields.Nested(protocol_output)),
+    'page': fields.Integer(),
+    'pageCount': fields.Integer(),
+})
 
 
 protocol_id_param = {
@@ -43,20 +47,42 @@ method_param = {
     'in': 'path',
     'type': 'string'
 }
+page_param = {
+    'description': 'Page number if using pagination',
+    'in': 'query',
+    'type': 'int'
+}
+per_page_param = {
+    'description': 'Maximum number of records returned per page if using pagination',
+    'in': 'query',
+    'type': 'int'
+}
 
 
 @api.route('/protocol')
 class ProtocolsResource(Resource):
-    @api.doc(security='token', model=protocols_output)
+    @api.doc(security='token', model=protocols_output, params={'page': page_param, 'per_page': per_page_param})
     @requires_auth
     @requires_scope('read:protocols')
     def get(self):
-        return [
+        results = {}
+        if request.args.get('page') is not None or request.args.get('per_page') is not None:
+            page = int(request.args.get('page')) if request.args.get('page') else 1
+            per_page = int(request.args.get('per_page')) if request.args.get('per_page') else 20
+            page_query = Protocol.query.filter(Protocol.is_deleted != True).paginate(page=page, per_page=per_page)
+            results['page'] = page_query.page
+            results['pageCount'] = page_query.pages
+            query = page_query.items
+        else:
+            query = Protocol.query.filter(Protocol.is_deleted != True).all()
+
+        results['protocols'] = [
             versioned_row_to_dict(api, protocol, protocol.current)
             for protocol
-            in Protocol.query.filter(Protocol.is_deleted != True).all()
+            in query
             if check_access(path=f"/protocol/{str(protocol.id)}", method="GET")
         ]
+        return results
 
     @api.doc(security='token', model=protocol_output, body=protocol_input)
     @requires_auth

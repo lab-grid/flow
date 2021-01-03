@@ -16,9 +16,11 @@ import { FetchError } from '../state/api';
 export function HomePage() {
     const [runsTimestamp, setRunsTimestamp] = React.useState("");
     const [protocolsTimestamp, setProtocolsTimestamp] = React.useState("");
+    const [protocolsPage, setProtocolsPage] = React.useState(1);
+    const [runsPage, setRunsPage] = React.useState(1);
     const history = useHistory();
-    const protocols = useRecoilValue(protocolsQuery({ queryTime: protocolsTimestamp }));
-    const runs = useRecoilValue(runsQuery({ queryTime: runsTimestamp }));
+    const protocols = useRecoilValue(protocolsQuery({ queryTime: protocolsTimestamp, filterParams: { page: `${protocolsPage}` } }));
+    const { runs, pageCount: runsPageCount } = useRecoilValue(runsQuery({ queryTime: runsTimestamp, filterParams: { page: `${runsPage}` } }));
     const [errors, setErrors] = useRecoilState(errorsState);
     const protocolUpsert = useRecoilCallback(({ snapshot }) => async (protocol: Protocol) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
@@ -82,7 +84,7 @@ export function HomePage() {
         </div>
         <div className="row mt-4">
             <Suspense fallback={<LoadingPage />}>
-                <RunsTable runs={runs} />
+                <RunsTable runs={runs || []} page={runsPage} pageCount={runsPageCount} onPageChange={setRunsPage} />
             </Suspense>
         </div>
         <div className="row">

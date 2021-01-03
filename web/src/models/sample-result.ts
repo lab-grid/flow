@@ -1,5 +1,6 @@
 import moment from "moment";
 import { exportAsDownload, objectsToCSV } from "../utils";
+import { Paginated } from "./paginated";
 
 export interface SampleResult {
     sampleID?: string;
@@ -19,6 +20,10 @@ export interface SampleResult {
     plateLots?: string[];
 
     completedOn?: string;
+}
+
+export interface SampleResults extends Paginated {
+    samples?: SampleResult[];
 }
 
 

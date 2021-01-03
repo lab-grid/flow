@@ -3,15 +3,21 @@ import React from "react";
 import { Table } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { humanizeRunName, Run } from "../models/run";
+import { Paginator } from "./Paginator";
 
 export interface RunsProps {
     className?: string;
     runs: Run[];
+
+    page?: number;
+    pageCount?: number;
+
+    onPageChange?: (page: number) => void;
 }
 
-export function RunsTable({ className, runs }: RunsProps) {
-    return (
-        <Table className={className} striped bordered hover>
+export function RunsTable({ className, runs, page, pageCount, onPageChange }: RunsProps) {
+    return <>
+        <Table className={className} striped bordered hover responsive>
             <thead>
                 <tr>
                     <th>ID</th>
@@ -37,5 +43,10 @@ export function RunsTable({ className, runs }: RunsProps) {
                 ))}
             </tbody>
         </Table>
-    );
+        {(page || pageCount) && <Paginator
+            page={page}
+            pageCount={pageCount}
+            onPageChange={onPageChange}
+        />}
+    </>;
 }

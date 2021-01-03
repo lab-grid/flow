@@ -3,6 +3,7 @@ import { BlockDefinition } from "./block-definition";
 import moment from 'moment';
 import { exportAsDownload, objectsToCSV } from "../utils";
 import { serializeSlate, initialSlateValue } from "../slate";
+import { Paginated } from "./paginated";
 
 export interface SectionDefinition {
     id?: string;
@@ -21,6 +22,10 @@ export interface Protocol extends Audited {
     witness?: string;
     signedOn?: string;
     witnessedOn?: string;
+}
+
+export interface Protocols extends Paginated {
+    protocols?: Protocol[];
 }
 
 
