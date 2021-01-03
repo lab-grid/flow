@@ -1,8 +1,8 @@
 """Add samples table.
 
-Revision ID: f500e59bf5e5
+Revision ID: 26152434f3f5
 Revises: 5d1a156b1e81
-Create Date: 2020-12-21 21:17:03.100139
+Create Date: 2021-01-03 00:36:02.956174
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'f500e59bf5e5'
+revision = '26152434f3f5'
 down_revision = '5d1a156b1e81'
 branch_labels = None
 depends_on = None
@@ -44,8 +44,6 @@ def upgrade():
     sa.Column('protocol_version_id', sa.Integer(), nullable=True),
     sa.Column('data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('updated_by', sa.String(length=64), nullable=True),
-    sa.ForeignKeyConstraint(['protocol_version_id'], ['sample.protocol_version_id'], ),
-    sa.ForeignKeyConstraint(['run_version_id'], ['sample.run_version_id'], ),
     sa.ForeignKeyConstraint(['sample_id', 'plate_id', 'run_version_id', 'protocol_version_id'], ['sample.sample_id', 'sample.plate_id', 'sample.run_version_id', 'sample.protocol_version_id'], ),
     sa.ForeignKeyConstraint(['updated_by'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')

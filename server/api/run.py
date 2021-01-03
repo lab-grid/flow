@@ -77,18 +77,18 @@ def get_samples(run, run_version):
     if not run_version.data['sections']:
         return samples
     for section in run_version.data['sections']:
-        if section['signature']:
+        if 'signature' in section:
             signers.append(section['signature'])
-        if section['witness']:
+        if 'witness' in section:
             signers.append(section['witness'])
 
-        if not section['blocks']:
+        if 'blocks' not in section:
             continue
         for block in section['blocks']:
-            if block['plateLot']:
+            if 'plateLot' in block:
                 lots.append(block['plateLot'])
 
-            if block['type'] == 'plate-sampler' and block['plateMappings']:
+            if block['type'] == 'plate-sampler' and 'plateMappings' in block:
                 for plate_id, sample in block['plateMappings'].items():
                     sample = Sample(
                         sample_id=sample['sampleLabel'],
@@ -106,7 +106,7 @@ def get_samples(run, run_version):
                     sample.protocol_version_id = run.protocol_version_id
                     sample.current = sample_version
                     samples.append(sample)            
-            if block['type'] == 'end-plate-sequencer' and block['plateSequencingResults']:
+            if block['type'] == 'end-plate-sequencer' and 'plateSequencingResults' in block:
                 for result in block['plateSequencingResults']:
                     results[f"{result['plateLabel']}-{result['plateRow']}-{result['plateCol']}"] = result
     for sample in samples:
@@ -232,6 +232,7 @@ class RunResource(Resource):
             db.session.delete(run)
         else:
             run.is_deleted = True
+            # TODO: Mark all samples as deleted/archived?
         db.session.commit()
         delete_policy(path=f"/run/{str(run.id)}")
         return {

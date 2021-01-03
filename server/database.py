@@ -249,14 +249,14 @@ class SampleVersion(BaseVersionModel):
 
     sample_id = db.Column(db.String(64))
     plate_id = db.Column(db.String(64))
-    run_version_id = db.Column(db.Integer, db.ForeignKey('sample.run_version_id'))
-    protocol_version_id = db.Column(db.Integer, db.ForeignKey('sample.protocol_version_id'))
+    run_version_id = db.Column(db.Integer)
+    protocol_version_id = db.Column(db.Integer)
 
     data = db.Column(JSONB)
 
     sample = db.relationship(
         'Sample',
-        primaryjoin='SampleVersion.sample_id==Sample.sample_id AND SampleVersion.plate_id==Sample.plate_id AND SampleVersion.run_version_id==Sample.run_version_id AND SampleVersion.protocol_version_id==Sample.protocol_version_id'
+        primaryjoin='(SampleVersion.sample_id==Sample.sample_id) | (SampleVersion.plate_id==Sample.plate_id) | (SampleVersion.run_version_id==Sample.run_version_id) | (SampleVersion.protocol_version_id==Sample.protocol_version_id)'
     )
 
     __table_args__ = (
@@ -292,26 +292,9 @@ class Sample(BaseModel):
     )
     history = db.relationship(
         SampleVersion,
-        primaryjoin='Sample.sample_id==SampleVersion.sample_id AND Sample.plate_id==SampleVersion.plate_id AND Sample.run_version_id==SampleVersion.run_version_id AND Sample.protocol_version_id==SampleVersion.protocol_version_id',
+        primaryjoin='(Sample.sample_id==SampleVersion.sample_id) | (Sample.plate_id==SampleVersion.plate_id) | (Sample.run_version_id==SampleVersion.run_version_id) | (Sample.protocol_version_id==SampleVersion.protocol_version_id)',
         post_update=True,
         back_populates="sample",
         cascade="all, delete",
         order_by=SampleVersion.updated_on,
     )
-
-
-# -----------------------------------------------------------------------------
-# Fake Data Generation --------------------------------------------------------
-# -----------------------------------------------------------------------------
-
-def fake_plate_sampler_upload():
-    pass
-
-def fake_plate_sequencer_results_upload():
-    pass
-
-def fake_run():
-    pass
-
-def fake_protocol():
-    pass
