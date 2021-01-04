@@ -8,8 +8,9 @@ import { userQuery } from '../state/selectors';
 import { RunBlockEditor } from './RunBlockEditor';
 import { SignatureEditor } from './SignatureEditor';
 
-export function RunSectionEditor({disabled, index, section, setSection, syncSection}: {
+export function RunSectionEditor({disabled, runId, index, section, setSection, syncSection}: {
     disabled?: boolean;
+    runId: number;
     index: number;
     section?: Section;
     setSection: (section?: Section) => void;
@@ -35,6 +36,15 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
         }
     };
 
+    const syncBlock = (block?: Block) => {
+        if (block && section) {
+            syncSection({
+                ...section,
+                blocks: currentBlocks.map(b => (b.definition.id === block.definition.id) ? block : b),
+            });
+        }
+    }
+
     return <>
         <h2 className="row">
             <i>Section {index + 1}: {(section && section.definition.name) || 'Untitled Section'}</i>
@@ -47,8 +57,10 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
             return <div key={block.definition.id}>
               <RunBlockEditor
                 key={block.definition.id}
+                runId={runId}
                 block={block}
                 setBlock={updateBlock}
+                syncBlock={syncBlock}
                 disabled={isSigned || isWitnessed || disabled}
               />
             </div>
