@@ -1,13 +1,13 @@
 from flask import abort, request
 from flask_restx import Resource, fields, Namespace
 
-from functools import wraps
+from functools import reduce, wraps
 
 from server import app, db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
-from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Sample, SampleVersion
+from database import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, versioned_row_to_dict, json_row_to_dict, strip_metadata, run_to_sample, Sample, SampleVersion, Run, RunVersion
 
-from api.utils import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, change_allowed, success_output, add_owner, add_updator, protocol_id_param, run_id_param, version_id_param, purge_param, user_id_param, method_param, sample_id_param, protocol_param, plate_param, sample_param, reagent_param, creator_param, archived_param, page_param, per_page_param
+from api.utils import change_allowed, success_output, add_owner, add_updator, protocol_id_param, run_id_param, version_id_param, purge_param, user_id_param, method_param, sample_id_param, run_param, protocol_param, plate_param, sample_param, reagent_param, creator_param, archived_param, page_param, per_page_param
 
 
 api = Namespace('samples', description='Extra-Simple operations on samples.', path='/')
@@ -23,7 +23,9 @@ samples_output = api.model('SamplesOutput', {
 
 
 def all_samples(include_archived=False):
-    query = Sample.query
+    query = Sample.query\
+        .join(RunVersion, RunVersion.id == Sample.run_version_id)\
+        .join(Run, Run.version_id == RunVersion.id)
     if not include_archived:
         query = query.filter(Sample.is_deleted != True)
     return query
@@ -43,7 +45,7 @@ class SamplesResource(Resource):
         'per_page': per_page_param,
     })
     @requires_auth
-    @requires_scope('read:samples')
+    # @requires_scope('read:samples')
     def get(self):
         protocol = int(request.args.get('protocol')) if request.args.get('protocol') else None
         run = int(request.args.get('run')) if request.args.get('run') else None
@@ -108,10 +110,10 @@ class SamplesResource(Resource):
             query = samples_query.distinct()
 
         results['samples'] = [
-            versioned_row_to_dict(api, sample, sample.current)
+            run_to_sample(sample)
             for sample
             in query
-            if check_access(path=f"/run/{str(sample.run_version.run_id)}", method="GET")
+            if check_access(path=f"/run/{str(sample.run_version.run_id)}", method="GET") and sample and sample.current
         ]
         return results
 
@@ -121,7 +123,7 @@ class SamplesResource(Resource):
 class SampleResource(Resource):
     @api.doc(security='token', model=sample_output, params={'version_id': version_id_param})
     @requires_auth
-    @requires_scope('read:samples')
+    # @requires_scope('read:samples')
     @requires_access()
     def get(self, sample_id):
         version_id = int(request.args.get('version_id')) if request.args.get('version_id') else None
@@ -134,17 +136,17 @@ class SampleResource(Resource):
             if (not sample_version) or sample_version.sample.is_deleted:
                 abort(404)
                 return
-            return versioned_row_to_dict(api, sample_version.sample, sample_version)
+            return run_to_sample(sample_version.sample)
         
         sample = Sample.query.get(sample_id)
         if (not sample) or sample.is_deleted:
             abort(404)
             return
-        return versioned_row_to_dict(api, sample, sample.current)
+        return run_to_sample(sample)
 
     @api.doc(security='token', model=sample_output, body=sample_input)
     @requires_auth
-    @requires_scope('write:samples')
+    # @requires_scope('write:samples')
     @requires_access()
     def put(self, sample_id):
         sample_dict = request.json
@@ -152,7 +154,7 @@ class SampleResource(Resource):
         if not sample or sample.is_deleted:
             abort(404)
             return
-        if not change_allowed(versioned_row_to_dict(api, sample, sample.current), sample_dict):
+        if not change_allowed(run_to_sample(sample), sample_dict):
             abort(403)
             return
         sample_version = SampleVersion(data=strip_metadata(sample_dict), server_version=app.config['SERVER_VERSION'])
@@ -161,4 +163,4 @@ class SampleResource(Resource):
         sample.current = sample_version
         db.session.add(sample_version)
         db.session.commit()
-        return versioned_row_to_dict(api, sample, sample.current)
+        return run_to_sample(sample)

@@ -102,5 +102,5 @@ export interface PlateResult {
 export interface PlateCoordinate {
     row?: number;
     col?: number;
-    sampleLabel?: number;
+    sampleLabel?: string;
 }

@@ -1,12 +1,12 @@
 import moment from "moment";
 import React, { useState } from "react";
 import { Form } from "react-bootstrap";
-import { useRecoilState } from "recoil";
+import { useRecoilState, useRecoilValue } from "recoil";
 import { Run, Section, calculateRunStatus, humanizeRunName } from "../models/run";
 import { SampleResult, exportSampleResultsToCSV } from "../models/sample-result";
 import { deserializeSlate, initialSlateValue, serializeSlate } from "../slate";
-import { FetchError } from "../state/api";
-import { errorsState } from "../state/atoms";
+import { FetchError, getRunSamples } from "../state/api";
+import { auth0State, errorsState } from "../state/atoms";
 import { DocumentTitle } from "./DocumentTitle";
 import { ResultsTable } from "./ResultsTable";
 import { RunSectionEditor } from "./RunSectionEditor";
@@ -14,7 +14,7 @@ import { SaveButton } from "./SaveButton";
 import { SavedIndicator } from "./SavedIndicator";
 import { SlateInput } from "./SlateInput";
 
-export function RunEditor({disableSharing, disableDelete, disablePrint, disableSave, samples, run, setRun, runUpsert, onDelete}: {
+export function RunEditor({disableSharing, disableDelete, disablePrint, disableSave, samples, run, setRun, runUpsert, onDelete, samplesPage, samplesPageCount, onSamplesPageChange}: {
     disableSharing?: boolean;
     disableDelete?: boolean;
     disablePrint?: boolean;
@@ -24,10 +24,19 @@ export function RunEditor({disableSharing, disableDelete, disablePrint, disableS
     setRun: (run: Run) => void;
     runUpsert: (run: Run) => Promise<Run>;
     onDelete: () => void;
+
+    // Samples pagination
+    samplesPage?: number;
+    samplesPageCount?: number;
+
+    onSamplesPageChange?: (page: number) => void;
 }) {
     const [formSaving, setFormSaving] = useState<boolean>(false);
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
     const [errors, setErrors] = useRecoilState(errorsState);
+
+    // For samples export.
+    const { auth0Client } = useRecoilValue(auth0State);
 
     const isCompleted = (run && run.status) === 'completed';
 
@@ -73,11 +82,16 @@ export function RunEditor({disableSharing, disableDelete, disablePrint, disableS
         }
     }
 
-    const exportSamples = () => {
-        if (!samples) {
+    const exportSamples = async () => {
+        if (!run || !run.id || auth0Client) {
             return;
         }
-        exportSampleResultsToCSV(`export-sample-results-${moment().format()}.csv`, samples, true);
+        const samples = await getRunSamples(() => auth0Client, run.id);
+        if (!samples || !samples.samples) {
+            alert('No samples were found to be exported!');
+            return;
+        }
+        exportSampleResultsToCSV(`export-sample-results-${moment().format()}.csv`, samples.samples, true);
     };
 
     return <>
@@ -122,7 +136,7 @@ export function RunEditor({disableSharing, disableDelete, disablePrint, disableS
                     {(samples && samples.length) || 0}
                 </small>
             </div>
-            <ResultsTable results={samples || []} />
+            <ResultsTable results={samples || []} page={samplesPage} pageCount={samplesPageCount} onPageChange={onSamplesPageChange} />
 
             {!disableSave && <div className="row">
                 <SaveButton

@@ -41,7 +41,7 @@ export function ProtocolsTable({ className, protocols, page, pageCount, onPageCh
                 ))}
             </tbody>
         </Table>
-        {(page || pageCount) && <Paginator
+        {(page || pageCount) && (pageCount || 1) > 1 && <Paginator
             page={page}
             pageCount={pageCount}
             onPageChange={onPageChange}

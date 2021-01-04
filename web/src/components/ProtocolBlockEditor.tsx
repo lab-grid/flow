@@ -630,7 +630,13 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     label="Number of plates to sequence"
                     plateCount={block.plateCount}
                     setPlateCount={plateCount => {
-                        let plates = block.plates || Array(plateCount).map(() => ({id: uuid.v4()}));
+                        let plates = block.plates;
+                        if (!plates) {
+                            plates = Array(plateCount || 0);
+                            for (let i = 0; i < (plateCount || 0); i++) {
+                                plates[i] = {id: uuid.v4()};
+                            }
+                        }
                         if (plates.length !== plateCount) {
                             const newPlates: BlockPlate[] = [];
                             for (let i = 0; i < (plateCount || 0); i++) {

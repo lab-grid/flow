@@ -27,9 +27,9 @@ export function Paginator({className, style, page, pageCount, onPageChange}: {
     return <Pagination className={className} style={style}>
         <Pagination.First onClick={handlePageChange(1)} />
         <Pagination.Prev onClick={handlePageChange(Math.max(currentPage - 1, 1))} />
-        {paginationPages.length && paginationPages[0] && <Pagination.Ellipsis disabled />}
-        {paginationPages.map(i => <Pagination.Item active={currentPage === i} disabled={currentPage === i} onClick={handlePageChange(i)}>{i}</Pagination.Item>)}
-        {paginationPages.length && paginationPages[paginationPages.length - 1] !== pageCount && <Pagination.Ellipsis disabled />}
+        {paginationPages.length && !paginationPages[0] && <Pagination.Ellipsis disabled />}
+        {paginationPages.map(i => <Pagination.Item key={i} active={currentPage === i} disabled={currentPage === i} onClick={handlePageChange(i)}>{i}</Pagination.Item>)}
+        {paginationPages.length && paginationPages[paginationPages.length - 1] !== (pageCount || 1) && <Pagination.Ellipsis disabled />}
         <Pagination.Next onClick={handlePageChange(Math.min(currentPage + 1, pageCount || 1))} />
         <Pagination.Last onClick={handlePageChange(pageCount || 1)} />
     </Pagination>

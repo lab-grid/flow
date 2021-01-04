@@ -171,7 +171,8 @@ function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, setCoor
                 results[row.plate] = [];
             }
             const coordinate = cellToCoordinate(row.cell);
-            coordinate.sampleLabel = typeof row.sample === 'string' ? undefined : row.sample;
+            coordinate.sampleLabel = `${row.sample}`;
+            // coordinate.sampleLabel = typeof row.sample === 'string' ? undefined : row.sample;
             results[row.plate].push(coordinate);
         }
         const labels = Object.keys(results);

@@ -31,9 +31,11 @@ export interface PoliciesTableProps {
 
 export function PoliciesTable(props: PoliciesTableProps) {
     const [usersTimestamp] = useState("");
-    const users = useRecoilValue(usersQuery({ queryTime: usersTimestamp }));
+    const { users } = useRecoilValue(usersQuery({ queryTime: usersTimestamp }));
     const userLookup = new Map<string, User>();
-    users.forEach(user => user.id && userLookup.set(user.id, user));
+    if (users) {
+        users.forEach(user => user.id && userLookup.set(user.id, user));
+    }
 
     return (
         <Table striped bordered hover>

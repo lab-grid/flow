@@ -26,7 +26,7 @@ export function SharingModal(props: SharingModalProps) {
     const [newSubjectId, setNewSubjectId] = useState<string | null>(null);
     const [newMethod, setNewMethod] = useState<string>("GET");
     const policies = useRecoilValue(policyQuery({ path: props.targetPath, queryTime: policiesTimestamp }));
-    const users = useRecoilValue(usersQuery({ queryTime: usersTimestamp }));
+    const { users } = useRecoilValue(usersQuery({ queryTime: usersTimestamp }));
     const groups = useRecoilValue(groupsQuery({ queryTime: groupsTimestamp }));
     const firstUserId = users && (users.length > 0) && users[0].id;
     const firstGroupId = groups && (groups.length > 0) && groups[0].id;
@@ -72,7 +72,7 @@ export function SharingModal(props: SharingModalProps) {
                             <option key={group.id} value={group.id}>{group.id}</option>
                         )}
                         <option className="divider" disabled={true} />
-                        {users.map(user =>
+                        {users && users.map(user =>
                             <option key={user.id} value={user.id}>{user.fullName || user.email || user.id}</option>
                         )}
                     </Form.Control>

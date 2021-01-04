@@ -1,5 +1,10 @@
 import { Auth0Client } from "@auth0/auth0-spa-js";
-import { LabflowOptions } from "../config";
+import { labflowOptions, LabflowOptions } from "../config";
+import { Group } from "../models/group";
+import { Protocols } from "../models/protocol";
+import { Runs } from "../models/run";
+import { SampleResults } from "../models/sample-result";
+import { Users } from "../models/user";
 
 export class FetchError extends Error {
     constructor(
@@ -71,4 +76,38 @@ export async function apiGetOne(options: LabflowOptions, auth0ClientFn: () => Au
         }
         throw err;
     }
+}
+
+export function paramsToQuery(params?: {[name: string]: string}): string {
+    if (!params) {
+      return '';
+    }
+    const queryParams = new URLSearchParams(params);
+    const queryParamsStr = queryParams.toString();
+  
+    return queryParamsStr ? `?${queryParamsStr}` : '';
+}
+
+
+// ----------------------------------------------------------------------------
+// List Queries ---------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+export function getProtocols(auth0ClientFn: () => Auth0Client | undefined, filterParams?: { [name: string]: string }): Promise<Protocols> {
+    return apiFetch(labflowOptions, auth0ClientFn, "GET", `protocol${paramsToQuery(filterParams)}`)
+}
+export function getRuns(auth0ClientFn: () => Auth0Client | undefined, filterParams?: { [name: string]: string }): Promise<Runs> {
+    return apiFetch(labflowOptions, auth0ClientFn, "GET", `run${paramsToQuery(filterParams)}`)
+}
+export function getSamples(auth0ClientFn: () => Auth0Client | undefined, filterParams?: { [name: string]: string }): Promise<SampleResults> {
+    return apiFetch(labflowOptions, auth0ClientFn, "GET", `sample${paramsToQuery(filterParams)}`)
+}
+export function getUsers(auth0ClientFn: () => Auth0Client | undefined, filterParams?: { [name: string]: string }): Promise<Users> {
+    return apiFetch(labflowOptions, auth0ClientFn, "GET", `user${paramsToQuery(filterParams)}`)
+}
+export function getGroups(auth0ClientFn: () => Auth0Client | undefined, filterParams?: { [name: string]: string }): Promise<Group[]> {
+    return apiFetch(labflowOptions, auth0ClientFn, "GET", `group${paramsToQuery(filterParams)}`)
+}
+export function getRunSamples(auth0ClientFn: () => Auth0Client | undefined, runId: number, filterParams?: { [name: string]: string }): Promise<SampleResults> {
+    return apiFetch(labflowOptions, auth0ClientFn, "GET", `run/${runId}/sample${paramsToQuery(filterParams)}`)
 }

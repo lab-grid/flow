@@ -51,7 +51,7 @@ export function ResultsTable({ className, results, page, pageCount, onPageChange
                 ))}
             </tbody>
         </Table>
-        {(page || pageCount) && <Paginator
+        {(page || pageCount) && (pageCount || 1) > 1 && <Paginator
             page={page}
             pageCount={pageCount}
             onPageChange={onPageChange}

@@ -43,7 +43,7 @@ export function RunsTable({ className, runs, page, pageCount, onPageChange }: Ru
                 ))}
             </tbody>
         </Table>
-        {(page || pageCount) && <Paginator
+        {(page || pageCount) && (pageCount || 1) > 1 && <Paginator
             page={page}
             pageCount={pageCount}
             onPageChange={onPageChange}

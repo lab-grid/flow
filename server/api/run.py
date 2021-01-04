@@ -2,13 +2,13 @@ import copy
 from flask import abort, request
 from flask_restx import Resource, fields, Namespace
 
-from functools import wraps
+from functools import reduce, wraps
 
 from server import app, db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
-from database import versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol, run_to_sample, Sample, SampleVersion
+from database import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol, run_to_sample, Sample, SampleVersion
 
-from api.utils import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, change_allowed, success_output, add_owner, add_updator, run_id_param, version_id_param, purge_param, user_id_param, method_param, sample_id_param, protocol_param, plate_param, sample_param, reagent_param, creator_param, archived_param, page_param, per_page_param
+from api.utils import change_allowed, success_output, add_owner, add_updator, run_id_param, version_id_param, purge_param, user_id_param, method_param, sample_id_param, protocol_param, plate_param, sample_param, reagent_param, creator_param, archived_param, page_param, per_page_param
 
 
 api = Namespace('runs', description='Extra-Simple operations on runs.', path='/')
@@ -56,7 +56,7 @@ def get_samples(run, run_version):
         if 'signature' in section:
             signers.append(section['signature'])
         if 'witness' in section:
-            signers.append(section['witness'])
+            witnesses.append(section['witness'])
 
         if 'blocks' not in section:
             continue
@@ -65,23 +65,28 @@ def get_samples(run, run_version):
                 lots.append(block['plateLot'])
 
             if block['type'] == 'plate-sampler' and 'plateMappings' in block:
-                for plate_id, sample in block['plateMappings'].items():
-                    sample = Sample(
-                        sample_id=sample['sampleLabel'],
-                        plate_id=plate_id,
-                    )
-                    sample_version = SampleVersion(
-                        data={
-                            'plateRow': sample.row,
-                            'plateCol': sample.col,
-                        },
-                        sample=sample,
-                        server_version=app.config['SERVER_VERSION'],
-                    )
-                    sample.run_version = run_version
-                    sample.protocol_version_id = run.protocol_version_id
-                    sample.current = sample_version
-                    samples.append(sample)            
+                for plate_id, plate_samples in block['plateMappings'].items():
+                    if not plate_samples:
+                        continue
+                    for plate_sample in plate_samples:
+                        if 'sampleLabel' not in plate_sample:
+                            continue
+                        sample = Sample(
+                            sample_id=f"{plate_sample['sampleLabel']}",
+                            plate_id=plate_id,
+                        )
+                        sample_version = SampleVersion(
+                            data={
+                                'plateRow': plate_sample['row'],
+                                'plateCol': plate_sample['col'],
+                            },
+                            sample=sample,
+                            server_version=app.config['SERVER_VERSION'],
+                        )
+                        sample.run_version = run_version
+                        sample.protocol_version_id = run.protocol_version_id
+                        sample.current = sample_version
+                        samples.append(sample)
             if block['type'] == 'end-plate-sequencer' and 'plateSequencingResults' in block:
                 for result in block['plateSequencingResults']:
                     results[f"{result['plateLabel']}-{result['plateRow']}-{result['plateCol']}"] = result
@@ -93,7 +98,6 @@ def get_samples(run, run_version):
         sample.current.data['signers'] = signers
         sample.current.data['witnesses'] = witnesses
         sample.current.data['plateLots'] = lots
-    return samples
 
 def all_runs(include_archived=False):
     query = Run.query
@@ -185,7 +189,7 @@ class RunsResource(Resource):
             run_to_dict(run, run.current)
             for run
             in query
-            if check_access(path=f"/run/{str(run.id)}", method="GET")
+            if check_access(path=f"/run/{str(run.id)}", method="GET") and run and run.current
         ]
         return results
 
@@ -385,29 +389,29 @@ class RunSamplesResource(Resource):
         # Add filter specific queries. These will be intersected later on.
         if protocol:
             samples_queries.append(
-                all_samples(archived)\
+                all_samples(run, archived)\
                     .join(ProtocolVersion, ProtocolVersion.id == Sample.protocol_version_id)\
                     .filter(ProtocolVersion.protocol_id == protocol)
             )
         if plate:
             samples_queries.append(
-                all_samples(archived)\
+                all_samples(run, archived)\
                     .filter(Sample.plate_id == plate)
             )
         if reagent:
-            run_version_query = all_samples(archived)\
+            run_version_query = all_samples(run, archived)\
                 .join(RunVersion, RunVersion.id == Sample.run_version_id)
             samples_subquery = filter_by_reagent_label(run_version_query, reagent)
             samples_queries.append(samples_subquery)
         if creator:
             samples_queries.append(
-                all_samples(archived)\
+                all_samples(run, archived)\
                     .filter(Sample.created_by == creator)
             )
 
         # Add a basic non-deleted items query if no filters were specified.
         if len(samples_queries) == 0:
-            samples_queries.append(all_samples(archived))
+            samples_queries.append(all_samples(run, archived))
 
         # Only return the intersection of all queries.
         samples_query = reduce(lambda a, b: a.intersect(b), samples_queries)

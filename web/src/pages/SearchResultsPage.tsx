@@ -10,6 +10,8 @@ import { exportProtocolsToCSV } from "../models/protocol";
 import { exportRunsToCSV } from "../models/run";
 import { exportSampleResultsToCSV } from "../models/sample-result";
 import { User } from "../models/user";
+import { getProtocols, getRuns, getSamples } from "../state/api";
+import { auth0State } from "../state/atoms";
 
 function ParametricSearch({
     users,
@@ -118,27 +120,48 @@ export function SearchResultsPage() {
     const [includeArchived, setIncludeArchived] = useState(false);
 
     const { users } = useRecoilValue(usersQuery({ queryTime }));
-    const { protocols, pageCount: protocolsPageCount } = useRecoilValue(protocolsQuery({ queryTime, filterParams }));
-    const { runs, pageCount: runsPageCount } = useRecoilValue(runsQuery({ queryTime, filterParams }));
-    const { samples, pageCount: samplesPageCount } = useRecoilValue(samplesQuery({ queryTime, filterParams }));
+    const protocolsParams = { ...filterParams, page: `${protocolsPage}` };
+    const runsParams = { ...filterParams, page: `${runsPage}` };
+    const samplesParams = { ...filterParams, page: `${samplesPage}` };
+    const { protocols, pageCount: protocolsPageCount } = useRecoilValue(protocolsQuery({ queryTime, filterParams: protocolsParams }));
+    const { runs, pageCount: runsPageCount } = useRecoilValue(runsQuery({ queryTime, filterParams: runsParams }));
+    const { samples, pageCount: samplesPageCount } = useRecoilValue(samplesQuery({ queryTime, filterParams: samplesParams }));
 
-    const exportProtocols = () => {
-        if (!protocols) {
+    // For samples exporting.
+    const { auth0Client } = useRecoilValue(auth0State);
+
+    const exportProtocols = async () => {
+        if (auth0Client) {
             return;
         }
-        exportProtocolsToCSV(`export-protocols-${moment().format()}.csv`, protocols, true);
+        const protocols = await getProtocols(() => auth0Client, filterParams);
+        if (!protocols || !protocols.protocols) {
+            alert('No protocols were found to be exported!');
+            return;
+        }
+        exportProtocolsToCSV(`export-protocol-results-${moment().format()}.csv`, protocols.protocols, true);
     };
-    const exportRuns = () => {
-        if (!runs) {
+    const exportRuns = async () => {
+        if (auth0Client) {
             return;
         }
-        exportRunsToCSV(`export-runs-${moment().format()}.csv`, runs, true);
+        const runs = await getRuns(() => auth0Client, filterParams);
+        if (!runs || !runs.runs) {
+            alert('No runs were found to be exported!');
+            return;
+        }
+        exportRunsToCSV(`export-run-results-${moment().format()}.csv`, runs.runs, true);
     };
-    const exportSamples = () => {
-        if (!samples) {
+    const exportSamples = async () => {
+        if (auth0Client) {
             return;
         }
-        exportSampleResultsToCSV(`export-sample-results-${moment().format()}.csv`, samples, true);
+        const samples = await getSamples(() => auth0Client, filterParams);
+        if (!samples || !samples.samples) {
+            alert('No samples were found to be exported!');
+            return;
+        }
+        exportSampleResultsToCSV(`export-sample-results-${moment().format()}.csv`, samples.samples, true);
     };
 
     return <div className="container mt-4">

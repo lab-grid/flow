@@ -14,10 +14,11 @@ export interface RunEditorPageParams {
 export function RunEditorPage() {
     const history = useHistory();
     const [runTimestamp, setRunTimestamp] = useState("");
+    const [samplesPage, setSamplesPage] = React.useState(1);
     const [currentRun, setCurrentRun] = useState<Run>({});
     const { id } = useParams<RunEditorPageParams>();
     const run = useRecoilValue(runQuery({ runId: parseInt(id), queryTime: runTimestamp }));
-    const samples = useRecoilValue(runSamplesQuery({ runId: parseInt(id), queryTime: runTimestamp }));
+    const { samples, pageCount: samplesPageCount } = useRecoilValue(runSamplesQuery({ runId: parseInt(id), queryTime: runTimestamp, filterParams: { page: `${samplesPage}` } }));
     const runUpsert = useRecoilCallback(({ snapshot }) => async (run: Run) => {
         try {
             const { auth0Client } = await snapshot.getPromise(auth0State);
@@ -38,9 +39,13 @@ export function RunEditorPage() {
 
     return <RunEditor
         runUpsert={runUpsert}
-        samples={samples}
+        samples={samples || []}
         setRun={setCurrentRun}
         run={{...initialRun, ...run, ...currentRun}}
         onDelete={runArchive}
+
+        samplesPage={samplesPage}
+        samplesPageCount={samplesPageCount}
+        onSamplesPageChange={setSamplesPage}
     />
 }

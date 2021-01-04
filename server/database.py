@@ -62,7 +62,7 @@ def versioned_row_to_dict(api, row, row_version):
     Args:
         row (BaseModel): The db row object
     """
-    d = copy.deepcopy(row_version.data) if row_version.data else {}
+    d = copy.deepcopy(row_version.data) if row_version and row_version.data else {}
     if row.id:
         d['id'] = row.id
     if row.created_on:
