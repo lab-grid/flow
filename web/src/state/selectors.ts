@@ -7,7 +7,6 @@ import { apiFetch, apiGetOne, FetchError, fetchWithoutAuth, getGroups, getProtoc
 import { User, Users } from "../models/user";
 import { Policy } from "../models/policy";
 import { SearchResults } from "../models/search-results";
-import { Auth0Client } from "@auth0/auth0-spa-js";
 import { Group } from "../models/group";
 import { ServerHealth } from "../models/server-health";
 import { SampleResult, SampleResults } from "../models/sample-result";
@@ -129,42 +128,6 @@ export const searchQuery = selectorFamily<SearchResults, {
   key: "searchQuery",
   get: ({ filterParams }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `search${paramsToQuery(filterParams)}`),
 });
-
-
-// ----------------------------------------------------------------------------
-// Upserts --------------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
-export function upsertProtocol(auth0ClientFn: () => Auth0Client | undefined, protocol: Protocol): Promise<Protocol> {
-  const method = protocol.id ? "PUT" : "POST";
-  const path = protocol.id ? `protocol/${protocol.id}` : "protocol";
-  return apiFetch(labflowOptions, auth0ClientFn, method, path, protocol);
-}
-
-export function upsertRun(auth0ClientFn: () => Auth0Client | undefined, run: Run): Promise<Run> {
-  const method = run.id ? "PUT" : "POST";
-  const path = run.id ? `run/${run.id}` : "run";
-  return apiFetch(labflowOptions, auth0ClientFn, method, path, run);
-}
-
-export function upsertUser(auth0ClientFn: () => Auth0Client | undefined, user: User, put?: boolean): Promise<User> {
-  const method = put ? "PUT" : "POST";
-  const path = put ? `user/${user.id}` : "user";
-  return apiFetch(labflowOptions, auth0ClientFn, method, path, user);
-}
-
-
-// ----------------------------------------------------------------------------
-// Deletes --------------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
-export function deleteProtocol(auth0ClientFn: () => Auth0Client | undefined, id: number): Promise<void> {
-  return apiFetch(labflowOptions, auth0ClientFn, "DELETE", `protocol/${id}`);
-}
-
-export function deleteRun(auth0ClientFn: () => Auth0Client | undefined, id: number): Promise<void> {
-  return apiFetch(labflowOptions, auth0ClientFn, "DELETE", `run/${id}`);
-}
 
 
 // ----------------------------------------------------------------------------

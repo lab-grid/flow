@@ -7,6 +7,10 @@ import { BlockPrimer, CalculatorBlockDefinition, EndTimestampBlockDefinition, Op
 import { TableUploadModal } from './TableUploadModal';
 import { Calculator } from './Calculator';
 import DatePicker from "react-datepicker";
+import { deleteRunAttachment, downloadRunAttachment, uploadRunAttachment } from '../state/api';
+import { useRecoilCallback } from 'recoil';
+import { auth0State } from '../state/atoms';
+import { Attachment } from '../models/attachment';
 
 function RunBlockLabel({ name }: {
     name?: string;
@@ -298,58 +302,66 @@ function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
     </>
 }
 
-function fileToBase64(file: File): Promise<string | ArrayBuffer | null> {
-    return new Promise<string | ArrayBuffer | null>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-    });
-}
-
-function RunBlockFileUploader({ disabled, label, fileData, setFileData }: {
+function RunBlockFileUploader({ disabled, runId, label, fileData, setFileData }: {
     disabled?: boolean;
+    runId: number;
     label?: string;
     fileData?: BlockAttachment;
     setFileData: (fileData?: BlockAttachment) => void;
 }) {
-    const uploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadFile = useRecoilCallback(({ snapshot }) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files) {
             return;
         }
+        const files = [...e.target.files];
         const result: BlockAttachment = fileData ? {...fileData} : {};
-        for (const file of e.target.files) {
+        const { auth0Client } = await snapshot.getPromise(auth0State);
+        const resultPromises: Promise<Attachment>[] = [];
+        for (const file of files) {
             if (file) {
-                const data = await fileToBase64(file);
-                if (data) {
-                    result[file.name] = data.toString();
-                }
+                resultPromises.push(uploadRunAttachment(() => auth0Client, runId, file));
+            }
+        }
+        const results = await Promise.all(resultPromises);
+        for (const attachment of results) {
+            if (attachment.id) {
+                result[attachment.id] = attachment.name || "";
             }
         }
         setFileData(result);
-    };
-    const deleteFile = (filename: string) => {
+    });
+    const deleteFile = useRecoilCallback(({ snapshot }) => async (id: string) => {
+        const { auth0Client } = await snapshot.getPromise(auth0State);
+        await deleteRunAttachment(() => auth0Client, runId, id);
         const newFileData = {...fileData};
-        delete newFileData[filename];
+        delete newFileData[id];
         setFileData(newFileData);
-    }
+    });
+    const downloadFile = useRecoilCallback(({ snapshot }) => async (id: string, filename: string) => {
+        const { auth0Client } = await snapshot.getPromise(auth0State);
+        await downloadRunAttachment(() => auth0Client, runId, id, filename);
+    });
 
-    return <>
-        <Form.Group>
-            <Form.Label>{label}</Form.Label>
-            <Form.File
-                disabled={disabled}
-                label={fileData ? "File saved. Upload new file(s)" : "Upload new file(s)"}
-                onChange={uploadFile}
-            />
-            {Object.entries(fileData || {}).map(([filename, data]) =>
-                <div className="d-flex">
-                    <a className="mr-auto my-auto" href={data} download={filename}>{filename}</a>
-                    <Button variant="outline-danger" size="sm" onClick={() => deleteFile(filename)}><Trash /></Button>
-                </div>
-            )}
-        </Form.Group>
-    </>
+    return <Form.Group>
+        <Form.Label>{label}</Form.Label>
+        <Form.File
+            disabled={disabled}
+            label={fileData ? "File saved. Upload new file(s)" : "Upload new file(s)"}
+            onChange={uploadFile}
+        />
+        {Object.entries(fileData || {}).map(([attachmentId, filename]) =>
+            <div className="d-flex">
+                <a
+                    className="mr-auto my-auto"
+                    href="#"
+                    onClick={() => downloadFile(attachmentId, filename)}
+                >
+                    {filename}
+                </a>
+                <Button variant="outline-danger" size="sm" onClick={() => deleteFile(attachmentId)}><Trash /></Button>
+            </div>
+        )}
+    </Form.Group>
 }
 
 function RunBlockPlateLabelEditor({ disabled, name, wells, label, setLabel }: {
@@ -597,8 +609,9 @@ function RunBlockStartPlateSequencerEditor({ disabled, definition, plateLabels, 
     </>
 }
 
-function RunBlockEndPlateSequencerEditor({ disabled, definition, attachments, setAttachments, results, setResults, timestampLabel, setTimestampLabel, endedOn, setEndedOn }: {
+function RunBlockEndPlateSequencerEditor({ disabled, runId, definition, attachments, setAttachments, results, setResults, timestampLabel, setTimestampLabel, endedOn, setEndedOn }: {
     disabled?: boolean;
+    runId: number;
     definition: EndPlateSequencerBlockDefinition;
     attachments?: BlockAttachment;
     setAttachments: (attachment?: BlockAttachment) => void;
@@ -651,6 +664,7 @@ function RunBlockEndPlateSequencerEditor({ disabled, definition, attachments, se
         <RunBlockFileUploader
             label="Analysis data"
             disabled={disabled}
+            runId={runId}
             fileData={attachments}
             setFileData={setAttachments}
         />
@@ -753,6 +767,7 @@ function RunBlockEndTimestampEditor({ disabled, definition, timestampLabel, setT
 
 export interface RunBlockEditorProps {
     disabled?: boolean;
+    runId: number;
     block?: Block;
     setBlock: (block?: Block) => void;
 }
@@ -852,6 +867,7 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
             return (
                 <RunBlockEndPlateSequencerEditor
                     disabled={props.disabled}
+                    runId={props.runId}
                     definition={block.definition}
                     attachments={props.block && props.block.attachments}
                     setAttachments={attachment => props.setBlock({ ...block, type: 'end-plate-sequencer', attachments: attachment })}

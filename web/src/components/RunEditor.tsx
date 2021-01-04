@@ -14,7 +14,22 @@ import { SaveButton } from "./SaveButton";
 import { SavedIndicator } from "./SavedIndicator";
 import { SlateInput } from "./SlateInput";
 
-export function RunEditor({disableSharing, disableDelete, disablePrint, disableSave, samples, run, setRun, runUpsert, onDelete, samplesPage, samplesPageCount, onSamplesPageChange}: {
+export function RunEditor({
+    disableSharing,
+    disableDelete,
+    disablePrint,
+    disableSave,
+    samples,
+    run,
+    setRun,
+    runUpsert,
+    onDelete,
+
+    samplesPage,
+    samplesPageCount,
+
+    onSamplesPageChange,
+}: {
     disableSharing?: boolean;
     disableDelete?: boolean;
     disablePrint?: boolean;
@@ -122,6 +137,7 @@ export function RunEditor({disableSharing, disableDelete, disablePrint, disableS
                 }
                 return <RunSectionEditor
                     key={section.definition.id}
+                    runId={(run && run.id) || -1}
                     index={i}
                     section={section}
                     setSection={updateSection}

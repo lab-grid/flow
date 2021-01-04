@@ -173,6 +173,14 @@ class BaseVersionModel(db.Model):
     def updator(cls):
         return db.relationship('User', primaryjoin=cls.__name__+'.updated_by==User.id')
 
+class Attachment(BaseModel):
+    __tablename__ = 'attachment'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(256))
+    mimetype = db.Column(db.String(64))
+    data = db.Column(db.LargeBinary)
+
 class UserVersion(BaseVersionModel):
     __tablename__ = 'user_version'
 
@@ -231,6 +239,16 @@ class Protocol(BaseModel):
         order_by=UserVersion.updated_on,
     )
 
+class RunVersionAttachment(db.Model):
+    __tablename__ = 'run_version_attachment'
+
+    id = db.Column(db.Integer, primary_key=True)
+    run_version_id = db.Column(db.Integer, db.ForeignKey('run_version.id', ondelete='CASCADE'))
+    attachment_id = db.Column(db.Integer, db.ForeignKey('attachment.id', ondelete='CASCADE'))
+
+    run_version = db.relationship('RunVersion', primaryjoin='RunVersionAttachment.run_version_id==RunVersion.id')
+    attachment = db.relationship('RunVersion', primaryjoin='RunVersionAttachment.run_version_id==RunVersion.id')
+
 class RunVersion(BaseVersionModel):
     __tablename__ = 'run_version'
 
@@ -239,6 +257,7 @@ class RunVersion(BaseVersionModel):
     data = db.Column(JSONB)
 
     run = db.relationship('Run', primaryjoin='RunVersion.run_id==Run.id')
+    attachments = db.relationship('Attachment', secondary='run_version_attachment')
 
 class Run(BaseModel):
     __tablename__ = 'run'

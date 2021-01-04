@@ -6,7 +6,8 @@ import { useParams } from 'react-router-dom';
 import { useRecoilCallback, useRecoilState, useRecoilValue } from 'recoil';
 import { User } from '../models/user';
 import { auth0State, errorsState } from '../state/atoms';
-import { upsertUser, userQuery } from '../state/selectors';
+import { upsertUser } from '../state/api';
+import { userQuery } from '../state/selectors';
 
 function FullName({disabled, name, setName}: {
     disabled?: boolean;

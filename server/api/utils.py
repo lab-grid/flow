@@ -105,6 +105,11 @@ sample_id_param = {
     'in': 'path',
     'type': 'string'
 }
+attachment_id_param = {
+    'description': 'String ID for a file attachment',
+    'in': 'path',
+    'type': 'string'
+}
 version_id_param = {
     'description': 'Specify this query parameter to retrieve a specific record version',
     'in': 'query',

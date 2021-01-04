@@ -1,0 +1,24 @@
+version: "3.7"
+services:
+  web:
+    build:
+      context: web
+      dockerfile: Dockerfile.dev
+      args:
+        REACT_APP_VERSION: local+devcontainer
+    image: labflow/webapp-dev:latest
+    tty: true
+    environment:
+      - "CHOKIDAR_USEPOLLING=true"
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+  server:
+    build:
+      context: server
+      args:
+        REACT_APP_VERSION: local+devcontainer
+    environment:
+      - "SQLALCHEMY_ECHO=True"
+    volumes:
+      - ./server:/app

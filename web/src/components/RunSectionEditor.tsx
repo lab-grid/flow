@@ -8,8 +8,9 @@ import { userQuery } from '../state/selectors';
 import { RunBlockEditor } from './RunBlockEditor';
 import { SignatureEditor } from './SignatureEditor';
 
-export function RunSectionEditor({disabled, index, section, setSection, syncSection}: {
+export function RunSectionEditor({disabled, runId, index, section, setSection, syncSection}: {
     disabled?: boolean;
+    runId: number;
     index: number;
     section?: Section;
     setSection: (section?: Section) => void;
@@ -47,6 +48,7 @@ export function RunSectionEditor({disabled, index, section, setSection, syncSect
             return <div key={block.definition.id}>
               <RunBlockEditor
                 key={block.definition.id}
+                runId={runId}
                 block={block}
                 setBlock={updateBlock}
                 disabled={isSigned || isWitnessed || disabled}

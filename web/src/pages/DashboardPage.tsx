@@ -8,10 +8,10 @@ import { Protocol } from '../models/protocol';
 import { Block } from '../models/block';
 import { Run, Section } from '../models/run';
 import { auth0State, errorsState } from '../state/atoms';
-import { protocolsQuery, runsQuery, upsertProtocol, upsertRun } from '../state/selectors';
+import { protocolsQuery, runsQuery } from '../state/selectors';
 import moment from 'moment';
 import { LoadingPage } from '../components/LoadingPage';
-import { FetchError } from '../state/api';
+import { FetchError, upsertProtocol, upsertRun } from '../state/api';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 
 const GridLayout = WidthProvider(Responsive);

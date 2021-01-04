@@ -3,7 +3,8 @@ import { useHistory, useParams } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { initialRun, Run } from '../models/run';
 import { auth0State } from '../state/atoms';
-import { deleteRun, runQuery, runSamplesQuery, upsertRun } from '../state/selectors';
+import { runQuery, runSamplesQuery } from '../state/selectors';
+import { deleteRun, upsertRun } from '../state/api';
 import moment from 'moment';
 import { RunEditor } from '../components/RunEditor';
 
