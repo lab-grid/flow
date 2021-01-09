@@ -415,7 +415,7 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
         const label = plates && plates[i];
         const id = plateIds && plateIds[i];
         inputRows.push(<tr key={i}>
-            <th>Input Plate {i}</th>
+            <th>Input Plate {i+1} <img src={"../images/quadrant_" + i + ".png"} width="75"/> </th>
             <td>
                 <RunBlockPlateLabelUploader
                     disabled={disabled}
@@ -459,7 +459,7 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
         <Table>
             <thead>
                 <tr>
-                    <th>#</th>
+                    <th> </th>
                     <th>Plate Label</th>
                 </tr>
             </thead>
@@ -531,7 +531,7 @@ function RunBlockStartPlateSequencerEditor({ disabled, definition, plateLabels, 
     const inputRows: JSX.Element[] = [];
     for (let i = 0; i < (definition.plateCount || 0); i++) {
         inputRows.push(<tr key={i}>
-            <th>Input Plate {i}</th>
+            <th>Input Plate {i} </th>
             <td>
                 <RunBlockPlateLabelEditor
                     disabled={disabled}

@@ -66,3 +66,19 @@ Whenever changes to the database schema for Flow are made, new migration(s) get 
 
 [Additional documentation](https://github.com/lab-grid/flow/wiki/Getting-Started)
 
+
+## Troubleshooting
+
+To see which of the containers (server, db, web) are running or failed, run:
+```sh
+docker-compoase ps
+```
+
+To stand up each container in separate terminals, for clearer error messages from each part, pass the name of the container (db, server, or web) to docker-compose up. For example:
+```sh
+docker-compoase up db
+```
+
+If you need to get rid of your local database, for example because you have forgotten the password for it: remove the .postgres directory. This is created in the top-level repo directory for local development when you use the example.env database env variables.
+
+
