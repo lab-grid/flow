@@ -216,8 +216,9 @@ class RunsResource(Resource):
         add_owner(run)
         db.session.add_all([run, run_version])
         samples = get_samples(run, run_version)
-        for sample in samples:
-            db.session.merge(sample)
+        if samples:
+            for sample in samples:
+                db.session.merge(sample)
         db.session.commit()
         add_policy(path=f"/run/{str(run.id)}", method="GET")
         add_policy(path=f"/run/{str(run.id)}", method="PUT")
