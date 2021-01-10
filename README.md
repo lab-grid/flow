@@ -22,12 +22,30 @@ We want to make a self-hosted workflow manager for companies and biotech labs th
 
 Flow by LabGrid is currently under active development. Development docker containers that support hot code reloading on edit are provided.
 
-## First, setup your environment.
+
+## First, prepare authentication settings
+
+At the moment, only Auth0 is supported; you will need an Auth0 account.
+
+1. Setup a react application for your auth0 tenant.  
+1. And an API.  
+1. Add the following permission scopes to the API: 
+`write:protocols`, `read:protocols`, `write:runs`, `read:runs`  
+1. Add a redirect url and allowed origin to the auth0 application: `http://localhost:3000`.
+
+### You will need the following for the .env file in the next step:  
+* **Domain**: The tenant name with regional subdomain. For example, the name `dev-123` for region `us` would be `dev-123.us.auth0.com`  
+* **Client ID**: an alphanumeric string, which is the unique identifier for your application. For example, q8fij2iug0CmgPLfTfG1tZGdTQyGaTUA  
+* **Audience**: This is the URL of the authentication page. For example, `http://localhost:3000/login`  
+
+
+## Then, setup your environment.
 ```
 cp example.env .env
 ```
 
 Edit the .env file to contain secrets appropriate for your environment.
+
 
 To change which configuration files your docker-compose will read from, use this alias before any of the docker-compose commands below:
 
@@ -43,7 +61,7 @@ alias docker-compose="docker-compose -f docker-compose.yaml -f docker-compose.de
 Set-Alias -Name docker-compose -Value .\docker-compose.ps1
 ```
 
-## Launch database, server, and webapp.
+## Next, launch database, server, and webapp.
 
 ```sh
 docker-compose build
@@ -52,10 +70,9 @@ docker-compose up
 
 Once the database, server, and webapp are running, the database itself needs to have its schema setup/updated.
 
-## Updating your database
+## Finally, update the database
 
-Whenever changes to the database schema for Flow are made, new migration(s) get created in the server/migrations/versions/ directory. To update your database to the latest version, first start the database and server containers, run the relevant docker-compose alias command (above), then run:
-
+To update your database to the latest version, first start the database and server containers, run the relevant docker-compose alias command (above), then run:
 ```sh
 #sh
 ./server.sh db upgrade
@@ -66,5 +83,9 @@ Whenever changes to the database schema for Flow are made, new migration(s) get 
 ./server.ps1 db upgrade
 ```
 
-[Additional documentation](https://github.com/lab-grid/flow/wiki/Getting-Started)
+Whenever changes to the database schema for Flow are made, new migration(s) get created in the server/migrations/versions/ directory. 
+
+-----------------
+
+## [Additional documentation on wiki](https://github.com/lab-grid/flow/wiki/Getting-Started)
 
