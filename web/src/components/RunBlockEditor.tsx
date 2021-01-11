@@ -2,15 +2,18 @@ import moment from 'moment';
 import React, { useState } from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
 import { Trash, UpcScan } from 'react-bootstrap-icons';
-import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, EndPlateSequencerBlock, Block, PlateCoordinate, PlateResult, StartTimestampBlock, EndTimestampBlock, CalculatorBlock, StartPlateSequencerBlock, BlockAttachment } from '../models/block';
+import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, EndPlateSequencerBlock, Block, StartTimestampBlock, EndTimestampBlock, CalculatorBlock, StartPlateSequencerBlock, BlockAttachment } from '../models/block';
 import { BlockPrimer, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition } from '../models/block-definition';
 import { TableUploadModal } from './TableUploadModal';
 import { Calculator } from './Calculator';
 import DatePicker from "react-datepicker";
-import { deleteRunAttachment, downloadRunAttachment, uploadRunAttachment } from '../state/api';
+import { deleteRunAttachment, downloadRunAttachment, uploadRunAttachment, uploadRunAttachmentBlob } from '../state/api';
 import { useRecoilCallback } from 'recoil';
 import { auth0State } from '../state/atoms';
 import { Attachment } from '../models/attachment';
+import { TableImportModal } from './TableImportModal';
+import { PlateCoordinate } from '../models/plate-coordinate';
+import { PlateResult } from '../models/plate-result';
 
 function RunBlockLabel({ name }: {
     name?: string;
@@ -228,6 +231,25 @@ function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, setCoor
     </>
 }
 
+function filenameToMime(filename: string): string | undefined {
+    const fileExtRegex = /\.[0-9a-z]+$/i;
+    const matches = filename.match(fileExtRegex);
+    const extension = matches && matches[0];
+    switch (extension) {
+        case '.csv':
+            return 'text/csv';
+        case '.pdf':
+            return 'application/pdf';
+        default:
+            return undefined;
+    }
+}
+
+async function b64toBlob(base64: string, type = 'application/octet-stream'): Promise<Blob> {
+    const response = await fetch(`data:${type};base64,${base64}`)
+    return response.blob();
+}
+
 interface sequencerRow {
     plateLabel?: string;
     plateIndex?: number;
@@ -237,12 +259,19 @@ interface sequencerRow {
     classification?: string;
 }
 
-function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
+function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl, importMethod, importParams, results, setResults, setFileData }: {
     disabled?: boolean;
+    runId: number;
+    fileData?: BlockAttachment;
+    importUrl?: string;
+    importMethod?: string;
+    importParams?: string[];
     results?: PlateResult[];
     setResults: (results?: PlateResult[]) => void;
+    setFileData: (fileData?: BlockAttachment) => void;
 }) {
     const [showUploader, setShowUploader] = useState(false);
+    const [showImporter, setShowImporter] = useState(false);
 
     const parseAndSetResults = (data: sequencerRow[]) => {
         const results: PlateResult[] = [];
@@ -272,6 +301,28 @@ function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
         setShowUploader(false);
     }
 
+    const importResults = useRecoilCallback(({ snapshot }) => async (data: PlateResult[], attachments: {[filename: string]: string}) => {
+        const { auth0Client } = await snapshot.getPromise(auth0State);
+        const result: BlockAttachment = fileData ? {...fileData} : {};
+        const resultPromises: Promise<Attachment>[] = [];
+        for (const [filename, b64File] of Object.entries(attachments)) {
+            const mime = filenameToMime(filename);
+            const blob = mime ? await b64toBlob(b64File, mime) : await b64toBlob(b64File);
+            if (blob) {
+                resultPromises.push(uploadRunAttachmentBlob(() => auth0Client, runId, filename, blob));
+            }
+        }
+        const results = await Promise.all(resultPromises);
+        for (const attachment of results) {
+            if (attachment.id) {
+                result[attachment.id] = attachment.name || "";
+            }
+        }
+        setResults(data);
+        setFileData(result);
+        setShowImporter(false);
+    });
+
     return <>
         <TableUploadModal
             parseHeader={true}
@@ -287,6 +338,14 @@ function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
             setShow={setShowUploader}
             setTable={parseAndSetResults}
         />
+        <TableImportModal
+            url={importUrl || ''}
+            method={importMethod || ''}
+            params={importParams || []}
+            show={showImporter}
+            setShow={setShowImporter}
+            setTable={importResults}
+        />
         <InputGroup>
             <Form.Control
                 disabled={true}
@@ -296,6 +355,9 @@ function RunBlockSequencerResultsUploader({ disabled, results, setResults }: {
             <InputGroup.Append>
                 <Button variant="secondary" disabled={disabled} onClick={() => setShowUploader(true)}>
                     Upload
+                </Button>
+                <Button variant="secondary" disabled={disabled} onClick={() => setShowImporter(true)}>
+                    Import
                 </Button>
             </InputGroup.Append>
         </InputGroup>
@@ -427,7 +489,7 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
         const label = plates && plates[i];
         const id = plateIds && plateIds[i];
         inputRows.push(<tr key={i}>
-            <th>Input Plate {i+1} <img src={"../images/quadrant_" + i + ".png"} width="75"/> </th>
+            <th>Input Plate {i+1} <img alt={`Quadrant ${i}`} src={"../images/quadrant_" + i + ".png"} width="75"/> </th>
             <td>
                 <RunBlockPlateLabelUploader
                     disabled={disabled}
@@ -442,7 +504,6 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
                     platePrimers={definition.platePrimers}
                     platePrimer={platePrimers && id && platePrimers[id]}
                     setPlatePrimer={primer => {
-                        console.log("setPlatePrimer:", id, primer, platePrimers, mappings, definition);
                         if (id && primer) {
                             const newPrimers = { ...platePrimers };
                             newPrimers[id] = primer;
@@ -658,8 +719,14 @@ function RunBlockEndPlateSequencerEditor({ disabled, runId, definition, attachme
         </Form.Group>
         <RunBlockSequencerResultsUploader
             disabled={disabled}
+            runId={runId}
             results={results}
             setResults={setResults}
+            fileData={attachments}
+            setFileData={syncAttachments}
+            importUrl={definition.importerUrl}
+            importMethod={definition.importerMethod}
+            importParams={definition.importerParams && definition.importerParams.map(p => p.param)}
         />
         <RunBlockFileUploader
             label="Analysis data"

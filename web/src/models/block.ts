@@ -1,4 +1,6 @@
 import { CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition } from "./block-definition";
+import { PlateCoordinate } from "./plate-coordinate";
+import { PlateResult } from "./plate-result";
 
 export type Block = TextQuestionBlock
     | OptionsQuestionBlock
@@ -87,20 +89,4 @@ export interface EndPlateSequencerBlock {
     plateSequencingResults?: PlateResult[];
     timestampLabel?: string;
     endedOn?: string;
-}
-
-export interface PlateResult {
-    plateLabel?: string;
-    plateIndex?: number;
-    plateRow?: number;
-    plateCol?: number;
-    marker1?: number;
-    marker2?: number;
-    classification?: string;
-}
-
-export interface PlateCoordinate {
-    row?: number;
-    col?: number;
-    sampleLabel?: string;
 }

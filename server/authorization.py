@@ -29,8 +29,8 @@ class AuthError(Exception):
         self.error = error
         self.status_code = status_code
 
-@cross_origin()
 @api.errorhandler(AuthError)
+@cross_origin()
 def handle_auth_error(ex):
     """Flask error handler"""
     return ex.error, ex.status_code

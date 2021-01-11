@@ -1,11 +1,12 @@
 import os
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask.json import JSONEncoder
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from flask_migrate import Migrate
 from flask_restx import Api
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.exceptions import InternalServerError
 # https://github.com/noirbizarre/flask-restplus/issues/565#issuecomment-562610603
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -65,3 +66,26 @@ CORS(app)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+
+# Error Handling --------------------------------------------------------------
+
+@app.errorhandler(InternalServerError)
+@cross_origin()
+def handle_unhandled_exceptions(e):
+    original = getattr(e, "original_exception", None)
+
+    if original is None:
+        # direct 500 error, such as abort(500)
+        return jsonify({
+            "error": "500 Internal Server Error",
+            "error_code": 500,
+            "message": e.description,
+        }), 500
+
+    # wrapped unhandled error
+    return jsonify({
+        "error": "500 Internal Server Error",
+        "error_code": 500,
+        "message": str(e.original),
+    }), 500

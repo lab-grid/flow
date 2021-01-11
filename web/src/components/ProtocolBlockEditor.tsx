@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup } from 'react-bootstrap';
 import { GripHorizontal, Trash } from 'react-bootstrap-icons';
-import { BlockDefinition, BlockOption, BlockPlate, BlockPlateMarkerEntry, BlockPrimer, BlockVariable, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition } from '../models/block-definition';
+import { BlockDefinition, BlockOption, BlockPlate, BlockPlateMarkerEntry, BlockPrimer, BlockVariable, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition, BlockParam } from '../models/block-definition';
 import { trimEmpty } from '../utils';
 import * as uuid from 'uuid';
 import { TableUploadModal } from './TableUploadModal';
@@ -63,6 +63,41 @@ function ProtocolBlockNameEditor({ disabled, name, setName, deleteStep }: {
             </InputGroup>
         </Form.Group>
     );
+}
+
+function ProtocolBlockURLEditor({ disabled, label, method, setMethod, url, setUrl }: {
+    disabled?: boolean;
+    label?: string;
+    method?: string;
+    setMethod: (method?: string) => void;
+    url?: string;
+    setUrl: (url?: string) => void;
+}) {
+    return <Form.Group>
+        <Form.Label>
+            {label || "URL"}
+        </Form.Label>
+        <InputGroup>
+            <DropdownButton
+                as={InputGroup.Prepend}
+                variant="secondary"
+                title={method}
+                disabled={disabled}
+            >
+                <Dropdown.Item onClick={() => setMethod("GET")}>GET</Dropdown.Item>
+                <Dropdown.Item onClick={() => setMethod("PATCH")}>PATCH</Dropdown.Item>
+                <Dropdown.Item onClick={() => setMethod("POST")}>POST</Dropdown.Item>
+                <Dropdown.Item onClick={() => setMethod("PUT")}>PUT</Dropdown.Item>
+                <Dropdown.Item onClick={() => setMethod("DELETE")}>DELETE</Dropdown.Item>
+            </DropdownButton>
+            <FormControl
+                disabled={disabled}
+                placeholder="Enter a URL. Path parameters should be preceeded by a ':' character"
+                value={url || ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl((e.target as HTMLInputElement).value)}
+            />
+        </InputGroup>
+    </Form.Group>;
 }
 
 function ProtocolBlockOptionsEditor({ disabled, options, setOptions }: {
@@ -190,6 +225,61 @@ function ProtocolBlockPrimerEditor({ disabled, deletable, placeholder, primer, s
         {!disabled && deletable &&
             <InputGroup.Append>
                 <Button variant="secondary" onClick={deletePrimer}><Trash /></Button>
+            </InputGroup.Append>
+        }
+    </InputGroup>
+}
+
+function ProtocolBlockParamsEditor({ disabled, label, params, setParams }: {
+    disabled?: boolean;
+    label?: string;
+    params?: BlockParam[];
+    setParams: (params?: BlockParam[]) => void;
+}) {
+    const currentParams = trimEmpty(params, param => param.param);
+    currentParams.push({ id: uuid.v4(), param: "" });
+    return <Form.Group>
+        <Form.Label>
+            {label || "Parameters"}
+        </Form.Label>
+        {currentParams.map((param, i) => <ProtocolBlockParamEditor
+            disabled={disabled}
+            deletable={currentParams.length - 1 !== i}
+            key={param.id}
+            param={param.param}
+            setParam={param => {
+                const newParams = [...currentParams];
+                newParams[i].param = param || "";
+                setParams(newParams);
+            }}
+            deleteParam={() => {
+                const newParams = [...currentParams];
+                newParams.splice(i, 1);
+                setParams(newParams);
+            }}
+            placeholder={(currentParams.length - 1 === i) ? "Start typing here to add a parameter..." : "Blank parameter (will be ignored)"}
+        />)}
+    </Form.Group>
+}
+
+function ProtocolBlockParamEditor({ disabled, deletable, placeholder, param, setParam, deleteParam }: {
+    disabled?: boolean;
+    deletable?: boolean;
+    placeholder?: string;
+    param?: string;
+    setParam: (param: string | undefined) => void;
+    deleteParam: () => void;
+}) {
+    return <InputGroup>
+        <FormControl
+            disabled={disabled}
+            placeholder={placeholder}
+            value={param}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setParam((e.target as HTMLInputElement).value)}
+        />
+        {!disabled && deletable &&
+            <InputGroup.Append>
+                <Button variant="secondary" onClick={deleteParam}><Trash /></Button>
             </InputGroup.Append>
         }
     </InputGroup>
@@ -663,6 +753,20 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     disabled={props.disabled}
                     plateMarkers={block.plateMarkers}
                     setPlateMarkers={plateMarkers => props.setBlock({ ...block, type: 'end-plate-sequencer', plateMarkers })}
+                />
+                <ProtocolBlockURLEditor
+                    disabled={props.disabled}
+                    label="Importer URL (set this field to enable results importing)"
+                    method={block.importerMethod}
+                    setMethod={importerMethod => props.setBlock({ ...block, type: 'end-plate-sequencer', importerMethod })}
+                    url={block.importerUrl}
+                    setUrl={importerUrl => props.setBlock({ ...block, type: 'end-plate-sequencer', importerUrl })}
+                />
+                <ProtocolBlockParamsEditor
+                    disabled={props.disabled}
+                    label="Importer Parameters (set this field to enable results importing)"
+                    params={block.importerParams}
+                    setParams={importerParams => props.setBlock({ ...block, type: 'end-plate-sequencer', importerParams })}
                 />
             </>;
         }

@@ -155,6 +155,38 @@ export async function apiFetch(options: LabflowOptions, auth0ClientFn: () => Aut
     }
 }
 
+export async function externalFetch<T = any>(options: LabflowOptions, auth0ClientFn: () => Auth0Client | undefined, method: string, path: string, body?: any): Promise<T> {
+    const newBody = body ? JSON.stringify(body) : body;
+    switch (options.authProvider) {
+        case 'auth0':
+            const auth0Client = auth0ClientFn();
+            if (auth0Client) {
+                const token = await auth0Client.getTokenSilently();
+                const response = await fetchWithBearerToken(method, path, token, newBody);
+                if (!response.ok) {
+                    throw new FetchError(
+                        `Request to ${path} failed: ${response.status} ${response.statusText}`,
+                        response,
+                        await response.text(),
+                    );
+                }
+                return await response.json();
+            } else {
+                throw new Error("Auth0 is not initialized yet!");
+            }
+        case 'none':
+            const response = await fetchWithoutAuth(method, path, newBody);
+            if (!response.ok) {
+                throw new FetchError(
+                    `Request to ${path} failed: ${response.status} ${response.statusText}`,
+                    response,
+                    await response.text(),
+                );
+            }
+            return await response.json();
+    }
+}
+
 export async function apiGetOne(options: LabflowOptions, auth0ClientFn: () => Auth0Client | undefined, path: string) {
     try {
         return await apiFetch(options, auth0ClientFn, "GET", path);
@@ -254,6 +286,16 @@ export async function uploadRunAttachment(auth0ClientFn: () => Auth0Client | und
         "file",
         file,
         file.name,
+    );
+    return apiUpload(labflowOptions, auth0ClientFn, "POST", `run/${runId}/attachment`, formData);
+}
+
+export async function uploadRunAttachmentBlob(auth0ClientFn: () => Auth0Client | undefined, runId: number, filename: string, blob: Blob): Promise<Attachment> {
+    const formData = new FormData(); 
+    formData.append( 
+        "file",
+        blob,
+        filename,
     );
     return apiUpload(labflowOptions, auth0ClientFn, "POST", `run/${runId}/attachment`, formData);
 }

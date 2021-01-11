@@ -18,6 +18,11 @@ export interface BlockPrimer {
     primer: string;
 }
 
+export interface BlockParam {
+    id: string;
+    param: string;
+}
+
 export interface BlockVariable {
     id: string;
     name: string;
@@ -36,6 +41,12 @@ export interface BlockPlate<T extends number = number>{
     id: string;
     name?: string;
     size?: T;
+}
+
+export interface BlockResultsImport<T = any>{
+    id?: string;
+    results?: T[];
+    attachments?: {[filename: string]: string};
 }
 
 export interface TextQuestionBlockDefinition {
@@ -116,4 +127,8 @@ export interface EndPlateSequencerBlockDefinition {
     id?: string;
     name?: string;
     plateMarkers?: {[markers: string]: BlockPlateMarkerEntry};
+
+    importerUrl?: string;
+    importerMethod?: string;
+    importerParams?: BlockParam[];
 }
