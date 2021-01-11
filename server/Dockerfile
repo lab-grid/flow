@@ -18,5 +18,4 @@ COPY ./ .
 ENV FLASK_APP=/app/main.py
 ENV SERVER_VERSION=$SERVER_VERSION
 
-# TODO: Replace this with a uwsgi server (gunicorn)
-CMD python -m flask run --host=0.0.0.0 --port=${PORT}
+CMD gunicorn --bind 0.0.0.0:${PORT} main:app --workers 4
