@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup } from 'react-bootstrap';
 import { GripHorizontal, Trash } from 'react-bootstrap-icons';
-import { BlockDefinition, BlockOption, BlockPlate, BlockPlateMarkerEntry, BlockPrimer, BlockVariable, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition, BlockParam } from '../models/block-definition';
+import { BlockDefinition, BlockOption, BlockPlate, BlockPlateMarkerEntry, BlockPrimer, BlockVariable, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition, BlockParam, AddReagentBlockDefinition } from '../models/block-definition';
 import { trimEmpty } from '../utils';
 import * as uuid from 'uuid';
 import { TableUploadModal } from './TableUploadModal';
 
-export function humanizeBlockType(blockType: "text-question" | "options-question" | "calculator" | "plate-sampler" | "plate-add-reagent" | "start-timestamp" | "end-timestamp" | "start-plate-sequencer" | "end-plate-sequencer" | undefined): string {
+export function humanizeBlockType(blockType: "text-question" | "options-question" | "calculator" | "plate-sampler" | "plate-add-reagent" | "add-reagent" | "start-timestamp" | "end-timestamp" | "start-plate-sequencer" | "end-plate-sequencer" | undefined): string {
     switch (blockType) {
         case 'text-question':
             return 'Answer Question';
@@ -33,7 +33,7 @@ export function humanizeBlockType(blockType: "text-question" | "options-question
 
 function BlockLabel({ index, blockType }: {
     index: number;
-    blockType?: "text-question" | "options-question" | "calculator" | "plate-sampler" | "plate-add-reagent" | "start-timestamp" | "end-timestamp" | "start-plate-sequencer" | "end-plate-sequencer";
+    blockType?: "text-question" | "options-question" | "calculator" | "plate-sampler" | "plate-add-reagent" | "add-reagent" | "start-timestamp" | "end-timestamp" | "start-plate-sequencer" | "end-plate-sequencer";
 }) {
     return <div className="mb-2">
         <GripHorizontal /> Step {index+1} - {humanizeBlockType(blockType)}
@@ -695,6 +695,30 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     setFormula={formula => props.setBlock({ ...block, type: 'plate-add-reagent', formula })}
                     variables={block.variables}
                     setVariables={variables => props.setBlock({ ...block, type: 'plate-add-reagent', variables })}
+                />
+            </>;
+        }
+        case 'add-reagent': {
+            const block: AddReagentBlockDefinition = props.block;
+            return <>
+                <BlockLabel index={props.index} blockType={block.type} />
+                <ProtocolBlockNameEditor
+                    disabled={props.disabled}
+                    name={block.name}
+                    setName={name => props.setBlock({ ...block, type: 'add-reagent', name })}
+                    deleteStep={props.deleteBlock}
+                />
+                <ProtocolBlockReagentLabelEditor
+                    disabled={props.disabled}
+                    reagentLabel={block.reagentLabel}
+                    setReagentLabel={reagentLabel => props.setBlock({ ...block, type: 'add-reagent', reagentLabel })}
+                />
+                <ProtocolBlockFormulaEditor
+                    disabled={props.disabled}
+                    formula={block.formula}
+                    setFormula={formula => props.setBlock({ ...block, type: 'add-reagent', formula })}
+                    variables={block.variables}
+                    setVariables={variables => props.setBlock({ ...block, type: 'add-reagent', variables })}
                 />
             </>;
         }

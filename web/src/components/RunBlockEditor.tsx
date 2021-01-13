@@ -2,8 +2,8 @@ import moment from 'moment';
 import React, { useState } from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
 import { Trash, UpcScan } from 'react-bootstrap-icons';
-import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, EndPlateSequencerBlock, Block, StartTimestampBlock, EndTimestampBlock, CalculatorBlock, StartPlateSequencerBlock, BlockAttachment } from '../models/block';
-import { BlockPrimer, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition } from '../models/block-definition';
+import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, EndPlateSequencerBlock, Block, StartTimestampBlock, EndTimestampBlock, CalculatorBlock, StartPlateSequencerBlock, BlockAttachment, AddReagentBlock } from '../models/block';
+import { BlockPrimer, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition, AddReagentBlockDefinition } from '../models/block-definition';
 import { TableUploadModal } from './TableUploadModal';
 import { Calculator } from './Calculator';
 import DatePicker from "react-datepicker";
@@ -591,6 +591,42 @@ function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPl
     </>;
 }
 
+function RunBlockAddReagentEditor({ disabled, definition, reagentLot, setReagentLot, values, setValues }: {
+    disabled?: boolean;
+    definition: AddReagentBlockDefinition;
+    values?: {[variable: string]: number};
+    reagentLot?: string;
+    setValues: (values?: {[variable: string]: number}) => void;
+    setReagentLot: (plateLot?: string) => void;
+}) {
+    return <>
+        <h4 className="row">{definition.name}</h4>
+        {
+            definition.formula && <div className="row">
+                <div className="col-8 mx-auto my-4">
+                    <Calculator
+                        disabled={disabled}
+                        formula={definition.formula}
+                        variables={definition.variables}
+                        values={values}
+                        setValues={setValues}
+                    />
+                </div>
+            </div>
+        }
+        <div className="row">
+            <Form.Group className="col">
+                <Form.Label>Reagent lot number</Form.Label>
+                <RunBlockPlateLotEditor
+                    disabled={disabled}
+                    lot={reagentLot}
+                    setLot={setReagentLot}
+                />
+            </Form.Group>
+        </div>
+    </>;
+}
+
 function RunBlockStartPlateSequencerEditor({ disabled, definition, plateLabels, setPlateLabels, timestampLabel, setTimestampLabel, startedOn, setStartedOn }: {
     disabled?: boolean;
     definition: StartPlateSequencerBlockDefinition;
@@ -912,6 +948,19 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                     setPlateLot={plateLot => props.setBlock({ ...block, type: 'plate-add-reagent', plateLot })}
                     values={block.values}
                     setValues={values => props.setBlock({ ...block, type: 'plate-add-reagent', values })}
+                />
+            );
+        }
+        case 'add-reagent': {
+            const block: AddReagentBlock = props.block;
+            return (
+                <RunBlockAddReagentEditor
+                    disabled={props.disabled}
+                    definition={block.definition}
+                    reagentLot={block.reagentLot}
+                    setReagentLot={reagentLot => props.setBlock({ ...block, type: 'add-reagent', reagentLot })}
+                    values={block.values}
+                    setValues={values => props.setBlock({ ...block, type: 'add-reagent', values })}
                 />
             );
         }

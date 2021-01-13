@@ -1,4 +1,4 @@
-import { CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition } from "./block-definition";
+import { CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition, AddReagentBlockDefinition } from "./block-definition";
 import { PlateCoordinate } from "./plate-coordinate";
 import { PlateResult } from "./plate-result";
 
@@ -7,6 +7,7 @@ export type Block = TextQuestionBlock
     | CalculatorBlock
     | PlateSamplerBlock
     | PlateAddReagentBlock
+    | AddReagentBlock
     | StartPlateSequencerBlock
     | EndPlateSequencerBlock
     | StartTimestampBlock
@@ -51,6 +52,16 @@ export interface PlateAddReagentBlock {
 
     plateLabel?: string;
     plateLot?: string;
+
+    // TODO: Save input calculator variables.
+    values?: {[variable: string]: number};
+}
+
+export interface AddReagentBlock {
+    type: 'add-reagent';
+    definition: AddReagentBlockDefinition;
+
+    reagentLot?: string;
 
     // TODO: Save input calculator variables.
     values?: {[variable: string]: number};

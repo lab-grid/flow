@@ -3,6 +3,7 @@ export type BlockDefinition = TextQuestionBlockDefinition
     | CalculatorBlockDefinition
     | PlateSamplerBlockDefinition
     | PlateAddReagentBlockDefinition
+    | AddReagentBlockDefinition
     | StartPlateSequencerBlockDefinition
     | EndPlateSequencerBlockDefinition
     | StartTimestampBlockDefinition
@@ -92,6 +93,17 @@ export interface PlateAddReagentBlockDefinition {
     name?: string;
     plateName?: string;
     plateSize?: 384 | 96;
+    reagentLabel?: string;
+
+    formula?: string;
+    variables?: BlockVariable[];
+}
+
+export interface AddReagentBlockDefinition {
+    type: 'add-reagent';
+
+    id?: string;
+    name?: string;
     reagentLabel?: string;
 
     formula?: string;
