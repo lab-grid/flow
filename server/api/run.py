@@ -195,12 +195,12 @@ class RunsResource(Resource):
         if request.args.get('page') is not None or request.args.get('per_page') is not None:
             page = int(request.args.get('page')) if request.args.get('page') else 1
             per_page = int(request.args.get('per_page')) if request.args.get('per_page') else 20
-            page_query = runs_query.distinct().paginate(page=page, per_page=per_page)
+            page_query = runs_query.distinct().order_by(Run.created_on.desc()).paginate(page=page, per_page=per_page)
             results['page'] = page_query.page
             results['pageCount'] = page_query.pages
             query = page_query.items
         else:
-            query = runs_query.distinct()
+            query = runs_query.distinct().order_by(Run.created_on.desc())
 
         results['runs'] = [
             run_to_dict(run, run.current)
