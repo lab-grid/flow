@@ -100,9 +100,11 @@ class UsersResource(Resource):
 class UserResource(Resource):
     @api.doc(security='token', model=user_output, params={'version_id': version_id_param})
     @requires_auth
-    @requires_access()
     def get(self, user_id):
         user_id = urllib.parse.unquote(user_id)
+        if user_id != request.current_user["sub"] and not check_access(path=f"/user/{user.id}", method="GET"):
+            abort(403)
+            return
         version_id = int(request.args.get('version_id')) if request.args.get('version_id') else None
 
         if version_id:
