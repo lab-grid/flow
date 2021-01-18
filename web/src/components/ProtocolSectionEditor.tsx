@@ -80,7 +80,25 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
                 <ProtocolBlockEditor disabled={disabled} index={index} block={block} setBlock={updateBlock} deleteBlock={() => deleteBlock(block && block.id)} />
             </Draggable>
         })}
-        
+
+        <Form.Group>
+            <Form.Check
+                label="Require Signature"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSection({
+                    ...section,
+                    requiresSignature: (e.target as HTMLInputElement).checked,
+                })}
+            />
+        </Form.Group>
+        <Form.Group>
+            <Form.Check
+                label="Require Witness"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSection({
+                    ...section,
+                    requiresWitness: (e.target as HTMLInputElement).checked,
+                })}
+            />
+        </Form.Group>
 
         {
             !disabled && <div className="d-flex">

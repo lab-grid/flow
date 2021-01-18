@@ -66,60 +66,64 @@ export function RunSectionEditor({disabled, runId, index, section, setSection, s
             </div>
         })}
 
-        <div className="row">
-            <SignatureEditor
-                className="col-4 ml-auto"
-                disabled={disabled}
-                label="Signature"
-                signature={currentSignature}
-                signedOn={section && section.signedOn}
-                onSign={() => {
-                    if (section && loggedInUser) {
-                        syncSection({
-                            ...section,
-                            signature: loggedInUser.fullName,
-                            signedOn: moment().format(),
-                        });
-                    }
-                }}
-                onUnsign={() => {
-                    if (section) {
-                        syncSection({
-                            ...section,
-                            signature: "",
-                            signedOn: undefined,
-                        });
-                    }
-                }}
-            />
-        </div>
+        {
+            section && section.definition.requiresSignature && <div className="row">
+                <SignatureEditor
+                    className="col-4 ml-auto"
+                    disabled={disabled}
+                    label="Signature"
+                    signature={currentSignature}
+                    signedOn={section && section.signedOn}
+                    onSign={() => {
+                        if (section && loggedInUser) {
+                            syncSection({
+                                ...section,
+                                signature: loggedInUser.fullName,
+                                signedOn: moment().format(),
+                            });
+                        }
+                    }}
+                    onUnsign={() => {
+                        if (section) {
+                            syncSection({
+                                ...section,
+                                signature: "",
+                                signedOn: undefined,
+                            });
+                        }
+                    }}
+                />
+            </div>
+        }
 
-        <div className="row">
-            <SignatureEditor
-                className="col-4 ml-auto"
-                disabled={!isSigned || disabled}
-                label="Witness"
-                signature={currentWitness}
-                signedOn={section && section.witnessedOn}
-                onSign={() => {
-                    if (section && loggedInUser) {
-                        syncSection({
-                            ...section,
-                            witness: loggedInUser.fullName,
-                            witnessedOn: moment().format(),
-                        });
-                    }
-                }}
-                onUnsign={() => {
-                    if (section) {
-                        syncSection({
-                            ...section,
-                            witness: "",
-                            witnessedOn: undefined,
-                        });
-                    }
-                }}
-            />
-        </div>
+        {
+            section && section.definition.requiresWitness && <div className="row">
+                <SignatureEditor
+                    className="col-4 ml-auto"
+                    disabled={!isSigned || disabled}
+                    label="Witness"
+                    signature={currentWitness}
+                    signedOn={section && section.witnessedOn}
+                    onSign={() => {
+                        if (section && loggedInUser) {
+                            syncSection({
+                                ...section,
+                                witness: loggedInUser.fullName,
+                                witnessedOn: moment().format(),
+                            });
+                        }
+                    }}
+                    onUnsign={() => {
+                        if (section) {
+                            syncSection({
+                                ...section,
+                                witness: "",
+                                witnessedOn: undefined,
+                            });
+                        }
+                    }}
+                />
+            </div>
+        }
     </>
 }

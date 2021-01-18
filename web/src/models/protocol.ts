@@ -9,6 +9,8 @@ export interface SectionDefinition {
     id?: string;
     name?: string;
     blocks?: BlockDefinition[];
+    requiresSignature?: boolean;
+    requiresWitness?: boolean;
 }
 
 export interface Protocol extends Audited {
