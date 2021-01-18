@@ -118,7 +118,8 @@ export function RunEditor({
                 className="row"
                 targetName="Run"
                 targetPath={`/run/${run.id}`}
-                name={humanizeRunName(run)}
+                name={run.name || humanizeRunName(run)}
+                setName={name => setRun({...run, name})}
                 onDelete={onDelete}
             />
             <br></br>

@@ -23,6 +23,7 @@ export interface Section {
 
 export interface Run extends Audited {
     id?: number;
+    name?: string;
     notes?: string;
     status?: RunStatus;
 
