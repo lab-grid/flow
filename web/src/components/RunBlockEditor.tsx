@@ -206,15 +206,17 @@ function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, setCoor
             setTable={parseAndSetCoordinates}
         />
         <InputGroup>
-            <DropdownButton
-                as={InputGroup.Prepend}
-                variant="outline-secondary"
-                title={platePrimer ? `Primer: ${platePrimer}` : 'Select Primer'}
-            >
-                {platePrimers && platePrimers.map(primer =>
-                    <Dropdown.Item key={primer.id} onClick={() => setPlatePrimer(primer.primer)}>{primer.primer}</Dropdown.Item>
-                )}
-            </DropdownButton>
+            {
+                platePrimers && platePrimers.length && <DropdownButton
+                    as={InputGroup.Prepend}
+                    variant="outline-secondary"
+                    title={platePrimer ? `Primer: ${platePrimer}` : 'Select Primer'}
+                >
+                    {platePrimers && platePrimers.map(primer =>
+                        <Dropdown.Item key={primer.id} onClick={() => setPlatePrimer(primer.primer)}>{primer.primer}</Dropdown.Item>
+                    )}
+                </DropdownButton>
+            }
             <Form.Control
                 disabled={true}
                 placeholder={plateLabel ? `Plate ID: ${plateLabel}. Barcodes saved...` : "Upload sample barcodes csv"}
