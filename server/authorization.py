@@ -8,7 +8,7 @@ from functools import wraps
 from six.moves.urllib.request import urlopen
 from jose import jwt
 
-from flask import request, _request_ctx_stack
+from flask import jsonify, request, _request_ctx_stack
 from flask_cors import cross_origin
 
 from server import app, api
@@ -33,7 +33,11 @@ class AuthError(Exception):
 @cross_origin()
 def handle_auth_error(ex):
     """Flask error handler"""
-    return ex.error, ex.status_code
+    return jsonify({
+        "error": f"{ex.status_code} Authorization Error",
+        "error_code": ex.status_code,
+        "message": str(ex.error),
+    }), ex.status_code
 
 
 # Auth Helpers ----------------------------------------------------------------
