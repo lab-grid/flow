@@ -54,6 +54,7 @@ export function Calculator(props: CalculatorProps) {
                 <InputGroup>
                     <Form.Control
                         type="number"
+                        step="any"
                         disabled={props.disabled}
                         placeholder={`${(props.variables && props.variables[i] && props.variables[i].defaultValue) || "0"}`}
                         value={(props.values && props.values[variable.name]) || ""}
