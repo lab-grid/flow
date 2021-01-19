@@ -7,7 +7,7 @@ from server import app, db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
 from database import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, versioned_row_to_dict, json_row_to_dict, strip_metadata, run_to_sample, Sample, SampleVersion, Run, RunVersion
 
-from api.utils import change_allowed, success_output, add_owner, add_updator, protocol_id_param, run_id_param, version_id_param, purge_param, user_id_param, method_param, sample_id_param, run_param, protocol_param, plate_param, sample_param, reagent_param, creator_param, archived_param, page_param, per_page_param
+from api.utils import change_allowed, success_output, add_owner, add_updator, protocol_id_param, run_id_param, version_id_param, purge_param, user_id_param, method_param, sample_id_param, run_param, protocol_param, plate_param, sample_param, reagent_param, creator_param, archived_param, page_param, per_page_param, paginatify
 
 
 api = Namespace('samples', description='Extra-Simple operations on samples.', path='/')
@@ -98,24 +98,16 @@ class SamplesResource(Resource):
         # Only return the intersection of all queries.
         samples_query = reduce(lambda a, b: a.intersect(b), samples_queries)
 
-        results = {}
-        if request.args.get('page') is not None or request.args.get('per_page') is not None:
-            page = int(request.args.get('page')) if request.args.get('page') else 1
-            per_page = int(request.args.get('per_page')) if request.args.get('per_page') else 20
-            page_query = samples_query.distinct().order_by(Sample.created_on.desc()).paginate(page=page, per_page=per_page)
-            results['page'] = page_query.page
-            results['pageCount'] = page_query.pages
-            query = page_query.items
-        else:
-            query = samples_query.distinct().order_by(Sample.created_on.desc())
-
-        results['samples'] = [
-            run_to_sample(sample)
-            for sample
-            in query
-            if check_access(path=f"/run/{str(sample.run_version.run_id)}", method="GET") and sample and sample.current
-        ]
-        return results
+        return paginatify(
+            items_label='samples',
+            items=[
+                sample
+                for sample
+                in samples_query.distinct().order_by(Sample.created_on.desc())
+                if check_access(path=f"/run/{str(sample.run_version.run_id)}", method="GET") and sample and sample.current
+            ],
+            item_to_dict=lambda sample: run_to_sample(sample),
+        )
 
 
 @api.route('/sample/<int:sample_id>')

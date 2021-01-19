@@ -116,6 +116,17 @@ export const policyQuery = selectorFamily<Policy[], {
   get: ({ path }) => ({ get }) => apiFetch(labflowOptions, () => get(auth0State).auth0Client, "GET", `${path}/permission`),
 });
 
+export const policyCheckQuery = selectorFamily<Policy[], {
+  path: string;
+  queryTime: string;
+}>({
+  key: "policyQuery",
+  get: ({ path }) => ({ get }) => {
+    const { auth0Client, user } = get(auth0State);
+    return apiFetch(labflowOptions, () => auth0Client, "GET", `${path}/permission?user_id=${user.sub}`)
+  },
+});
+
 
 // ----------------------------------------------------------------------------
 // Search Results -------------------------------------------------------------

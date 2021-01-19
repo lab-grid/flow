@@ -19,6 +19,7 @@ export function RunEditor({
     disableDelete,
     disablePrint,
     disableSave,
+    disabled,
     samples,
     run,
     setRun,
@@ -34,6 +35,7 @@ export function RunEditor({
     disableDelete?: boolean;
     disablePrint?: boolean;
     disableSave?: boolean;
+    disabled?: boolean;
     samples: SampleResult[];
     run?: Run;
     setRun: (run: Run) => void;
@@ -115,6 +117,7 @@ export function RunEditor({
                 disableSharing={disableSharing}
                 disableDelete={disableDelete}
                 disablePrint={disablePrint}
+                disabled={disabled}
                 className="row"
                 targetName="Run"
                 targetPath={`/run/${run.id}`}
@@ -126,7 +129,7 @@ export function RunEditor({
             <Form.Group>
                 <Form.Label>Notes</Form.Label>
                 <SlateInput
-                    disabled={isCompleted}
+                    disabled={isCompleted || disabled}
                     value={run.notes ? deserializeSlate(run.notes) : initialSlateValue}
                     placeholder="Enter run notes here..."
                     onChange={notes => setRun({...run, notes: serializeSlate(notes || initialSlateValue)})}
@@ -138,6 +141,7 @@ export function RunEditor({
                 }
                 return <RunSectionEditor
                     key={section.definition.id}
+                    disabled={isCompleted || disabled}
                     runId={(run && run.id) || -1}
                     index={i}
                     section={section}
@@ -155,7 +159,7 @@ export function RunEditor({
             </div>
             <ResultsTable results={samples || []} page={samplesPage} pageCount={samplesPageCount} onPageChange={onSamplesPageChange} />
 
-            {!disableSave && <div className="row">
+            {!disableSave && !disabled && <div className="row">
                 <SaveButton
                     className="col-auto ml-3"
                     onClick={() => syncRun()}

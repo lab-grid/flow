@@ -10,7 +10,7 @@ from server import app, db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, get_policies, get_roles
 from database import versioned_row_to_dict, strip_metadata, User, UserVersion
 
-from api.utils import success_output, add_owner, add_updator
+from api.utils import success_output, add_owner, add_updator, paginatify
 
 
 api = Namespace('users', description='Extra-Simple operations on users.', path='/')
@@ -57,24 +57,16 @@ class UsersResource(Resource):
     @api.doc(security='token', model=users_output, params={'page': page_param, 'per_page': per_page_param})
     @requires_auth
     def get(self):
-        results = {}
-        if request.args.get('page') is not None or request.args.get('per_page') is not None:
-            page = int(request.args.get('page')) if request.args.get('page') else 1
-            per_page = int(request.args.get('per_page')) if request.args.get('per_page') else 20
-            page_query = User.query.filter(User.is_deleted != True).paginate(page=page, per_page=per_page)
-            results['page'] = page_query.page
-            results['pageCount'] = page_query.pages
-            query = page_query.items
-        else:
-            query = User.query.filter(User.is_deleted != True).all()
-
-        results['users'] = [
-            add_role(versioned_row_to_dict(api, user, user.current))
-            for user
-            in query
-            if check_access(path=f"/user/{user.id}", method="GET")
-        ]
-        return results
+        return paginatify(
+            items_label='users',
+            items=[
+                user
+                for user
+                in User.query.filter(User.is_deleted != True).all()
+                if check_access(path=f"/user/{user.id}", method="GET")
+            ],
+            item_to_dict=lambda user: add_role(versioned_row_to_dict(api, user, user.current)),
+        )
 
     @api.doc(security='token', model=user_output, body=user_input)
     @requires_auth

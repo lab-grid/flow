@@ -60,7 +60,7 @@ export function Calculator(props: CalculatorProps) {
                         value={(props.values && props.values[variable.name]) || ""}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             const newValues = {...currentValues};
-                            newValues[variable.name] = parseInt((e.target as HTMLInputElement).value);
+                            newValues[variable.name] = parseFloat((e.target as HTMLInputElement).value);
                             props.setValues(newValues);
                         }}
                     />

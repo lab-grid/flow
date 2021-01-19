@@ -11,7 +11,7 @@ from server import app, db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
 from database import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol, run_to_sample, Sample, SampleVersion, Attachment
 
-from api.utils import change_allowed, success_output, add_owner, add_updator, attachment_id_param, run_id_param, version_id_param, purge_param, user_id_param, method_param, sample_id_param, protocol_param, plate_param, sample_param, reagent_param, creator_param, archived_param, page_param, per_page_param
+from api.utils import change_allowed, success_output, add_owner, add_updator, attachment_id_param, run_id_param, version_id_param, purge_param, user_id_filter_param, method_filter_param, user_id_param, method_param, sample_id_param, protocol_param, plate_param, sample_param, reagent_param, creator_param, archived_param, page_param, per_page_param, paginatify
 
 
 api = Namespace('runs', description='Extra-Simple operations on runs.', path='/')
@@ -191,24 +191,17 @@ class RunsResource(Resource):
         # Only return the intersection of all queries.
         runs_query = reduce(lambda a, b: a.intersect(b), runs_queries)
 
-        results = {}
-        if request.args.get('page') is not None or request.args.get('per_page') is not None:
-            page = int(request.args.get('page')) if request.args.get('page') else 1
-            per_page = int(request.args.get('per_page')) if request.args.get('per_page') else 20
-            page_query = runs_query.distinct().order_by(Run.created_on.desc()).paginate(page=page, per_page=per_page)
-            results['page'] = page_query.page
-            results['pageCount'] = page_query.pages
-            query = page_query.items
-        else:
-            query = runs_query.distinct().order_by(Run.created_on.desc())
+        return paginatify(
+            items_label='runs',
+            items=[
+                run
+                for run
+                in runs_query.distinct().order_by(Run.created_on.desc())
+                if check_access(path=f"/run/{str(run.id)}", method="GET") and run and run.current
+            ],
+            item_to_dict=lambda run: run_to_dict(run, run.current),
+        )
 
-        results['runs'] = [
-            run_to_dict(run, run.current)
-            for run
-            in query
-            if check_access(path=f"/run/{str(run.id)}", method="GET") and run and run.current
-        ]
-        return results
 
     @api.doc(security='token', model=run_output, body=run_input)
     @requires_auth
@@ -345,14 +338,24 @@ def requires_permissions_access(method=None):
 
 
 @api.route('/run/<int:run_id>/permission')
-@api.doc(params={'run_id': run_id_param})
+@api.doc(params={'run_id': run_id_param, 'user_id_filter': user_id_filter_param, 'method_filter': method_filter_param})
 class RunPermissionsResource(Resource):
     @api.doc(security='token', model=run_permissions_output)
     @requires_auth
     @requires_scope('read:runs')
     @requires_permissions_access()
     def get(self, run_id):
-        return get_policies(path=f"/run/{run_id}")
+        user_id = request.args.get('user_id')
+        method = request.args.get('method')
+
+        policies = get_policies(path=f"/run/{run_id}")
+
+        if user_id:
+            policies = filter(lambda policy: policy['user'] == user_id, policies)
+        if method:
+            policies = filter(lambda policy: policy['method'] == method, policies)
+
+        return [policy for policy in policies]
 
 
 @api.route('/run/<int:run_id>/permission/<string:method>/<string:user_id>')
@@ -435,23 +438,15 @@ class RunSamplesResource(Resource):
         # Only return the intersection of all queries.
         samples_query = reduce(lambda a, b: a.intersect(b), samples_queries)
 
-        results = {}
-        if request.args.get('page') is not None or request.args.get('per_page') is not None:
-            page = int(request.args.get('page')) if request.args.get('page') else 1
-            per_page = int(request.args.get('per_page')) if request.args.get('per_page') else 20
-            page_query = samples_query.distinct().paginate(page=page, per_page=per_page)
-            results['page'] = page_query.page
-            results['pageCount'] = page_query.pages
-            query = page_query.items
-        else:
-            query = samples_query.distinct()
-
-        results['samples'] = [
-            run_to_sample(sample)
-            for sample
-            in query
-        ]
-        return results
+        return paginatify(
+            items_label='samples',
+            items=[
+                sample
+                for sample
+                in samples_query.distinct().order_by(Sample.sample_id.asc())
+            ],
+            item_to_dict=lambda sample: run_to_sample(sample),
+        )
 
 
 @api.route('/run/<int:run_id>/sample/<int:sample_id>')

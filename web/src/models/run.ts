@@ -77,11 +77,14 @@ export function calculateRunStatus(run?: Run): RunStatus {
     if (run && run.sections) {
         let inProgress = false;
         for (const section of run.sections) {
-            if (section.signedOn || section.witnessedOn) {
+            const requiresSignature = (section && section.definition && section.definition.requiresSignature) === undefined ? true : section && section.definition && section.definition.requiresSignature;
+            const requiresWitness = (section && section.definition && section.definition.requiresWitness) || false;
+
+            if (section.signedOn || section.witnessedOn || (!section.definition.requiresSignature && !section.definition.requiresWitness)) {
                 inProgress = true;
             }
 
-            if (inProgress && !(section.signedOn && section.witnessedOn)) {
+            if (inProgress && !((!!section.signedOn === requiresSignature) && (!!section.witnessedOn === requiresWitness))) {
                 return 'in-progress';
             }
         }

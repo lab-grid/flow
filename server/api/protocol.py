@@ -7,7 +7,7 @@ from server import app, db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
 from database import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, versioned_row_to_dict, json_row_to_dict, strip_metadata, Protocol, ProtocolVersion
 
-from api.utils import change_allowed, success_output, add_owner, add_updator, protocol_id_param, version_id_param, purge_param, user_id_param, run_param, plate_param, sample_param, reagent_param, creator_param, archived_param, method_param, page_param, per_page_param
+from api.utils import change_allowed, success_output, add_owner, add_updator, protocol_id_param, version_id_param, purge_param, user_id_param, run_param, plate_param, sample_param, reagent_param, creator_param, archived_param, method_param, page_param, per_page_param, paginatify
 
 
 api = Namespace('protocols', description='Extra-Simple operations on protocols.', path='/')
@@ -94,24 +94,16 @@ class ProtocolsResource(Resource):
         # Only return the intersection of all queries.
         protocols_query = reduce(lambda a, b: a.intersect(b), protocols_queries)
 
-        results = {}
-        if request.args.get('page') is not None or request.args.get('per_page') is not None:
-            page = int(request.args.get('page')) if request.args.get('page') else 1
-            per_page = int(request.args.get('per_page')) if request.args.get('per_page') else 20
-            page_query = protocols_query.distinct().order_by(Protocol.created_on.desc()).paginate(page=page, per_page=per_page)
-            results['page'] = page_query.page
-            results['pageCount'] = page_query.pages
-            query = page_query.items
-        else:
-            query = protocols_query.distinct().order_by(Protocol.created_on.desc())
-
-        results['protocols'] = [
-            versioned_row_to_dict(api, protocol, protocol.current)
-            for protocol
-            in query
-            if check_access(path=f"/protocol/{str(protocol.id)}", method="GET") and protocol and protocol.current
-        ]
-        return results
+        return paginatify(
+            items_label='protocols',
+            items=[
+                protocol
+                for protocol
+                in protocols_query.distinct().order_by(Protocol.created_on.desc())
+                if check_access(path=f"/protocol/{str(protocol.id)}", method="GET") and protocol and protocol.current
+            ],
+            item_to_dict=lambda protocol: versioned_row_to_dict(api, protocol, protocol.current),
+        )
 
     @api.doc(security='token', model=protocol_output, body=protocol_input)
     @requires_auth

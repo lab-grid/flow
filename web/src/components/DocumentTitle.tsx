@@ -19,25 +19,30 @@ export function DocumentTitle({disableSharing, disableDelete, disablePrint, clas
 
     return <>
         <Form.Row className={className}>
-            <Col>
-                <Form.Group>
-                    <Form.Control
-                        type="text"
-                        size="lg"
-                        value={name}
-                        placeholder="Untitled Run"
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
-                        disabled={disabled}
-                    />
-                </Form.Group>
-            </Col>
-            <h1 className="mr-3">{name}</h1>
+            {
+                !disabled
+                    ? <Col>
+                        <Form.Group>
+                            <Form.Control
+                                type="text"
+                                size="lg"
+                                value={name}
+                                placeholder="Untitled Run"
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName((e.target as HTMLInputElement).value)}
+                                disabled={disabled}
+                            />
+                        </Form.Group>
+                    </Col>
+                    : <Col>
+                        <h1 className="mr-3 my-auto">{name}</h1>
+                    </Col>
+            }
             {(!disableSharing || !disableDelete || !disablePrint) && <Col xs="auto">
-                <ButtonGroup className="ml-auto my-auto">
-                    {!disableSharing && <Button variant="secondary" onClick={() => setShowSharingModal(true)}>
+                <ButtonGroup className="ml-auto my-auto" size="lg">
+                    {!disableSharing && !disabled && <Button variant="secondary" onClick={() => setShowSharingModal(true)}>
                         <Share /> Share
                     </Button>}
-                    {!disableDelete && <Button variant="secondary" onClick={onDelete}>
+                    {!disableDelete && !disabled && <Button variant="secondary" onClick={onDelete}>
                         <Trash />
                     </Button>}
                     {!disablePrint && <Button variant="secondary" onClick={() => window.print()}>
@@ -46,7 +51,7 @@ export function DocumentTitle({disableSharing, disableDelete, disablePrint, clas
                 </ButtonGroup>
             </Col>}
         </Form.Row>
-        {!disableSharing && <SharingModal
+        {!disableSharing && !disabled && <SharingModal
             show={showSharingModal}
             setShow={show => setShowSharingModal(show || false)}
             targetName={targetName}

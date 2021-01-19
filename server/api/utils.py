@@ -2,6 +2,7 @@ from flask import request
 from flask_restx import fields
 
 import copy
+import math
 from deepdiff import DeepHash
 
 from server import api
@@ -175,6 +176,37 @@ per_page_param = {
     'in': 'query',
     'type': 'int'
 }
+method_filter_param = {
+    'description': 'Action identifier (GET|POST|PUT|DELETE)',
+    'in': 'query',
+    'type': 'string'
+}
+user_id_filter_param = {
+    'description': 'String identifier for a user account',
+    'in': 'query',
+    'type': 'string'
+}
+
+
+# -----------------------------------------------------------------------------
+# Pagination ------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+def paginatify(items_label, items, item_to_dict):
+    response = {}
+    if request.args.get('page') is not None or request.args.get('per_page') is not None:
+        page = int(request.args.get('page')) if request.args.get('page') else 1
+        per_page = int(request.args.get('per_page')) if request.args.get('per_page') else 20
+        starting_index = (page - 1) * per_page
+        ending_index = page * per_page
+
+        response[items_label] = [item_to_dict(item) for item in items[starting_index:ending_index]]
+        response['page'] = page
+        response['pageCount'] = math.ceil(float(len(items)) / per_page)
+    else:
+        response[items_label] = [item_to_dict(item) for item in items]
+
+    return response
 
 
 # -----------------------------------------------------------------------------

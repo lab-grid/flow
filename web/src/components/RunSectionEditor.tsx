@@ -45,6 +45,9 @@ export function RunSectionEditor({disabled, runId, index, section, setSection, s
         }
     }
 
+    const requiresSignature = (section && section.definition && section.definition.requiresSignature) === undefined ? true : section && section.definition && section.definition.requiresSignature;
+    const requiresWitness = (section && section.definition && section.definition.requiresWitness) || false;
+
     return <>
         <h2 className="row">
             <i>Section {index + 1}: {(section && section.definition.name) || 'Untitled Section'}</i>
@@ -67,7 +70,7 @@ export function RunSectionEditor({disabled, runId, index, section, setSection, s
         })}
 
         {
-            section && section.definition.requiresSignature && <div className="row">
+            requiresSignature && <div className="row">
                 <SignatureEditor
                     className="col-4 ml-auto"
                     disabled={disabled}
@@ -97,7 +100,7 @@ export function RunSectionEditor({disabled, runId, index, section, setSection, s
         }
 
         {
-            section && section.definition.requiresWitness && <div className="row">
+            requiresWitness && <div className="row">
                 <SignatureEditor
                     className="col-4 ml-auto"
                     disabled={!isSigned || disabled}

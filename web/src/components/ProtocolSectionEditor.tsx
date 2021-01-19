@@ -60,6 +60,9 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
       });
     }
 
+    const requiresSignature = (section && section.requiresSignature) === undefined ? true : section && section.requiresSignature;
+    const requiresWitness = (section && section.requiresWitness) || false;
+
     return <>
         <Form.Group>
           <h3><Form.Label>Protocol section {index + 1}:</Form.Label></h3>
@@ -84,6 +87,7 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
         <Form.Group>
             <Form.Check
                 label="Require Signature"
+                checked={requiresSignature}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSection({
                     ...section,
                     requiresSignature: (e.target as HTMLInputElement).checked,
@@ -93,6 +97,7 @@ export function ProtocolSectionEditor({disabled, index, section, setSection}: {
         <Form.Group>
             <Form.Check
                 label="Require Witness"
+                checked={requiresWitness}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSection({
                     ...section,
                     requiresWitness: (e.target as HTMLInputElement).checked,
