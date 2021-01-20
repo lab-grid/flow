@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 from functools import reduce, wraps
 
 from server import app, db
-from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
+from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies, get_roles
 from database import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol, run_to_sample, Sample, SampleVersion, Attachment
 
 from api.utils import change_allowed, success_output, add_owner, add_updator, attachment_id_param, run_id_param, version_id_param, purge_param, user_id_filter_param, method_filter_param, user_id_param, method_param, sample_id_param, protocol_param, plate_param, sample_param, reagent_param, creator_param, archived_param, page_param, per_page_param, paginatify
@@ -348,10 +348,11 @@ class RunPermissionsResource(Resource):
         user_id = request.args.get('user_id')
         method = request.args.get('method')
 
-        policies = get_policies(path=f"/run/{run_id}")
+        policies = get_policies(path=f"/run/{run_id}") + get_policies(path="/run/*")
 
         if user_id:
-            policies = filter(lambda policy: policy['user'] == user_id, policies)
+            user_roles = get_roles(user_id)
+            policies = filter(lambda policy: policy['user'] == user_id or policy['user'] in user_roles, policies)
         if method:
             policies = filter(lambda policy: policy['method'] == method, policies)
 

@@ -209,6 +209,7 @@ function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, setCoor
             {
                 platePrimers && platePrimers.length && <DropdownButton
                     as={InputGroup.Prepend}
+                    disabled={disabled}
                     variant="outline-secondary"
                     title={platePrimer ? `Primer: ${platePrimer}` : 'Select Primer'}
                 >
