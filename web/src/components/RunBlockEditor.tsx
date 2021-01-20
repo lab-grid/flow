@@ -194,6 +194,8 @@ function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, setCoor
         setShowUploader(false);
     }
 
+    const filteredPlatePrimers = platePrimers && platePrimers.filter(primer => primer.id && primer.primer);
+
     return <>
         <TableUploadModal
             columns={{
@@ -207,13 +209,13 @@ function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, setCoor
         />
         <InputGroup>
             {
-                platePrimers && platePrimers.length && <DropdownButton
+                filteredPlatePrimers && filteredPlatePrimers.length && <DropdownButton
                     as={InputGroup.Prepend}
                     disabled={disabled}
                     variant="outline-secondary"
                     title={platePrimer ? `Primer: ${platePrimer}` : 'Select Primer'}
                 >
-                    {platePrimers && platePrimers.map(primer =>
+                    {filteredPlatePrimers && filteredPlatePrimers.map(primer =>
                         <Dropdown.Item key={primer.id} onClick={() => setPlatePrimer(primer.primer)}>{primer.primer}</Dropdown.Item>
                     )}
                 </DropdownButton>

@@ -89,6 +89,7 @@ function ParametricSearch({
                 value={filterCreator || ""}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterCreator((e.target as HTMLInputElement).value)}
             >
+                <option key="no-one" value="">&nbsp;</option>
                 {users && users.map(user =>
                     <option key={user.id} value={user.id}>{user.fullName || user.email || user.id}</option>
                 )}
