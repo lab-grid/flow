@@ -120,12 +120,12 @@ def get_samples(run, run_version):
         marker = markers.get(f"{sample.current.data['plateIndex']}-{sample.current.data['plateRow']}-{sample.current.data['plateCol']}", None)
         if not marker:
             continue
+        sample.current.data['marker1'] = marker['marker1']
+        sample.current.data['marker2'] = marker['marker2']
+
         result = results.get(f"{marker['marker1']}-{marker['marker2']}", None)
         if not result:
             continue
-
-        sample.current.data['marker1'] = result['marker1']
-        sample.current.data['marker2'] = result['marker2']
         sample.current.data['result'] = result['classification']
 
 def all_runs(include_archived=False):
