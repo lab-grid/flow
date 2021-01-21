@@ -63,6 +63,7 @@ def extract_protocol_id(run_dict):
 
 def get_samples(run, run_version):
     samples = []
+    markers = {}
     results = {}
     signers = []
     witnesses = []
@@ -96,6 +97,7 @@ def get_samples(run, run_version):
                             data={
                                 'plateRow': plate_sample['row'],
                                 'plateCol': plate_sample['col'],
+                                'plateIndex': plate_sample['plateIndex'],
                             },
                             sample=sample,
                             server_version=app.config['SERVER_VERSION'],
@@ -106,15 +108,25 @@ def get_samples(run, run_version):
                         samples.append(sample)
             if block['type'] == 'end-plate-sequencer' and 'plateSequencingResults' in block:
                 for result in block['plateSequencingResults']:
-                    results[f"{result['plateLabel']}-{result['plateRow']}-{result['plateCol']}"] = result
+                    results[f"{result['marker1']}-{result['marker2']}"] = result
+            if block['type'] == 'end-plate-sequencer' and 'definition' in block and 'plateMarkers' in block['definition']:
+                for marker in block['definition']['plateMarkers'].values():
+                    markers[f"{marker['plateIndex']}-{marker['plateRow']}-{marker['plateColumn']}"] = marker
     for sample in samples:
-        result = results[f"{sample.plate_id}-{sample.current.data['plateRow']}-{sample.current.data['plateCol']}"]
-        sample.current.data['marker1'] = result['marker1']
-        sample.current.data['marker2'] = result['marker2']
-        sample.current.data['result'] = result['classification']
         sample.current.data['signers'] = signers
         sample.current.data['witnesses'] = witnesses
         sample.current.data['plateLots'] = lots
+
+        marker = markers.get(f"{sample.current.data['plateIndex']}-{sample.current.data['plateRow']}-{sample.current.data['plateCol']}", None)
+        if not marker:
+            continue
+        result = results.get(f"{marker['marker1']}-{marker['marker2']}", None)
+        if not result:
+            continue
+
+        sample.current.data['marker1'] = result['marker1']
+        sample.current.data['marker2'] = result['marker2']
+        sample.current.data['result'] = result['classification']
 
 def all_runs(include_archived=False):
     query = Run.query

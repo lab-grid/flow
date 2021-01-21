@@ -155,11 +155,12 @@ function cellToCoordinate(cell?: string): PlateCoordinate {
     return { row, col };
 }
 
-function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, setCoordinates, platePrimers, platePrimer, setPlatePrimer }: {
+function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, plateIndex, setCoordinates, platePrimers, platePrimer, setPlatePrimer }: {
     disabled?: boolean;
     name?: string;
     wells?: number;
     plateLabel?: string;
+    plateIndex: number;
     setCoordinates: (plateLabel: string, coordinates: PlateCoordinate[]) => void;
     platePrimers?: BlockPrimer[];
     platePrimer?: string;
@@ -178,6 +179,7 @@ function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, setCoor
                 results[row.plate] = [];
             }
             const coordinate = cellToCoordinate(row.cell);
+            coordinate.plateIndex = plateIndex;
             coordinate.sampleLabel = `${row.sample}`;
             // coordinate.sampleLabel = typeof row.sample === 'string' ? undefined : row.sample;
             results[row.plate].push(coordinate);
@@ -501,6 +503,7 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
                     wells={definition.plates && definition.plates[i] && definition.plates[i].size}
                     name={definition.plates && definition.plates[i] && definition.plates[i].name}
                     plateLabel={label}
+                    plateIndex={i+1}
                     setCoordinates={(label, coordinates) => {
                         const newMappings = { ...mappings };
                         newMappings[label] = coordinates;
