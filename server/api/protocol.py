@@ -5,7 +5,7 @@ from functools import reduce, wraps
 
 from server import app, db
 from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies
-from database import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, versioned_row_to_dict, json_row_to_dict, strip_metadata, Protocol, ProtocolVersion
+from database import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, versioned_row_to_dict, json_row_to_dict, strip_metadata, Protocol, ProtocolVersion, Run, RunVersion
 
 from api.utils import change_allowed, success_output, add_owner, add_updator, protocol_id_param, version_id_param, purge_param, user_id_param, run_param, plate_param, sample_param, reagent_param, creator_param, archived_param, method_param, page_param, per_page_param, paginatify
 

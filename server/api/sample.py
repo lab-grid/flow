@@ -67,7 +67,7 @@ class SamplesResource(Resource):
         if run:
             samples_queries.append(
                 all_samples(archived)\
-                    .join(RunVersion, RunVersion.id == Sample.run_version_id)\
+                    # .join(RunVersion, RunVersion.id == Sample.run_version_id)\
                     .filter(RunVersion.run_id == run)
             )
         if plate:
@@ -76,8 +76,8 @@ class SamplesResource(Resource):
                     .filter(Sample.plate_id == plate)
             )
         if reagent:
-            run_version_query = all_samples(archived)\
-                .join(RunVersion, RunVersion.id == Sample.run_version_id)
+            run_version_query = all_samples(archived) # \
+                # .join(RunVersion, RunVersion.id == Sample.run_version_id)
             samples_subquery = filter_by_reagent_label(run_version_query, reagent)
             samples_queries.append(samples_subquery)
         if sample:

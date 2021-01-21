@@ -3,7 +3,7 @@
 import copy
 import pprint
 from server import db
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from sqlalchemy.sql.expression import column, literal_column
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.dialects.postgresql import JSONB
@@ -123,8 +123,8 @@ def run_to_sample(sample):
 def filter_by_plate_label(run_version_query, plate_id):
     return run_version_query.filter(
         or_(
-            func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].plateLabels["{plate_id}"]'),
-            func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].mappings["{plate_id}"]'),
+            func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].plateLabels."{plate_id}"'),
+            func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].mappings."{plate_id}"'),
             func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plateLabel ? (@ == "{plate_id}"))')
         )
     )
