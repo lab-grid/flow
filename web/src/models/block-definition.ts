@@ -46,6 +46,8 @@ export interface BlockPlate<T extends number = number>{
 
 export interface BlockResultsImport<T = any>{
     id?: string;
+    status?: 'ready' | 'not-ready' | 'failed';
+    error?: string;
     results?: T[];
     attachments?: {[filename: string]: string};
 }
@@ -140,7 +142,9 @@ export interface EndPlateSequencerBlockDefinition {
     name?: string;
     plateMarkers?: {[markers: string]: BlockPlateMarkerEntry};
 
+    importerType?: 'synchronous' | 'asynchronous';
     importerUrl?: string;
+    importerCheckUrl?: string;
     importerMethod?: string;
     importerParams?: BlockParam[];
 }

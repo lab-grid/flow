@@ -9,6 +9,8 @@ import { auth0State } from '../state/atoms';
 
 export interface TableImportModalProps<T={[field: string]: any}> {
     url: string;
+    checkUrl: string;
+    importerType: 'synchronous' | 'asynchronous';
     method: string;
     params: string[];
     show: boolean;
@@ -19,9 +21,10 @@ export interface TableImportModalProps<T={[field: string]: any}> {
 export function TableImportModal<T={[field: string]: any}>(props: TableImportModalProps<T>) {
     useModalTracking("table-import");
     const [importing, setImporting] = useState(false);
+    const [importError, setImportError] = useState("");
     const [paramValues, setParamValues] = useState<{[param: string]: string}>({});
 
-    const importTable = useRecoilCallback(({ snapshot }) => async () => {
+    const importTableSynchronous = useRecoilCallback(({ snapshot }) => async () => {
         setImporting(true);
         try {
             let url = props.url;
@@ -32,6 +35,64 @@ export function TableImportModal<T={[field: string]: any}>(props: TableImportMod
             const { results, attachments } = await externalFetch<BlockResultsImport<T>>(labflowOptions, () => auth0Client, props.method, url);
             props.setTable(results || [], attachments || {});
         } finally {
+            setImporting(false);
+        }
+    });
+
+    const importTableAsynchronous = useRecoilCallback(({ snapshot }) => async () => {
+        setImporting(true);
+        setImportError("");
+        try {
+            let url = props.url;
+            for (const [param, value] of Object.entries(paramValues)) {
+                url = url.replaceAll(`:${param}`, value);
+            }
+            const { auth0Client } = await snapshot.getPromise(auth0State);
+            const { status, error, results, attachments } = await externalFetch<BlockResultsImport<T>>(labflowOptions, () => auth0Client, "POST", url);
+
+            if (status !== 'failed') {
+                setTimeout(checkImportAsynchronous, 3000);
+            } else {
+                setImportError(error || 'ERROR: Failed to import table');
+                console.warn('Table import failed!', error);
+                setImporting(false);
+            }
+        } catch (ex) {
+            setImportError(ex.toString() || 'ERROR: Failed to import table');
+            console.warn('Table import failed!', ex.toString());
+            setImporting(false);
+        }
+    });
+
+    const checkImportAsynchronous = useRecoilCallback(({ snapshot }) => async () => {
+        try {
+            let url = props.checkUrl;
+            for (const [param, value] of Object.entries(paramValues)) {
+                url = url.replaceAll(`:${param}`, value);
+            }
+            const { auth0Client } = await snapshot.getPromise(auth0State);
+            const { status, error, results, attachments } = await externalFetch<BlockResultsImport<T>>(labflowOptions, () => auth0Client, "GET", url);
+
+            if (status === 'not-ready') {
+
+            }
+            switch(status) {
+                case 'ready':
+                    props.setTable(results || [], attachments || {});
+                    setImporting(false);
+                    break;
+                case 'not-ready':
+                    setTimeout(checkImportAsynchronous, 3000);
+                    break;
+                default:
+                    setImportError(error || 'ERROR: Failed to import table');
+                    console.warn('Table import failed!', error);
+                    setImporting(false);
+                    break;
+            }
+        } catch (ex) {
+            setImportError(ex.toString() || 'ERROR: Failed to import table');
+            console.warn('Table import failed!', ex.toString());
             setImporting(false);
         }
     });
@@ -76,9 +137,24 @@ export function TableImportModal<T={[field: string]: any}>(props: TableImportMod
                     <div className="col"></div>
                 </div>
             }
+            {
+                importError && <div className="d-flex mt-5">
+                    <div className="col"></div>
+                    <div className="col-auto my-auto">
+                        Error: {importError}
+                    </div>
+                    <div className="col"></div>
+                </div>
+            }
         </Modal.Body>
         <Modal.Footer>
-            <Button variant="primary" onClick={importTable} disabled={importing}>
+            <Button variant="primary" onClick={() => {
+                if (props.importerType === 'synchronous') {
+                    importTableSynchronous();
+                } else {
+                    importTableAsynchronous();
+                }
+            }} disabled={importing}>
                 Import
             </Button>
             <Button variant="secondary" onClick={() => props.setShow(false)} disabled={importing}>

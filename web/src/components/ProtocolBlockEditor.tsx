@@ -65,13 +65,17 @@ function ProtocolBlockNameEditor({ disabled, name, setName, deleteStep }: {
     );
 }
 
-function ProtocolBlockURLEditor({ disabled, label, method, setMethod, url, setUrl }: {
+function ProtocolBlockURLEditor({ disabled, label, importerType, setImporterType, method, setMethod, url, setUrl, resultsUrl, setResultsUrl }: {
     disabled?: boolean;
     label?: string;
+    importerType?: 'synchronous' | 'asynchronous';
+    setImporterType: (importerType: 'synchronous' | 'asynchronous') => void;
     method?: string;
     setMethod: (method?: string) => void;
     url?: string;
     setUrl: (url?: string) => void;
+    resultsUrl?: string;
+    setResultsUrl: (resultsUrl?: string) => void;
 }) {
     return <Form.Group>
         <Form.Label>
@@ -81,21 +85,30 @@ function ProtocolBlockURLEditor({ disabled, label, method, setMethod, url, setUr
             <DropdownButton
                 as={InputGroup.Prepend}
                 variant="secondary"
-                title={method}
+                title={importerType === 'asynchronous' ? 'Asynchronous - POST/GET' : `Synchronous - ${method}`}
                 disabled={disabled}
             >
-                <Dropdown.Item onClick={() => setMethod("GET")}>GET</Dropdown.Item>
-                <Dropdown.Item onClick={() => setMethod("PATCH")}>PATCH</Dropdown.Item>
-                <Dropdown.Item onClick={() => setMethod("POST")}>POST</Dropdown.Item>
-                <Dropdown.Item onClick={() => setMethod("PUT")}>PUT</Dropdown.Item>
-                <Dropdown.Item onClick={() => setMethod("DELETE")}>DELETE</Dropdown.Item>
+                <Dropdown.Item onClick={() => { setMethod(); setImporterType('asynchronous'); }}>Asynchronous - POST/GET</Dropdown.Item>
+                <Dropdown.Item onClick={() => { setMethod("GET"); setImporterType('synchronous'); }}>Synchronous - GET</Dropdown.Item>
+                <Dropdown.Item onClick={() => { setMethod("PATCH"); setImporterType('synchronous'); }}>Synchronous - PATCH</Dropdown.Item>
+                <Dropdown.Item onClick={() => { setMethod("POST"); setImporterType('synchronous'); }}>Synchronous - POST</Dropdown.Item>
+                <Dropdown.Item onClick={() => { setMethod("PUT"); setImporterType('synchronous'); }}>Synchronous - PUT</Dropdown.Item>
+                <Dropdown.Item onClick={() => { setMethod("DELETE"); setImporterType('synchronous'); }}>Synchronous - DELETE</Dropdown.Item>
             </DropdownButton>
             <FormControl
                 disabled={disabled}
-                placeholder="Enter a URL. Path parameters should be preceeded by a ':' character"
+                placeholder="Enter a task start URL (POST). Path parameters should be preceeded by a ':' character"
                 value={url || ""}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl((e.target as HTMLInputElement).value)}
             />
+            {
+                importerType === 'asynchronous' && <FormControl
+                    disabled={disabled}
+                    placeholder="Enter a task fetch URL (GET). Path parameters should be preceeded by a ':' character"
+                    value={resultsUrl || ""}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setResultsUrl((e.target as HTMLInputElement).value)}
+                />
+            }
         </InputGroup>
     </Form.Group>;
 }
@@ -785,6 +798,10 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     setMethod={importerMethod => props.setBlock({ ...block, type: 'end-plate-sequencer', importerMethod })}
                     url={block.importerUrl}
                     setUrl={importerUrl => props.setBlock({ ...block, type: 'end-plate-sequencer', importerUrl })}
+                    resultsUrl={block.importerCheckUrl}
+                    setResultsUrl={importerCheckUrl => props.setBlock({ ...block, type: 'end-plate-sequencer', importerCheckUrl })}
+                    importerType={block.importerType}
+                    setImporterType={importerType => props.setBlock({ ...block, type: 'end-plate-sequencer', importerType })}
                 />
                 <ProtocolBlockParamsEditor
                     disabled={props.disabled}

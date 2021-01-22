@@ -266,11 +266,13 @@ interface sequencerRow {
     classification?: string;
 }
 
-function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl, importMethod, importParams, results, setResults, setFileData }: {
+function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl, importCheckUrl, importerType, importMethod, importParams, results, setResults, setFileData }: {
     disabled?: boolean;
     runId: number;
     fileData?: BlockAttachment;
     importUrl?: string;
+    importCheckUrl?: string;
+    importerType?: 'synchronous' | 'asynchronous';
     importMethod?: string;
     importParams?: string[];
     results?: PlateResult[];
@@ -347,6 +349,8 @@ function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl
         />
         <TableImportModal
             url={importUrl || ''}
+            checkUrl={importCheckUrl || ''}
+            importerType={importerType || 'synchronous'}
             method={importMethod || ''}
             params={importParams || []}
             show={showImporter}
@@ -769,6 +773,8 @@ function RunBlockEndPlateSequencerEditor({ disabled, runId, definition, attachme
             fileData={attachments}
             setFileData={syncAttachments}
             importUrl={definition.importerUrl}
+            importCheckUrl={definition.importerCheckUrl}
+            importerType={definition.importerType}
             importMethod={definition.importerMethod}
             importParams={definition.importerParams && definition.importerParams.map(p => p.param)}
         />
