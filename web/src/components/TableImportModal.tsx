@@ -48,10 +48,10 @@ export function TableImportModal<T={[field: string]: any}>(props: TableImportMod
                 url = url.replaceAll(`:${param}`, value);
             }
             const { auth0Client } = await snapshot.getPromise(auth0State);
-            const { status, error, results, attachments } = await externalFetch<BlockResultsImport<T>>(labflowOptions, () => auth0Client, "POST", url);
+            const { id, status, error } = await externalFetch<BlockResultsImport<T>>(labflowOptions, () => auth0Client, "POST", url);
 
             if (status !== 'failed') {
-                setTimeout(checkImportAsynchronous, 3000);
+                setTimeout(() => checkImportAsynchronous(id), 3000);
             } else {
                 setImportError(error || 'ERROR: Failed to import table');
                 console.warn('Table import failed!', error);
@@ -64,11 +64,14 @@ export function TableImportModal<T={[field: string]: any}>(props: TableImportMod
         }
     });
 
-    const checkImportAsynchronous = useRecoilCallback(({ snapshot }) => async () => {
+    const checkImportAsynchronous = useRecoilCallback(({ snapshot }) => async (taskId?: string) => {
         try {
             let url = props.checkUrl;
             for (const [param, value] of Object.entries(paramValues)) {
                 url = url.replaceAll(`:${param}`, value);
+            }
+            if (taskId) {
+                url = url.replaceAll(':task_id', taskId);
             }
             const { auth0Client } = await snapshot.getPromise(auth0State);
             const { status, error, results, attachments } = await externalFetch<BlockResultsImport<T>>(labflowOptions, () => auth0Client, "GET", url);
@@ -82,7 +85,7 @@ export function TableImportModal<T={[field: string]: any}>(props: TableImportMod
                     setImporting(false);
                     break;
                 case 'not-ready':
-                    setTimeout(checkImportAsynchronous, 3000);
+                    setTimeout(() => checkImportAsynchronous(taskId), 3000);
                     break;
                 default:
                     setImportError(error || 'ERROR: Failed to import table');
