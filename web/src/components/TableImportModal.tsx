@@ -143,9 +143,9 @@ export function TableImportModal<T={[field: string]: any}>(props: TableImportMod
             {
                 importError && <div className="d-flex mt-5">
                     <div className="col"></div>
-                    <div className="col-auto my-auto">
+                    <pre className="col-auto my-auto">
                         Error: {importError}
-                    </div>
+                    </pre>
                     <div className="col"></div>
                 </div>
             }
