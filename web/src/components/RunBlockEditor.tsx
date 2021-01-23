@@ -266,7 +266,7 @@ interface sequencerRow {
     classification?: string;
 }
 
-function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl, importCheckUrl, importerType, importMethod, importParams, results, setResults, setFileData }: {
+function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl, importCheckUrl, importerType, importMethod, importParams, results, setResults }: {
     disabled?: boolean;
     runId: number;
     fileData?: BlockAttachment;
@@ -276,8 +276,7 @@ function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl
     importMethod?: string;
     importParams?: string[];
     results?: PlateResult[];
-    setResults: (results?: PlateResult[]) => void;
-    setFileData: (fileData?: BlockAttachment) => void;
+    setResults: (results?: PlateResult[], fileData?: BlockAttachment) => void;
 }) {
     const [showUploader, setShowUploader] = useState(false);
     const [showImporter, setShowImporter] = useState(false);
@@ -327,8 +326,7 @@ function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl
                 result[attachment.id] = attachment.name || "";
             }
         }
-        setResults(data);
-        setFileData(result);
+        setResults(data, result);
         setShowImporter(false);
     });
 
@@ -725,7 +723,7 @@ function RunBlockEndPlateSequencerEditor({ disabled, runId, definition, attachme
     attachments?: BlockAttachment;
     syncAttachments: (attachment?: BlockAttachment) => void;
     results?: PlateResult[];
-    setResults: (results?: PlateResult[]) => void;
+    setResults: (results?: PlateResult[], attachments?: BlockAttachment) => void;
     timestampLabel?: string;
     setTimestampLabel: (timestampLabel?: string) => void;
     endedOn?: string;
@@ -771,7 +769,6 @@ function RunBlockEndPlateSequencerEditor({ disabled, runId, definition, attachme
             results={results}
             setResults={setResults}
             fileData={attachments}
-            setFileData={syncAttachments}
             importUrl={definition.importerUrl}
             importCheckUrl={definition.importerCheckUrl}
             importerType={definition.importerType}
@@ -1003,7 +1000,7 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                     attachments={props.block && props.block.attachments}
                     syncAttachments={attachment => props.syncBlock({ ...block, type: 'end-plate-sequencer', attachments: attachment })}
                     results={props.block && props.block.plateSequencingResults}
-                    setResults={plateSequencingResults => props.setBlock({ ...block, type: 'end-plate-sequencer', plateSequencingResults })}
+                    setResults={(plateSequencingResults, attachments) => props.syncBlock({ ...block, type: 'end-plate-sequencer', plateSequencingResults, attachments: attachments || block.attachments })}
                     timestampLabel={block.timestampLabel}
                     setTimestampLabel={timestampLabel => props.setBlock({ ...block, type: 'end-plate-sequencer', timestampLabel })}
                     endedOn={block.endedOn}

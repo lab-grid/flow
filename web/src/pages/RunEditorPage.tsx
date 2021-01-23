@@ -41,8 +41,6 @@ export function RunEditorPage() {
         }
     });
 
-    console.log('isWritable, isDeletable:', isWritable, isDeletable)
-
     return <RunEditor
         runUpsert={runUpsert}
         samples={samples || []}
