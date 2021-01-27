@@ -46,9 +46,8 @@ export function RunEditorPage() {
         samples={samples || []}
         setRun={setCurrentRun}
         run={{...initialRun, ...run, ...currentRun}}
-        onDelete={runArchive}
+        onDelete={isDeletable ? runArchive : undefined}
 
-        disableDelete={!isDeletable}
         disabled={!isWritable}
 
         samplesPage={samplesPage}

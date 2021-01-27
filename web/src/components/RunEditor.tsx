@@ -13,10 +13,10 @@ import { RunSectionEditor } from "./RunSectionEditor";
 import { SaveButton } from "./SaveButton";
 import { SavedIndicator } from "./SavedIndicator";
 import { SlateInput } from "./SlateInput";
+import { ImportExportModal } from './ImportExportModal';
 
 export function RunEditor({
     disableSharing,
-    disableDelete,
     disablePrint,
     disableSave,
     disabled,
@@ -32,7 +32,6 @@ export function RunEditor({
     onSamplesPageChange,
 }: {
     disableSharing?: boolean;
-    disableDelete?: boolean;
     disablePrint?: boolean;
     disableSave?: boolean;
     disabled?: boolean;
@@ -40,7 +39,7 @@ export function RunEditor({
     run?: Run;
     setRun: (run: Run) => void;
     runUpsert: (run: Run) => Promise<Run>;
-    onDelete: () => void;
+    onDelete?: () => void;
 
     // Samples pagination
     samplesPage?: number;
@@ -50,6 +49,7 @@ export function RunEditor({
 }) {
     const [formSaving, setFormSaving] = useState<boolean>(false);
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
+    const [showImportExportModal, setShowImportExportModal] = useState(false);
     const [errors, setErrors] = useRecoilState(errorsState);
 
     // For samples export.
@@ -112,10 +112,15 @@ export function RunEditor({
     };
 
     return <>
+        <ImportExportModal
+            show={showImportExportModal}
+            setShow={setShowImportExportModal}
+            value={run}
+            setData={setRun}
+        />
         <Form className="mt-4 container">
             <DocumentTitle
                 disableSharing={disableSharing}
-                disableDelete={disableDelete}
                 disablePrint={disablePrint}
                 disabled={disabled}
                 className="row"
@@ -124,6 +129,7 @@ export function RunEditor({
                 name={run.name || humanizeRunName(run)}
                 setName={name => setRun({...run, name})}
                 onDelete={onDelete}
+                onImportExport={() => setShowImportExportModal(true)}
             />
             <br></br>
             <Form.Group>

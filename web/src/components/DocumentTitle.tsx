@@ -1,11 +1,21 @@
 import React, { useState } from 'react';
 import { Button, ButtonGroup, Col, Form } from 'react-bootstrap';
-import { Printer, Share, Trash } from 'react-bootstrap-icons';
+import { CloudUpload, Printer, Share, Trash } from 'react-bootstrap-icons';
 import { SharingModal } from './SharingModal';
 
-export function DocumentTitle({disableSharing, disableDelete, disablePrint, className, disabled, targetName, targetPath, name, setName, onDelete}: {
+export function DocumentTitle({
+    disableSharing,
+    disablePrint,
+    className,
+    disabled,
+    targetName,
+    targetPath,
+    name,
+    setName,
+    onDelete,
+    onImportExport,
+}: {
     disableSharing?: boolean;
-    disableDelete?: boolean;
     disablePrint?: boolean;
     className?: string;
     disabled?: boolean;
@@ -13,7 +23,8 @@ export function DocumentTitle({disableSharing, disableDelete, disablePrint, clas
     targetPath: string;
     name?: string;
     setName: (name?: string) => void;
-    onDelete: () => void;
+    onDelete?: () => void;
+    onImportExport?: () => void;
 }) {
     const [showSharingModal, setShowSharingModal] = useState(false);
 
@@ -37,16 +48,19 @@ export function DocumentTitle({disableSharing, disableDelete, disablePrint, clas
                         <h1 className="mr-3 my-auto">{name}</h1>
                     </Col>
             }
-            {(!disableSharing || !disableDelete || !disablePrint) && <Col xs="auto">
+            {(!disableSharing || onDelete || !disablePrint) && <Col xs="auto">
                 <ButtonGroup className="ml-auto my-auto" size="lg">
                     {!disableSharing && !disabled && <Button variant="secondary" onClick={() => setShowSharingModal(true)}>
                         <Share /> Share
                     </Button>}
-                    {!disableDelete && !disabled && <Button variant="secondary" onClick={onDelete}>
+                    {onDelete && !disabled && <Button variant="secondary" onClick={onDelete}>
                         <Trash />
                     </Button>}
                     {!disablePrint && <Button variant="secondary" onClick={() => window.print()}>
                         <Printer />
+                    </Button>}
+                    {!onImportExport && !disabled && <Button variant="secondary" onClick={onImportExport}>
+                        <CloudUpload />
                     </Button>}
                 </ButtonGroup>
             </Col>}

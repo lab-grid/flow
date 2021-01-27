@@ -97,9 +97,7 @@ export function ProtocolEditorPage() {
             samples={[]}
             setRun={setCurrentRun}
             run={{...initialRun, ...currentRun}}
-            onDelete={() => {}}
             disableSharing={true}
-            disableDelete={true}
             disablePrint={true}
             disableSave={true}
         />

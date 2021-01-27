@@ -18,6 +18,7 @@ import { SaveButton } from "./SaveButton";
 import { SavedIndicator } from "./SavedIndicator";
 import { SignatureEditor } from "./SignatureEditor";
 import { SlateInput } from "./SlateInput";
+import { ImportExportModal } from "./ImportExportModal";
 
 function newRun(protocol: Protocol): Run {
     return {
@@ -33,9 +34,8 @@ function newRun(protocol: Protocol): Run {
     };
 }
 
-export function ProtocolEditor({ disableSharing, disableDelete, disablePrint, disableSave, disablePreview, loggedInUser, showPreview, setShowPreview, protocol, setProtocol, protocolUpsert, runUpsert, onDelete }: {
+export function ProtocolEditor({ disableSharing, disablePrint, disableSave, disablePreview, loggedInUser, showPreview, setShowPreview, protocol, setProtocol, protocolUpsert, runUpsert, onDelete }: {
     disableSharing?: boolean;
-    disableDelete?: boolean;
     disablePrint?: boolean;
     disableSave?: boolean;
     disablePreview?: boolean;
@@ -46,11 +46,12 @@ export function ProtocolEditor({ disableSharing, disableDelete, disablePrint, di
     setProtocol: (protocol: Protocol) => void;
     protocolUpsert: (protocol: Protocol) => Promise<Protocol>;
     runUpsert: (run: Run) => Promise<Run>;
-    onDelete: () => void;
+    onDelete?: () => void;
 }) {
     const history = useHistory();
     const [formSaving, setFormSaving] = useState<boolean>(false);
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
+    const [showImportExportModal, setShowImportExportModal] = useState(false);
     const [errors, setErrors] = useRecoilState(errorsState);
 
     if (!protocol) {
@@ -138,10 +139,15 @@ export function ProtocolEditor({ disableSharing, disableDelete, disablePrint, di
     };
 
     return <>
+        <ImportExportModal
+            show={showImportExportModal}
+            setShow={setShowImportExportModal}
+            value={protocol}
+            setData={setProtocol}
+        />
         <Form>
             <DocumentTitleEditor
                 disableSharing={disableSharing}
-                disableDelete={disableDelete}
                 disablePrint={disablePrint}
                 disablePreview={disablePreview}
                 className="bg-secondary pt-4 pb-3 px-2"

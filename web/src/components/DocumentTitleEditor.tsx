@@ -3,9 +3,21 @@ import { Button, ButtonGroup, Col, Form } from "react-bootstrap";
 import { ChevronLeft, ChevronRight, Printer, Share, Trash } from "react-bootstrap-icons";
 import { SharingModal } from "./SharingModal";
 
-export function DocumentTitleEditor({disableSharing, disableDelete, disablePrint, disablePreview, className, disabled, targetName, targetPath, showPreview, setShowPreview, name, setName, onDelete}: {
+export function DocumentTitleEditor({
+    disableSharing,
+    disablePrint,
+    disablePreview,
+    className,
+    disabled,
+    targetName,
+    targetPath,
+    showPreview,
+    setShowPreview,
+    name,
+    setName,
+    onDelete,
+}: {
     disableSharing?: boolean;
-    disableDelete?: boolean;
     disablePrint?: boolean;
     disablePreview?: boolean;
     className?: string;
@@ -16,7 +28,7 @@ export function DocumentTitleEditor({disableSharing, disableDelete, disablePrint
     setShowPreview: (showPreview: boolean) => void;
     name?: string;
     setName: (name?: string) => void;
-    onDelete: () => void;
+    onDelete?: () => void;
 }) {
     const [showSharingModal, setShowSharingModal] = useState(false);
 
@@ -34,12 +46,12 @@ export function DocumentTitleEditor({disableSharing, disableDelete, disablePrint
                     />
                 </Form.Group>
             </Col>
-            {(!disableSharing || !disableDelete || !disablePrint) && <Col xs="auto">
+            {(!disableSharing || onDelete || !disablePrint) && <Col xs="auto">
                 <ButtonGroup size="lg">
                     {!disableSharing && <Button variant="secondary" onClick={() => setShowSharingModal(true)}>
                         <Share /> Share
                     </Button>}
-                    {!disableDelete && <Button variant="secondary" onClick={onDelete}>
+                    {onDelete && <Button variant="secondary" onClick={onDelete}>
                         <Trash />
                     </Button>}
                     {!disablePrint && <Button variant="secondary" onClick={() => window.print()}>
