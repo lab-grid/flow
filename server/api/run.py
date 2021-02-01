@@ -82,30 +82,33 @@ def get_samples(run, run_version):
             if 'plateLot' in block:
                 lots.append(block['plateLot'])
 
-            if block['type'] == 'plate-sampler' and 'plateMappings' in block:
-                for plate_id, plate_samples in block['plateMappings'].items():
-                    if not plate_samples:
-                        continue
-                    for plate_sample in plate_samples:
-                        if 'sampleLabel' not in plate_sample:
-                            continue
-                        sample = Sample(
-                            sample_id=f"{plate_sample['sampleLabel']}",
-                            plate_id=plate_id,
-                        )
-                        sample_version = SampleVersion(
-                            data={
-                                'plateRow': plate_sample['row'],
-                                'plateCol': plate_sample['col'],
-                                'plateIndex': plate_sample['plateIndex'],
-                            },
-                            sample=sample,
-                            server_version=app.config['SERVER_VERSION'],
-                        )
-                        sample.run_version = run_version
-                        sample.protocol_version_id = run.protocol_version_id
-                        sample.current = sample_version
-                        samples.append(sample)
+            if block['type'] == 'plate-sampler' and 'plates' in block:
+                for plate_mapping in block['plates']:
+                    plate_id = plate_mapping.get('label')
+                    if 'coordinates' in plate_mapping:
+                        for plate_samples in plate_mapping['coordinates']:
+                            if not plate_samples:
+                                continue
+                            for plate_sample in plate_samples:
+                                if 'sampleLabel' not in plate_sample:
+                                    continue
+                                sample = Sample(
+                                    sample_id=f"{plate_sample['sampleLabel']}",
+                                    plate_id=plate_id,
+                                )
+                                sample_version = SampleVersion(
+                                    data={
+                                        'plateRow': plate_sample['row'],
+                                        'plateCol': plate_sample['col'],
+                                        'plateIndex': plate_sample['plateIndex'],
+                                    },
+                                    sample=sample,
+                                    server_version=app.config['SERVER_VERSION'],
+                                )
+                                sample.run_version = run_version
+                                sample.protocol_version_id = run.protocol_version_id
+                                sample.current = sample_version
+                                samples.append(sample)
             if block['type'] == 'end-plate-sequencer' and 'plateSequencingResults' in block:
                 for result in block['plateSequencingResults']:
                     results[f"{result['marker1']}-{result['marker2']}"] = result

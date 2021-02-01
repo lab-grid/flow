@@ -2,7 +2,7 @@ import moment from 'moment';
 import React, { useState } from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
 import { Trash, UpcScan } from 'react-bootstrap-icons';
-import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, EndPlateSequencerBlock, Block, StartTimestampBlock, EndTimestampBlock, CalculatorBlock, StartPlateSequencerBlock, BlockAttachment, AddReagentBlock } from '../models/block';
+import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, EndPlateSequencerBlock, Block, StartTimestampBlock, EndTimestampBlock, CalculatorBlock, StartPlateSequencerBlock, BlockAttachment, AddReagentBlock, PlateMapping } from '../models/block';
 import { BlockPrimer, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition, AddReagentBlockDefinition } from '../models/block-definition';
 import { TableUploadModal } from './TableUploadModal';
 import { Calculator } from './Calculator';
@@ -481,21 +481,20 @@ function RunBlockPlateLotEditor({ disabled, lot, setLot }: {
     </InputGroup>
 }
 
-function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, setOutputPlateLabel, mappings, setMappings, platePrimers, setPlatePrimers }: {
+function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, setOutputPlateLabel, plates, setPlates, platePrimers, setPlatePrimers }: {
     disabled?: boolean;
     definition: PlateSamplerBlockDefinition;
     outputPlateLabel?: string;
     setOutputPlateLabel: (outputPlateLabel?: string) => void;
-    mappings?: { [label: string]: PlateCoordinate[] };
-    setMappings: (mappings: { [label: string]: PlateCoordinate[] }) => void;
+    plates?: PlateMapping[];
+    setPlates: (plates: PlateMapping[]) => void;
     platePrimers?: { [label: string]: string };
     setPlatePrimers: (platePrimers: { [label: string]: string }) => void;
 }) {
-    const plates = mappings && Object.keys(mappings);
     const plateIds = definition.plates && definition.plates.filter(plate => !!plate).map(plate => plate.id);
     const inputRows: JSX.Element[] = [];
     for (let i = 0; i < (definition.plateCount || 0); i++) {
-        const label = plates && plates[i];
+        const plate = plates && plates[i];
         const id = plateIds && plateIds[i];
         inputRows.push(<tr key={i}>
             <th>Input Plate {i+1} <img alt={`Quadrant ${i}`} src={"../images/quadrant_" + i + ".png"} width="75"/> </th>
@@ -504,12 +503,12 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
                     disabled={disabled}
                     wells={definition.plates && definition.plates[i] && definition.plates[i].size}
                     name={definition.plates && definition.plates[i] && definition.plates[i].name}
-                    plateLabel={label}
+                    plateLabel={plate && plate.label}
                     plateIndex={i+1}
                     setCoordinates={(label, coordinates) => {
-                        const newMappings = { ...mappings };
-                        newMappings[label] = coordinates;
-                        setMappings(newMappings);
+                        const newPlates = [...(plates || [])];
+                        newPlates[i] = { label, coordinates };
+                        setPlates(newPlates);
                     }}
                     platePrimers={definition.platePrimers}
                     platePrimer={platePrimers && id && platePrimers[id]}
@@ -940,8 +939,8 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                     definition={block.definition}
                     outputPlateLabel={block.outputPlateLabel}
                     setOutputPlateLabel={outputPlateLabel => props.setBlock({ ...block, type: 'plate-sampler', outputPlateLabel })}
-                    mappings={props.block && props.block.plateMappings}
-                    setMappings={plateMappings => props.setBlock({ ...block, type: 'plate-sampler', plateMappings })}
+                    plates={props.block && props.block.plates}
+                    setPlates={plates => props.setBlock({ ...block, type: 'plate-sampler', plates })}
                     platePrimers={props.block && props.block.platePrimers}
                     setPlatePrimers={platePrimers => props.setBlock({ ...block, type: 'plate-sampler', platePrimers })}
                 />

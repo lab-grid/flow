@@ -136,7 +136,7 @@ def filter_by_reagent_label(run_version_query, reagent_id):
 
 def filter_by_sample_label(run_version_query, sample_id):
     return run_version_query.filter(
-        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plateMappings[*].sampleLabel ? (@ == "{sample_id}"))')
+        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plates[*].coordinates[*].sampleLabel ? (@ == "{sample_id}"))')
     )
 
 
