@@ -59,7 +59,7 @@ export function DocumentTitle({
                     {!disablePrint && <Button variant="secondary" onClick={() => window.print()}>
                         <Printer />
                     </Button>}
-                    {!onImportExport && !disabled && <Button variant="secondary" onClick={onImportExport}>
+                    {onImportExport && !disabled && <Button variant="secondary" onClick={onImportExport}>
                         <CloudUpload />
                     </Button>}
                 </ButtonGroup>

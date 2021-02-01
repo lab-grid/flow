@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Button, ButtonGroup, Col, Form } from "react-bootstrap";
-import { ChevronLeft, ChevronRight, Printer, Share, Trash } from "react-bootstrap-icons";
+import { ChevronLeft, ChevronRight, CloudUpload, Printer, Share, Trash } from "react-bootstrap-icons";
 import { SharingModal } from "./SharingModal";
 
 export function DocumentTitleEditor({
@@ -16,6 +16,7 @@ export function DocumentTitleEditor({
     name,
     setName,
     onDelete,
+    onImportExport,
 }: {
     disableSharing?: boolean;
     disablePrint?: boolean;
@@ -29,6 +30,7 @@ export function DocumentTitleEditor({
     name?: string;
     setName: (name?: string) => void;
     onDelete?: () => void;
+    onImportExport?: () => void;
 }) {
     const [showSharingModal, setShowSharingModal] = useState(false);
 
@@ -59,6 +61,9 @@ export function DocumentTitleEditor({
                     </Button>}
                     {!disablePreview && <Button variant="secondary" onClick={() => setShowPreview(!showPreview)} active={showPreview}>
                         {showPreview ? <ChevronLeft /> : <ChevronRight />}
+                    </Button>}
+                    {onImportExport && !disabled && <Button variant="secondary" onClick={onImportExport}>
+                        <CloudUpload />
                     </Button>}
                 </ButtonGroup>
             </Col>}

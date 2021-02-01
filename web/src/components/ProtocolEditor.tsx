@@ -159,6 +159,7 @@ export function ProtocolEditor({ disableSharing, disablePrint, disableSave, disa
                 name={protocol.name}
                 setName={name => setProtocol({...protocol, name})}
                 onDelete={onDelete}
+                onImportExport={() => setShowImportExportModal(true)}
             />
             <Form.Row className="bg-secondary px-2">
                 <Col>
