@@ -59,11 +59,11 @@ export function DocumentTitleEditor({
                     {!disablePrint && <Button variant="secondary" onClick={() => window.print()}>
                         <Printer />
                     </Button>}
-                    {!disablePreview && <Button variant="secondary" onClick={() => setShowPreview(!showPreview)} active={showPreview}>
-                        {showPreview ? <ChevronLeft /> : <ChevronRight />}
-                    </Button>}
                     {onImportExport && !disabled && <Button variant="secondary" onClick={onImportExport}>
                         <CloudUpload />
+                    </Button>}
+                    {!disablePreview && <Button variant="secondary" onClick={() => setShowPreview(!showPreview)} active={showPreview}>
+                        {showPreview ? <ChevronLeft /> : <ChevronRight />}
                     </Button>}
                 </ButtonGroup>
             </Col>}

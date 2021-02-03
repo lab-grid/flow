@@ -84,6 +84,9 @@ def get_samples(run, run_version):
 
             if block['type'] == 'plate-sampler' and 'plates' in block:
                 for plate_mapping in block['plates']:
+                    if plate_mapping is None:
+                        continue
+
                     plate_id = plate_mapping.get('label')
                     if 'coordinates' in plate_mapping:
                         for plate_samples in plate_mapping['coordinates']:

@@ -18,4 +18,4 @@ COPY ./ .
 ENV FLASK_APP=/app/main.py
 ENV SERVER_VERSION=$SERVER_VERSION
 
-CMD gunicorn --bind 0.0.0.0:${PORT} main:app --timeout 120 --limit-request-line 0 --workers 4
+CMD gunicorn --bind 0.0.0.0:${PORT} main:app --access-logfile - --error-logfile - --timeout 120 --limit-request-line 0 --workers 4
