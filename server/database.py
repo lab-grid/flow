@@ -45,7 +45,7 @@ def json_row_to_dict(row):
 
     return d
 
-def versioned_row_to_dict(api, row, row_version):
+def versioned_row_to_dict(api, row, row_version, include_large_fields=True):
     """Convert a sqlalchemy row object into a plain python dictionary.
 
     Assumes that row object contains the following columns:
@@ -63,6 +63,27 @@ def versioned_row_to_dict(api, row, row_version):
         row (BaseModel): The db row object
     """
     d = copy.deepcopy(row_version.data) if row_version and row_version.data else {}
+
+    if not include_large_fields and 'sections' in d:
+        for section in d['sections']:
+            if 'blocks' not in section:
+                continue
+
+            for block in section['blocks']:
+                # Remove samples
+                if block['type'] == 'plate-sampler' and 'plates' in block:
+                    del block['plates']
+
+                # Remove markers
+                if block['type'] == 'end-plate-sequencer' and 'plateMarkers' in block and 'plateMarkers':
+                    del block['plateMarkers']
+                if block['type'] == 'end-plate-sequencer' and 'definition' in block and 'plateMarkers' in block['definition']:
+                    del block['definition']['plateMarkers']
+
+                # Remove results
+                if block['type'] == 'end-plate-sequencer' and 'plateSequencingResults' in block:
+                    del block['plateSequencingResults']
+
     if row.id:
         d['id'] = row.id
     if row.created_on:

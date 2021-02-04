@@ -74,11 +74,10 @@ export function TableImportModal<T={[field: string]: any}>(props: TableImportMod
                 url = url.replaceAll(':task_id', taskId);
             }
             const { auth0Client } = await snapshot.getPromise(auth0State);
-            const { status, error, results, attachments } = await externalFetch<BlockResultsImport<T>>(labflowOptions, () => auth0Client, "GET", url);
+            const response = await externalFetch<BlockResultsImport<T>>(labflowOptions, () => auth0Client, "GET", url)
+            console.log("Got response from results import:", response);
+            const { status, error, results, attachments } = response;
 
-            if (status === 'not-ready') {
-
-            }
             switch(status) {
                 case 'ready':
                     props.setTable(results || [], attachments || {});

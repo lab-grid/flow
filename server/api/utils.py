@@ -218,7 +218,6 @@ def add_owner(model, user_id=None):
         user_id = request.current_user["sub"]
     model.created_by = user_id
 
-
 def add_updator(model, user_id=None):
     if user_id is None:
         user_id = request.current_user["sub"]

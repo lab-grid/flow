@@ -102,7 +102,7 @@ class ProtocolsResource(Resource):
                 in protocols_query.distinct().order_by(Protocol.created_on.desc())
                 if check_access(path=f"/protocol/{str(protocol.id)}", method="GET") and protocol and protocol.current
             ],
-            item_to_dict=lambda protocol: versioned_row_to_dict(api, protocol, protocol.current),
+            item_to_dict=lambda protocol: versioned_row_to_dict(api, protocol, protocol.current, include_large_fields=False),
         )
 
     @api.doc(security='token', model=protocol_output, body=protocol_input)

@@ -47,9 +47,9 @@ attachment_output = api.model('AttachmentOutput', {
 attachments_output = fields.List(fields.Nested(attachment_output))
 
 
-def run_to_dict(run, run_version):
-    run_dict = versioned_row_to_dict(api, run, run_version)
-    run_dict['protocol'] = versioned_row_to_dict(api, run.protocol_version.protocol, run.protocol_version)
+def run_to_dict(run, run_version, include_large_fields=True):
+    run_dict = versioned_row_to_dict(api, run, run_version, include_large_fields)
+    run_dict['protocol'] = versioned_row_to_dict(api, run.protocol_version.protocol, run.protocol_version, include_large_fields)
     return run_dict
 
 
@@ -228,7 +228,7 @@ class RunsResource(Resource):
                 in runs_query.distinct().order_by(Run.created_on.desc())
                 if check_access(path=f"/run/{str(run.id)}", method="GET") and run and run.current
             ],
-            item_to_dict=lambda run: run_to_dict(run, run.current),
+            item_to_dict=lambda run: run_to_dict(run, run.current, include_large_fields=False),
         )
 
 
