@@ -1,4 +1,5 @@
 import os
+import logging
 
 from flask import Flask, jsonify
 from flask.json import JSONEncoder
@@ -89,3 +90,11 @@ def handle_unhandled_exceptions(e):
         "error_code": 500,
         "message": str(e.original),
     }), 500
+
+
+# Logging ---------------------------------------------------------------------
+
+if not app.debug:
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO)
+    app.logger.addHandler(stream_handler)
