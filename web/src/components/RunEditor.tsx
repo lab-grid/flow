@@ -170,6 +170,7 @@ export function RunEditor({
                     className="col-auto ml-3"
                     onClick={() => syncRun()}
                     disabled={formSaving}
+                    saving={formSaving}
                 />
                 <SavedIndicator
                     className="col-auto mr-auto my-auto"

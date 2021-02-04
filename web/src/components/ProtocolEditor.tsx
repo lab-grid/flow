@@ -259,6 +259,7 @@ export function ProtocolEditor({ disableSharing, disablePrint, disableSave, disa
                     className="col-auto ml-3"
                     onClick={() => syncProtocol()}
                     disabled={formSaving}
+                    saving={formSaving}
                 />
                 <SavedIndicator
                     className="col-auto mr-auto my-auto"
