@@ -67,7 +67,7 @@ def versioned_row_to_dict(api, row, row_version):
         d['id'] = row.id
     if row.created_on:
         d['created_on'] = row.created_on
-    if row.owner and row.owner.current:
+    if row.owner and hasattr(row.owner, 'current'):
         try:
             d['created_by'] = row.owner.current.data["email"]
         except Exception as ex:
@@ -80,7 +80,7 @@ def versioned_row_to_dict(api, row, row_version):
         d['server_version'] = row_version.server_version
     if row_version.webapp_version:
         d['webapp_version'] = row_version.webapp_version
-    if row_version.updator and row_version.updator.current:
+    if row_version.updator and hasattr(row_version.updator, 'current'):
         try:
             d['updated_by'] = row_version.updator.current.data["email"]
         except Exception as ex:
