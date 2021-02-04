@@ -326,6 +326,7 @@ function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl
                 result[attachment.id] = attachment.name || "";
             }
         }
+        console.log('Results:', data, result);
         setResults(data, result);
         setShowImporter(false);
     });
