@@ -7,7 +7,7 @@ import { BlockPrimer, CalculatorBlockDefinition, EndTimestampBlockDefinition, Op
 import { TableUploadModal } from './TableUploadModal';
 import { Calculator } from './Calculator';
 import DatePicker from "react-datepicker";
-import { deleteRunAttachment, downloadRunAttachment, uploadRunAttachment, uploadRunAttachmentBlob } from '../state/api';
+import { deleteRunAttachment, downloadRunAttachment, FetchError, uploadRunAttachment, uploadRunAttachmentBlob } from '../state/api';
 import { useRecoilCallback } from 'recoil';
 import { auth0State } from '../state/atoms';
 import { Attachment } from '../models/attachment';
@@ -313,17 +313,24 @@ function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl
         const { auth0Client } = await snapshot.getPromise(auth0State);
         const result: BlockAttachment = fileData ? {...fileData} : {};
         const resultPromises: Promise<Attachment>[] = [];
-        for (const [filename, b64File] of Object.entries(attachments)) {
-            const mime = filenameToMime(filename);
-            const blob = mime ? await b64toBlob(b64File, mime) : await b64toBlob(b64File);
-            if (blob) {
-                resultPromises.push(uploadRunAttachmentBlob(() => auth0Client, runId, filename, blob));
+        const results: Attachment[] = [];
+        try {
+            for (const [filename, b64File] of Object.entries(attachments)) {
+                const mime = filenameToMime(filename);
+                const blob = mime ? await b64toBlob(b64File, mime) : await b64toBlob(b64File);
+                if (blob) {
+                    resultPromises.push(uploadRunAttachmentBlob(() => auth0Client, runId, filename, blob));
+                }
             }
-        }
-        const results = await Promise.all(resultPromises);
-        for (const attachment of results) {
-            if (attachment.id) {
-                result[attachment.id] = attachment.name || "";
+            results.push(...await Promise.all(resultPromises));
+            for (const attachment of results) {
+                if (attachment.id) {
+                    result[attachment.id] = attachment.name || "";
+                }
+            }
+        } catch (ex) {
+            if (!(ex instanceof FetchError) || !ex.response || !((ex.response.status < 400) || (ex.response.status === 404))) {
+                throw ex;
             }
         }
         console.log('Results:', data, result);
