@@ -115,17 +115,6 @@ def get_samples(run, run_version):
             if block['type'] == 'end-plate-sequencer' and 'definition' in block and 'plateMarkers' in block['definition']:
                 for marker in block['definition']['plateMarkers'].values():
                     markers[f"{marker['plateIndex']}-{marker['plateRow']}-{marker['plateColumn']}"] = marker
-    
-
-    # import pprint
-    # print('==================================================================')
-    # pprint.pprint(samples)
-    # print('==================================================================')
-    # pprint.pprint(markers)
-    # print('==================================================================')
-    # pprint.pprint(results)
-    # print('==================================================================')
-
 
     for sample in samples:
         sample.current.data['signers'] = signers
@@ -141,7 +130,8 @@ def get_samples(run, run_version):
         result = results.get(f"{marker['marker1']}-{marker['marker2']}", None)
         if not result:
             continue
-        sample.current.data['result'] = result['classification']
+        if 'classification' in result:
+            sample.current.data['result'] = result['classification']
 
     return samples
 
