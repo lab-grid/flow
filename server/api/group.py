@@ -1,23 +1,14 @@
-from flask_restx import Resource, fields, Namespace
+from typing import List
 
-from authorization import requires_auth, requires_scope, get_all_roles
-
-
-api = Namespace('groups', description='Extra-Simple operations on groups.', path='/')
-
-
-group_output = api.model('GroupOutput', { 'id': fields.String() })
-groups_output = fields.List(fields.Nested(group_output))
+from authorization import get_all_roles
+from server import app
+from models import Group
 
 
-@api.route('/group')
-class GroupsResource(Resource):
-    @api.doc(security='token', model=groups_output)
-    @requires_auth
-    # @requires_scope('read:groups')
-    def get(self):
-        return [
-            {'id': role}
-            for role
-            in get_all_roles()
-        ]
+@app.get('/group', tags=['groups'], response_model=List[Group], response_model_exclude_none=True)
+async def get_groups():
+    return [
+        Group(id=role)
+        for role
+        in get_all_roles()
+    ]

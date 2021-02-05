@@ -261,8 +261,8 @@ interface sequencerRow {
     plateLabel?: string;
     plateIndex?: number;
     plateCell?: string;
-    marker1?: number;
-    marker2?: number;
+    marker1?: string;
+    marker2?: string;
     classification?: string;
 }
 

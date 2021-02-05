@@ -1,15 +1,22 @@
 """Database models and utilities."""
 
 import copy
+import logging
 import pprint
-from server import db
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func, Column, Boolean, DateTime, ForeignKey, ForeignKeyConstraint, Integer, LargeBinary, String
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql.expression import column, literal_column
-from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.ext.declarative import declared_attr, declarative_base
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func, text
 from sqlalchemy.orm.attributes import flag_modified
-# from alembic_utils.pg_view import PGView
+
+
+from server import db_session
+
+
+Base = declarative_base()
+Base.query = db_session.query_property()
 
 
 # Helpers ---------------------------------------------------------------------
@@ -45,7 +52,7 @@ def json_row_to_dict(row):
 
     return d
 
-def versioned_row_to_dict(api, row, row_version, include_large_fields=True):
+def versioned_row_to_dict(row, row_version, include_large_fields=True):
     """Convert a sqlalchemy row object into a plain python dictionary.
 
     Assumes that row object contains the following columns:
@@ -92,7 +99,7 @@ def versioned_row_to_dict(api, row, row_version, include_large_fields=True):
         try:
             d['created_by'] = row.owner.current.data["email"]
         except Exception as ex:
-            api.logger.error("Failed to get user email: %s", ex)
+            logging.error("Failed to get user email: %s", ex)
     if row_version.id:
         d['version_id'] = row_version.id
     if row_version.updated_on:
@@ -105,7 +112,7 @@ def versioned_row_to_dict(api, row, row_version, include_large_fields=True):
         try:
             d['updated_by'] = row_version.updator.current.data["email"]
         except Exception as ex:
-            api.logger.error("Failed to get user email: %s", ex)
+            logging.error("Failed to get user email: %s", ex)
 
     return d
 
@@ -163,66 +170,66 @@ def filter_by_sample_label(run_version_query, sample_id):
 
 # Tables ----------------------------------------------------------------------
 
-class BaseModel(db.Model):
+class BaseModel(Base):
     __abstract__ = True
     def __repr__(self):
         return pprint.pformat(self.__dict__)
 
-    is_deleted = db.Column(db.Boolean, default=False)
-    created_on = db.Column(db.DateTime, default=db.func.now())
+    is_deleted = Column(Boolean, default=False)
+    created_on = Column(DateTime, default=func.now())
 
     @declared_attr
     def created_by(cls):
-        return db.Column(db.String(64), db.ForeignKey('user.id'))
+        return Column(String(64), ForeignKey('user.id'))
 
     @declared_attr
     def owner(cls):
-        return db.relationship('User', primaryjoin=cls.__name__+'.created_by==User.id')
+        return relationship('User', primaryjoin=cls.__name__+'.created_by==User.id')
 
-class BaseVersionModel(db.Model):
+class BaseVersionModel(Base):
     __abstract__ = True
 
-    server_version = db.Column(db.String(40))
-    webapp_version = db.Column(db.String(40))
-    updated_on = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
+    server_version = Column(String(40))
+    webapp_version = Column(String(40))
+    updated_on = Column(DateTime, default=func.now(), onupdate=func.now())
 
     @declared_attr
     def updated_by(cls):
-        return db.Column(db.String(64), db.ForeignKey('user.id'))
+        return Column(String(64), ForeignKey('user.id'))
 
     @declared_attr
     def updator(cls):
-        return db.relationship('User', primaryjoin=cls.__name__+'.updated_by==User.id')
+        return relationship('User', primaryjoin=cls.__name__+'.updated_by==User.id')
 
 class Attachment(BaseModel):
     __tablename__ = 'attachment'
 
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(256))
-    mimetype = db.Column(db.String(64))
-    data = db.Column(db.LargeBinary)
+    id = Column(Integer, primary_key=True)
+    name = Column(String(256))
+    mimetype = Column(String(64))
+    data = Column(LargeBinary)
 
 class UserVersion(BaseVersionModel):
     __tablename__ = 'user_version'
 
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(64), db.ForeignKey('user.id', ondelete='CASCADE'))
-    data = db.Column(JSONB)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String(64), ForeignKey('user.id', ondelete='CASCADE'))
+    data = Column(JSONB)
 
-    user = db.relationship('User', primaryjoin='UserVersion.user_id==User.id')
+    user = relationship('User', primaryjoin='UserVersion.user_id==User.id')
 
 class User(BaseModel):
     __tablename__ = 'user'
 
-    id = db.Column(db.String(64), primary_key=True)
-    version_id = db.Column(db.Integer, db.ForeignKey('user_version.id', use_alter=True))
+    id = Column(String(64), primary_key=True)
+    version_id = Column(Integer, ForeignKey('user_version.id', use_alter=True))
 
-    current = db.relationship(
+    current = relationship(
         UserVersion,
         primaryjoin='User.version_id==UserVersion.id',
         post_update=True,
     )
-    history = db.relationship(
+    history = relationship(
         UserVersion,
         primaryjoin='User.id==UserVersion.user_id',
         post_update=True,
@@ -234,24 +241,24 @@ class User(BaseModel):
 class ProtocolVersion(BaseVersionModel):
     __tablename__ = 'protocol_version'
 
-    id = db.Column(db.Integer, primary_key=True)
-    protocol_id = db.Column(db.Integer, db.ForeignKey('protocol.id', ondelete='CASCADE'))
-    data = db.Column(JSONB)
+    id = Column(Integer, primary_key=True)
+    protocol_id = Column(Integer, ForeignKey('protocol.id', ondelete='CASCADE'))
+    data = Column(JSONB)
 
-    protocol = db.relationship('Protocol', primaryjoin='ProtocolVersion.protocol_id==Protocol.id')
+    protocol = relationship('Protocol', primaryjoin='ProtocolVersion.protocol_id==Protocol.id')
 
 class Protocol(BaseModel):
     __tablename__ = 'protocol'
 
-    id = db.Column(db.Integer, primary_key=True)
-    version_id = db.Column(db.Integer, db.ForeignKey('protocol_version.id', use_alter=True))
+    id = Column(Integer, primary_key=True)
+    version_id = Column(Integer, ForeignKey('protocol_version.id', use_alter=True))
 
-    current = db.relationship(
+    current = relationship(
         ProtocolVersion,
         primaryjoin='Protocol.version_id==ProtocolVersion.id',
         post_update=True,
     )
-    history = db.relationship(
+    history = relationship(
         ProtocolVersion,
         primaryjoin='Protocol.id==ProtocolVersion.protocol_id',
         post_update=True,
@@ -260,43 +267,43 @@ class Protocol(BaseModel):
         order_by=UserVersion.updated_on,
     )
 
-class RunVersionAttachment(db.Model):
+class RunVersionAttachment(Base):
     __tablename__ = 'run_version_attachment'
 
-    id = db.Column(db.Integer, primary_key=True)
-    run_version_id = db.Column(db.Integer, db.ForeignKey('run_version.id', ondelete='CASCADE'))
-    attachment_id = db.Column(db.Integer, db.ForeignKey('attachment.id', ondelete='CASCADE'))
+    id = Column(Integer, primary_key=True)
+    run_version_id = Column(Integer, ForeignKey('run_version.id', ondelete='CASCADE'))
+    attachment_id = Column(Integer, ForeignKey('attachment.id', ondelete='CASCADE'))
 
-    run_version = db.relationship('RunVersion', primaryjoin='RunVersionAttachment.run_version_id==RunVersion.id')
-    attachment = db.relationship('RunVersion', primaryjoin='RunVersionAttachment.run_version_id==RunVersion.id')
+    run_version = relationship('RunVersion', primaryjoin='RunVersionAttachment.run_version_id==RunVersion.id')
+    attachment = relationship('RunVersion', primaryjoin='RunVersionAttachment.run_version_id==RunVersion.id')
 
 class RunVersion(BaseVersionModel):
     __tablename__ = 'run_version'
 
-    id = db.Column(db.Integer, primary_key=True)
-    run_id = db.Column(db.Integer, db.ForeignKey('run.id', ondelete='CASCADE'))
-    data = db.Column(JSONB)
+    id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey('run.id', ondelete='CASCADE'))
+    data = Column(JSONB)
 
-    run = db.relationship('Run', primaryjoin='RunVersion.run_id==Run.id')
-    attachments = db.relationship('Attachment', secondary='run_version_attachment')
+    run = relationship('Run', primaryjoin='RunVersion.run_id==Run.id')
+    attachments = relationship('Attachment', secondary='run_version_attachment')
 
 class Run(BaseModel):
     __tablename__ = 'run'
 
-    id = db.Column(db.Integer, primary_key=True)
-    version_id = db.Column(db.Integer, db.ForeignKey('run_version.id', use_alter=True))
-    protocol_version_id = db.Column(db.Integer, db.ForeignKey('protocol_version.id', use_alter=True))
+    id = Column(Integer, primary_key=True)
+    version_id = Column(Integer, ForeignKey('run_version.id', use_alter=True))
+    protocol_version_id = Column(Integer, ForeignKey('protocol_version.id', use_alter=True))
 
-    current = db.relationship(
+    current = relationship(
         RunVersion,
         primaryjoin='Run.version_id==RunVersion.id',
         post_update=True,
     )
-    protocol_version = db.relationship(
+    protocol_version = relationship(
         ProtocolVersion,
         primaryjoin='Run.protocol_version_id==ProtocolVersion.id',
     )
-    history = db.relationship(
+    history = relationship(
         RunVersion,
         primaryjoin='Run.id==RunVersion.run_id',
         post_update=True,
@@ -308,22 +315,22 @@ class Run(BaseModel):
 class SampleVersion(BaseVersionModel):
     __tablename__ = 'sample_version'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)
 
-    sample_id = db.Column(db.String(64))
-    plate_id = db.Column(db.String(64))
-    run_version_id = db.Column(db.Integer)
-    protocol_version_id = db.Column(db.Integer)
+    sample_id = Column(String(64))
+    plate_id = Column(String(64))
+    run_version_id = Column(Integer)
+    protocol_version_id = Column(Integer)
 
-    data = db.Column(JSONB)
+    data = Column(JSONB)
 
-    sample = db.relationship(
+    sample = relationship(
         'Sample',
         primaryjoin='(SampleVersion.sample_id==Sample.sample_id) | (SampleVersion.plate_id==Sample.plate_id) | (SampleVersion.run_version_id==Sample.run_version_id) | (SampleVersion.protocol_version_id==Sample.protocol_version_id)'
     )
 
     __table_args__ = (
-        db.ForeignKeyConstraint(
+        ForeignKeyConstraint(
             [sample_id, plate_id, run_version_id, protocol_version_id],
             ['sample.sample_id', 'sample.plate_id', 'sample.run_version_id', 'sample.protocol_version_id'],
         ),
@@ -333,27 +340,27 @@ class SampleVersion(BaseVersionModel):
 class Sample(BaseModel):
     __tablename__ = 'sample'
 
-    sample_id = db.Column(db.String(64), primary_key=True)
-    plate_id = db.Column(db.String(64), primary_key=True)
-    run_version_id = db.Column(db.Integer, db.ForeignKey('run_version.id', use_alter=True), primary_key=True)
-    protocol_version_id = db.Column(db.Integer, db.ForeignKey('protocol_version.id', use_alter=True), primary_key=True)
+    sample_id = Column(String(64), primary_key=True)
+    plate_id = Column(String(64), primary_key=True)
+    run_version_id = Column(Integer, ForeignKey('run_version.id', use_alter=True), primary_key=True)
+    protocol_version_id = Column(Integer, ForeignKey('protocol_version.id', use_alter=True), primary_key=True)
 
-    version_id = db.Column(db.Integer, db.ForeignKey('sample_version.id', use_alter=True))
+    version_id = Column(Integer, ForeignKey('sample_version.id', use_alter=True))
 
-    current = db.relationship(
+    current = relationship(
         SampleVersion,
         primaryjoin='Sample.version_id==SampleVersion.id',
         post_update=True,
     )
-    protocol_version = db.relationship(
+    protocol_version = relationship(
         ProtocolVersion,
         primaryjoin='Sample.protocol_version_id==ProtocolVersion.id',
     )
-    run_version = db.relationship(
+    run_version = relationship(
         RunVersion,
         primaryjoin='Sample.run_version_id==RunVersion.id',
     )
-    history = db.relationship(
+    history = relationship(
         SampleVersion,
         primaryjoin='(Sample.sample_id==SampleVersion.sample_id) | (Sample.plate_id==SampleVersion.plate_id) | (Sample.run_version_id==SampleVersion.run_version_id) | (Sample.protocol_version_id==SampleVersion.protocol_version_id)',
         post_update=True,

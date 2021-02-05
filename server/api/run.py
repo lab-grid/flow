@@ -1,55 +1,26 @@
 import copy
-from flask import abort, request
-from flask_restx import Resource, fields, Namespace
-
-from werkzeug.datastructures import FileStorage
-from werkzeug.utils import secure_filename
+import io
 
 from functools import reduce, wraps
+from typing import List, Optional
 
-from server import app, db
-from authorization import AuthError, requires_auth, requires_scope, requires_access, check_access, add_policy, delete_policy, get_policies, get_roles
+from fastapi import Depends, HTTPException, File, UploadFile
+from fastapi.responses import StreamingResponse
+from server import Auth0ClaimsPatched
+from sqlalchemy.orm import Session
+
+from server import app, get_db, get_current_user
+from settings import settings
+from authorization import check_access, add_policy, delete_policy, get_policies, get_roles
 from database import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol, run_to_sample, Sample, SampleVersion, Attachment
+from models import AttachmentModel, SampleResult, SampleResults, Policy, RunModel, RunsModel, SuccessResponse, success
 
-from api.utils import change_allowed, success_output, add_owner, add_updator, attachment_id_param, run_id_param, version_id_param, purge_param, user_id_filter_param, method_filter_param, user_id_param, method_param, sample_id_param, protocol_param, plate_param, sample_param, reagent_param, creator_param, archived_param, page_param, per_page_param, paginatify
-
-
-api = Namespace('runs', description='Extra-Simple operations on runs.', path='/')
-
-
-upload_parser = api.parser()
-upload_parser.add_argument(
-    'file',
-    location='files',
-    type=FileStorage,
-    required=True
-)
-
-
-run_input = api.model('RunInput', {})
-run_output = api.model('RunOutput', { 'id': fields.Integer() })
-runs_output = api.model('RunsOutput', {
-    'runs': fields.List(fields.Nested(run_output)),
-    'page': fields.Integer(),
-    'pageCount': fields.Integer(),
-})
-sample_input = api.model('SampleInput', {})
-sample_output = api.model('SampleOutput', { 'sampleID': fields.Integer() })
-samples_output = api.model('SamplesOutput', {
-    'samples': fields.List(fields.Nested(sample_output)),
-    'page': fields.Integer(),
-    'pageCount': fields.Integer(),
-})
-attachment_output = api.model('AttachmentOutput', {
-    'id': fields.Integer(),
-    'name': fields.String(),
-})
-attachments_output = fields.List(fields.Nested(attachment_output))
+from api.utils import change_allowed, add_owner, add_updator, paginatify
 
 
 def run_to_dict(run, run_version, include_large_fields=True):
-    run_dict = versioned_row_to_dict(api, run, run_version, include_large_fields)
-    run_dict['protocol'] = versioned_row_to_dict(api, run.protocol_version.protocol, run.protocol_version, include_large_fields)
+    run_dict = versioned_row_to_dict(run, run_version, include_large_fields)
+    run_dict['protocol'] = versioned_row_to_dict(run.protocol_version.protocol, run.protocol_version, include_large_fields)
     return run_dict
 
 
@@ -103,7 +74,7 @@ def get_samples(run, run_version):
                                     'plateIndex': plate_sample['plateIndex'],
                                 },
                                 sample=sample,
-                                server_version=app.config['SERVER_VERSION'],
+                                server_version=settings.server_version,
                             )
                             sample.run_version = run_version
                             sample.protocol_version_id = run.protocol_version_id
@@ -150,466 +121,354 @@ def all_samples(run, include_archived=False):
     return query
 
 
-@api.route('/run')
-class RunsResource(Resource):
-    @api.doc(security='token', model=runs_output, params={
-        'protocol': protocol_param,
-        'plate': plate_param,
-        'sample': sample_param,
-        'reagent': reagent_param,
-        'creator': creator_param,
-        'archived': archived_param,
-        'page': page_param,
-        'per_page': per_page_param,
-    })
-    @requires_auth
-    @requires_scope('read:runs')
-    def get(self):
-        protocol = int(request.args.get('protocol')) if request.args.get('protocol') else None
-        plate = request.args.get('plate')
-        reagent = request.args.get('reagent')
-        sample = request.args.get('sample')
-        creator = request.args.get('creator')
-        archived = request.args.get('archived') == 'true' if request.args.get('archived') else False
+@app.get('/run', tags=['runs'], response_model=RunsModel, response_model_exclude_none=True)
+async def get_runs(
+    protocol: Optional[int] = None,
+    plate: Optional[str] = None,
+    reagent: Optional[str] = None,
+    sample: Optional[str] = None,
+    creator: Optional[str] = None,
+    archived: Optional[bool] = None,
+    page: Optional[int] = None,
+    per_page: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: Auth0ClaimsPatched = Depends(get_current_user)
+):
+    runs_queries = []
 
-        runs_queries = []
-
-        # Add filter specific queries. These will be intersected later on.
-        if protocol:
-            runs_queries.append(
-                all_runs(archived)\
-                    .join(ProtocolVersion, ProtocolVersion.id == Run.protocol_version_id)\
-                    .filter(ProtocolVersion.protocol_id == protocol)
-            )
-        if plate:
-            run_version_query = all_runs(archived)\
-                .join(RunVersion, RunVersion.id == Run.version_id)
-            runs_subquery = filter_by_plate_label(run_version_query, plate)
-            runs_queries.append(runs_subquery)
-        if reagent:
-            run_version_query = all_runs(archived)\
-                .join(RunVersion, RunVersion.id == Run.version_id)
-            runs_subquery = filter_by_reagent_label(run_version_query, reagent)
-            runs_queries.append(runs_subquery)
-        if sample:
-            run_version_query = all_runs(archived)\
-                .join(RunVersion, RunVersion.id == Run.version_id)
-            runs_subquery = filter_by_sample_label(run_version_query, sample)
-            runs_queries.append(runs_subquery)
-        if creator:
-            runs_queries.append(
-                all_runs(archived)\
-                    # .filter(Run.id == run)
-                    .filter(Run.created_by == creator)
-            )
-
-        # Add a basic non-deleted items query if no filters were specified.
-        if len(runs_queries) == 0:
-            runs_queries.append(all_runs(archived))
-
-        # Only return the intersection of all queries.
-        runs_query = reduce(lambda a, b: a.intersect(b), runs_queries)
-
-        return paginatify(
-            items_label='runs',
-            items=[
-                run
-                for run
-                in runs_query.distinct().order_by(Run.created_on.desc())
-                if check_access(path=f"/run/{str(run.id)}", method="GET") and run and run.current
-            ],
-            item_to_dict=lambda run: run_to_dict(run, run.current, include_large_fields=False),
+    # Add filter specific queries. These will be intersected later on.
+    if protocol:
+        runs_queries.append(
+            all_runs(archived)\
+                .join(ProtocolVersion, ProtocolVersion.id == Run.protocol_version_id)\
+                .filter(ProtocolVersion.protocol_id == protocol)
+        )
+    if plate:
+        run_version_query = all_runs(archived)\
+            .join(RunVersion, RunVersion.id == Run.version_id)
+        runs_subquery = filter_by_plate_label(run_version_query, plate)
+        runs_queries.append(runs_subquery)
+    if reagent:
+        run_version_query = all_runs(archived)\
+            .join(RunVersion, RunVersion.id == Run.version_id)
+        runs_subquery = filter_by_reagent_label(run_version_query, reagent)
+        runs_queries.append(runs_subquery)
+    if sample:
+        run_version_query = all_runs(archived)\
+            .join(RunVersion, RunVersion.id == Run.version_id)
+        runs_subquery = filter_by_sample_label(run_version_query, sample)
+        runs_queries.append(runs_subquery)
+    if creator:
+        runs_queries.append(
+            all_runs(archived)\
+                # .filter(Run.id == run)
+                .filter(Run.created_by == creator)
         )
 
+    # Add a basic non-deleted items query if no filters were specified.
+    if len(runs_queries) == 0:
+        runs_queries.append(all_runs(archived))
 
-    @api.doc(security='token', model=run_output, body=run_input)
-    @requires_auth
-    @requires_scope('write:runs')
-    # @requires_access()
-    def post(self):
-        run_dict = request.json
-        protocol_id = extract_protocol_id(run_dict)
-        run_dict.pop('protocol', None)
-        if not protocol_id:
-            abort(400)
-            return
-        protocol = Protocol.query.get(protocol_id)
-        if not protocol:
-            abort(400)
-            return
-        run = Run()
-        run_version = RunVersion(data=strip_metadata(run_dict), server_version=app.config['SERVER_VERSION'])
-        run_version.run = run
-        run.current = run_version
-        run.protocol_version_id = protocol.version_id
-        add_owner(run)
-        db.session.add_all([run, run_version])
-        samples = get_samples(run, run_version)
-        if samples:
-            for sample in samples:
-                db.session.merge(sample)
-        db.session.commit()
-        add_policy(path=f"/run/{str(run.id)}", method="GET")
-        add_policy(path=f"/run/{str(run.id)}", method="PUT")
-        add_policy(path=f"/run/{str(run.id)}", method="DELETE")
-        return run_to_dict(run, run_version)
+    # Only return the intersection of all queries.
+    runs_query = reduce(lambda a, b: a.intersect(b), runs_queries)
 
+    return paginatify(
+        items_label='runs',
+        items=[
+            run
+            for run
+            in runs_query.distinct().order_by(Run.created_on.desc())
+            if check_access(user=current_user.username, path=f"/run/{str(run.id)}", method="GET") and run and run.current
+        ],
+        item_to_dict=lambda run: run_to_dict(run, run.current, include_large_fields=False),
+        page=page,
+        per_page=per_page,
+    )
 
-@api.route('/run/<int:run_id>')
-@api.doc(params={'run_id': run_id_param})
-class RunResource(Resource):
-    @api.doc(security='token', model=run_output, params={'version_id': version_id_param})
-    @requires_auth
-    @requires_scope('read:runs')
-    @requires_access()
-    def get(self, run_id):
-        version_id = int(request.args.get('version_id')) if request.args.get('version_id') else None
+@app.post('/run', tags=['runs'], response_model=RunModel, response_model_exclude_none=True)
+async def create_run(run: RunModel, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    run_dict = run.dict()
+    protocol_id = extract_protocol_id(run_dict)
+    run_dict.pop('protocol', None)
+    if not protocol_id:
+        raise HTTPException(status_code=400, detail='Invalid Protocol ID')
+    protocol = db.query(Protocol).get(protocol_id)
+    if not protocol:
+        raise HTTPException(status_code=400, detail='Invalid Protocol (Not Found)')
+    new_run = Run()
+    new_run_version = RunVersion(data=strip_metadata(run_dict), server_version=settings.server_version)
+    new_run_version.run = new_run
+    new_run.current = new_run_version
+    new_run.protocol_version_id = protocol.version_id
+    add_owner(new_run, current_user.username)
+    db.add_all([new_run, new_run_version])
+    samples = get_samples(new_run, new_run_version)
+    if samples:
+        for sample in samples:
+            db.merge(sample)
+    db.commit()
+    add_policy(user=current_user.username, path=f"/run/{str(new_run.id)}", method="GET")
+    add_policy(user=current_user.username, path=f"/run/{str(new_run.id)}", method="PUT")
+    add_policy(user=current_user.username, path=f"/run/{str(new_run.id)}", method="DELETE")
+    return run_to_dict(new_run, new_run_version)
 
-        if version_id:
-            run_version = RunVersion.query\
-                .filter(RunVersion.id == version_id)\
-                .filter(Run.id == run_id)\
-                .first()
-            if (not run_version) or run_version.run.is_deleted:
-                abort(404)
-                return
-            return run_to_dict(run_version.run, run_version)
-        
-        run = Run.query.get(run_id)
-        if (not run) or run.is_deleted:
-            abort(404)
-            return
-        return run_to_dict(run, run.current)
+@app.get('/run/{run_id}', tags=['runs'], response_model=RunModel, response_model_exclude_none=True)
+async def get_run(run_id: int, version_id: Optional[int] = None, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
-    @api.doc(security='token', model=run_output, body=run_input)
-    @requires_auth
-    @requires_scope('write:runs')
-    @requires_access()
-    def put(self, run_id):
-        run_dict = request.json
-        # This field shouldn't be updated by users.
-        run_dict.pop('protocol', None)
-        run = Run.query.get(run_id)
-        if not run or run.is_deleted:
-            abort(404)
-            return
-        if not change_allowed(run_to_dict(run, run.current), run_dict):
-            abort(403)
-            return
-        run_version = RunVersion(data=strip_metadata(run_dict), server_version=app.config['SERVER_VERSION'])
-        run_version.run = run
-        add_updator(run_version)
-        run.current = run_version
-        db.session.add(run_version)
-        samples = get_samples(run, run_version)
-        if samples:
-            for sample in samples:
-                db.session.merge(sample)
-        db.session.commit()
-        return run_to_dict(run, run.current)
+    if version_id:
+        run_version = RunVersion.query\
+            .filter(RunVersion.id == version_id)\
+            .filter(Run.id == run_id)\
+            .first()
+        if (not run_version) or run_version.run.is_deleted:
+            raise HTTPException(status_code=404, detail='Run Not Found')
+        return run_to_dict(run_version.run, run_version)
+    
+    run = db.query(Run).get(run_id)
+    if (not run) or run.is_deleted:
+        raise HTTPException(status_code=404, detail='Run Not Found')
 
-    @api.doc(security='token', model=success_output, params={'purge': purge_param})
-    @requires_auth
-    @requires_scope('write:runs')
-    @requires_access()
-    def delete(self, run_id):
-        purge = request.args.get('purge') == 'true' if request.args.get('purge') else False
+    # return run_to_dict(run, run.current)
+    response = run_to_dict(run, run.current)
+    try:
+        import pprint
+        print("==========================================")
+        pprint.pprint(response['sections'][4]['blocks'][0].get('attachments', None))
+        print("==========================================")
+    finally:
+        return response
 
-        run = Run.query.get(run_id)
-        if not run or run.is_deleted:
-            abort(404)
-            return
-        if purge:
-            db.session.delete(run)
-        else:
-            run.is_deleted = True
-            # TODO: Mark all samples as deleted/archived?
-        db.session.commit()
-        delete_policy(path=f"/run/{str(run.id)}")
-        return {
-            'success': True
-        }
+@app.put('/run/{run_id}', tags=['runs'], response_model=RunModel, response_model_exclude_none=True)
+async def update_run(run_id: int, run: RunModel, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+
+    run_dict = run.dict()
+    # This field shouldn't be updated by users.
+    run_dict.pop('protocol', None)
+    new_run = db.query(Run).get(run_id)
+    if not new_run or new_run.is_deleted:
+        raise HTTPException(status_code=404, detail='Run Not Found')
+    if not change_allowed(run_to_dict(new_run, new_run.current), run_dict):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+    new_run_version = RunVersion(data=strip_metadata(run_dict), server_version=settings.server_version)
+    new_run_version.run = new_run
+    add_updator(new_run_version, current_user.username)
+    new_run.current = new_run_version
+    db.add(new_run_version)
+    samples = get_samples(new_run, new_run_version)
+    if samples:
+        for sample in samples:
+            db.merge(sample)
+    db.commit()
+    return run_to_dict(new_run, new_run.current)
+
+@app.delete('/run/{run_id}', tags=['runs'], response_model=SuccessResponse, response_model_exclude_none=True)
+async def delete_run(run_id: int, purge: bool = False, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="DELETE"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+
+    run = db.query(Run).get(run_id)
+    if not run or run.is_deleted:
+        raise HTTPException(status_code=404, detail='Run Not Found')
+    if purge:
+        db.delete(run)
+    else:
+        run.is_deleted = True
+        # TODO: Mark all samples as deleted/archived?
+    db.commit()
+    delete_policy(path=f"/run/{str(run.id)}")
+    return success
 
 
 # Permissions -----------------------------------------------------------------
 
+@app.get('/run/{run_id}/permission', tags=['runs'], response_model=List[Policy], response_model_exclude_none=True)
+async def get_permissions(run_id: int, current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
-run_permission_output = api.model('RunPermissionOutput', {
-    'user': fields.String(),
-    'path': fields.String(),
-    'method': fields.String()
-})
-run_permissions_output = fields.List(fields.Nested(run_permission_output))
+    return get_policies(path=f"/run/{run_id}")
 
+@app.post('/run/{run_id}/permission/{method}/{user_id}', tags=['protocols'], response_model=Policy, response_model_exclude_none=True)
+async def create_permission(run_id: int, method: str, user_id: str, current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
-def requires_permissions_access(method=None):
-    def decorator(f):
-        @wraps(f)
-        def decorated(*args, **kwargs):
-            if check_access(path=f"/run/{kwargs.get('run_id')}", method=method):
-                return f(*args, **kwargs)
-            raise AuthError({
-                'code': 'forbidden',
-                'description': 'User is not allowed to perform this action'
-            }, 403)
-        return decorated
-    return decorator
+    add_policy(user=user_id, path=f"/run/{run_id}", method=method)
+    return success
 
+@app.delete('/run/{run_id}/permission/{method}/{user_id}', tags=['protocols'], response_model=SuccessResponse, response_model_exclude_none=True)
+async def delete_permission(run_id: int, method: str, user_id: str, current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
-@api.route('/run/<int:run_id>/permission')
-@api.doc(params={'run_id': run_id_param, 'user_id_filter': user_id_filter_param, 'method_filter': method_filter_param})
-class RunPermissionsResource(Resource):
-    @api.doc(security='token', model=run_permissions_output)
-    @requires_auth
-    @requires_scope('read:runs')
-    @requires_permissions_access()
-    def get(self, run_id):
-        user_id = request.args.get('user_id')
-        method = request.args.get('method')
-
-        policies = get_policies(path=f"/run/{run_id}") + get_policies(path="/run/*")
-
-        if user_id:
-            user_roles = get_roles(user_id)
-            policies = filter(lambda policy: policy['user'] == user_id or policy['user'] in user_roles, policies)
-        if method:
-            policies = filter(lambda policy: policy['method'] == method, policies)
-
-        return [policy for policy in policies]
-
-
-@api.route('/run/<int:run_id>/permission/<string:method>/<string:user_id>')
-@api.doc(params={'run_id': run_id_param, 'user_id': user_id_param, 'method': method_param})
-class RunPermissionResource(Resource):
-    @api.doc(security='token', model=success_output)
-    @requires_auth
-    @requires_scope('write:runs')
-    @requires_permissions_access('PUT')
-    def post(self, run_id, method, user_id):
-        add_policy(user=user_id, path=f"/run/{run_id}", method=method)
-        return {
-            'success': True
-        }
-
-    @api.doc(security='token', model=success_output)
-    @requires_auth
-    @requires_scope('write:runs')
-    @requires_permissions_access('PUT')
-    def delete(self, run_id, method, user_id):
-        delete_policy(user=user_id, path=f"/run/{run_id}", method=method)
-        return {
-            'success': True
-        }
+    delete_policy(user=user_id, path=f"/run/{run_id}", method=method)
+    return success
 
 
 # Samples ---------------------------------------------------------------------
 
+@app.get('/run/{run_id}/sample', tags=['runs'], response_model=SampleResults, response_model_exclude_none=True)
+async def get_run_samples(
+    run_id: Optional[int] = None,
+    protocol: Optional[int] = None,
+    plate: Optional[str] = None,
+    reagent: Optional[str] = None,
+    creator: Optional[str] = None,
+    archived: Optional[bool] = None,
+    page: Optional[int] = None,
+    per_page: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: Auth0ClaimsPatched = Depends(get_current_user)
+):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+    run = db.query(Run).get(run_id)
+    if not run or run.is_deleted:
+        raise HTTPException(status_code=404, detail='Run Not Found')
 
-@api.route('/run/<int:run_id>/sample')
-@api.doc(params={'run_id': run_id_param})
-class RunSamplesResource(Resource):
-    @api.doc(security='token', model=samples_output, params={'page': page_param, 'per_page': per_page_param})
-    @requires_auth
-    @requires_scope('read:runs')
-    def get(self, run_id):
-        if not check_access(path=f"/run/{str(run_id)}", method="GET"):
-            abort(403)
-            return
-        run = Run.query.get(run_id)
-        if not run or run.is_deleted:
-            abort(404)
-            return
+    samples_queries = []
 
-        protocol = int(request.args.get('protocol')) if request.args.get('protocol') else None
-        plate = request.args.get('plate')
-        reagent = request.args.get('reagent')
-        creator = request.args.get('creator')
-        archived = request.args.get('archived') == 'true' if request.args.get('archived') else False
-
-        samples_queries = []
-
-        # Add filter specific queries. These will be intersected later on.
-        if protocol:
-            samples_queries.append(
-                all_samples(run, archived)\
-                    .join(ProtocolVersion, ProtocolVersion.id == Sample.protocol_version_id)\
-                    .filter(ProtocolVersion.protocol_id == protocol)
-            )
-        if plate:
-            samples_queries.append(
-                all_samples(run, archived)\
-                    .filter(Sample.plate_id == plate)
-            )
-        if reagent:
-            run_version_query = all_samples(run, archived)\
-                .join(RunVersion, RunVersion.id == Sample.run_version_id)
-            samples_subquery = filter_by_reagent_label(run_version_query, reagent)
-            samples_queries.append(samples_subquery)
-        if creator:
-            samples_queries.append(
-                all_samples(run, archived)\
-                    .filter(Sample.created_by == creator)
-            )
-
-        # Add a basic non-deleted items query if no filters were specified.
-        if len(samples_queries) == 0:
-            samples_queries.append(all_samples(run, archived))
-
-        # Only return the intersection of all queries.
-        samples_query = reduce(lambda a, b: a.intersect(b), samples_queries)
-
-        return paginatify(
-            items_label='samples',
-            items=[
-                sample
-                for sample
-                in samples_query.distinct().order_by(Sample.sample_id.asc())
-            ],
-            item_to_dict=lambda sample: run_to_sample(sample),
+    # Add filter specific queries. These will be intersected later on.
+    if protocol:
+        samples_queries.append(
+            all_samples(run, archived)\
+                .join(ProtocolVersion, ProtocolVersion.id == Sample.protocol_version_id)\
+                .filter(ProtocolVersion.protocol_id == protocol)
+        )
+    if plate:
+        samples_queries.append(
+            all_samples(run, archived)\
+                .filter(Sample.plate_id == plate)
+        )
+    if reagent:
+        run_version_query = all_samples(run, archived)\
+            .join(RunVersion, RunVersion.id == Sample.run_version_id)
+        samples_subquery = filter_by_reagent_label(run_version_query, reagent)
+        samples_queries.append(samples_subquery)
+    if creator:
+        samples_queries.append(
+            all_samples(run, archived)\
+                .filter(Sample.created_by == creator)
         )
 
+    # Add a basic non-deleted items query if no filters were specified.
+    if len(samples_queries) == 0:
+        samples_queries.append(all_samples(run, archived))
 
-@api.route('/run/<int:run_id>/sample/<int:sample_id>')
-@api.doc(params={'run_id': run_id_param, 'sample_id': sample_id_param})
-class RunSampleResource(Resource):
-    @api.doc(security='token', model=sample_output, params={'version_id': version_id_param})
-    @requires_auth
-    @requires_scope('read:runs')
-    def get(self, run_id, sample_id):
-        if not check_access(path=f"/run/{str(run_id)}", method="GET"):
-            abort(403)
-            return
-        run = Run.query.get(run_id)
-        if not run or run.is_deleted:
-            abort(404)
-            return
-        sample = Sample.query.filter(Sample.run_version_id == run.version_id).filter(Sample.sample_id == sample_id).first()
-        # sample = get_samples(run=run, run_version=run.current, sample_id=sample_id).first()
-        return run_to_sample(sample)
+    # Only return the intersection of all queries.
+    samples_query = reduce(lambda a, b: a.intersect(b), samples_queries)
 
-    @api.doc(security='token', model=sample_output, body=sample_input)
-    @requires_auth
-    @requires_scope('write:runs')
-    def put(self, run_id, sample_id):
-        sample_dict = request.json
-        # This field shouldn't be updated by users.
-        # sample_dict.pop('protocol', None)
-        sample = Sample.query.filter(Sample.sample_version_id == sample.version_id).filter(Sample.sample_id == sample_id).first()
-        if not sample or sample.is_deleted:
-            abort(404)
-            return
-        if not change_allowed(run_to_dict(run, run.current), {}):
-            abort(403)
-            return
-        sample_version = SampleVersion(data=strip_metadata(sample_dict), server_version=app.config['SERVER_VERSION'])
-        sample_version.sample = sample
-        add_updator(sample_version)
-        sample.current = sample_version
-        db.session.add(sample_version)
-        db.session.commit()
-        return run_to_sample(sample)
+    return paginatify(
+        items_label='samples',
+        items=[
+            sample
+            for sample
+            in samples_query.distinct().order_by(Sample.sample_id.asc())
+        ],
+        item_to_dict=lambda sample: run_to_sample(sample),
+        page=page,
+        per_page=per_page,
+    )
+
+@app.get('/run/{run_id}/sample/{sample_id}', tags=['runs'], response_model=SampleResults, response_model_exclude_none=True)
+async def get_run_sample(run_id: int, sample_id: str, version_id: Optional[int] = None, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+    run = db.query(Run).get(run_id)
+    if not run or run.is_deleted:
+        raise HTTPException(status_code=404, detail='Run Not Found')
+    sample = db.query(Sample).filter(Sample.run_version_id == run.version_id).filter(Sample.sample_id == sample_id).first()
+    # sample = get_samples(run=run, run_version=run.current, sample_id=sample_id).first()
+    return run_to_sample(sample)
+
+@app.put('/run/{run_id}/sample/{sample_id}', tags=['runs'], response_model=SampleResults, response_model_exclude_none=True)
+async def update_run_sample(run_id: int, sample_id: str, sample: SampleResult, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+
+    sample_dict = sample.dict()
+    new_sample = db.query(Sample).filter(Sample.sample_version_id == new_sample.version_id).filter(Sample.sample_id == sample_id).first()
+    if not new_sample or new_sample.is_deleted:
+        raise HTTPException(status_code=404, detail='Sample Not Found')
+    if not change_allowed(run_to_dict(run, run.current), {}):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+    new_sample_version = SampleVersion(data=strip_metadata(sample_dict), server_version=settings.server_version)
+    new_sample_version.sample = new_sample
+    add_updator(new_sample_version, current_user.username)
+    new_sample.current = new_sample_version
+    db.add(new_sample_version)
+    db.commit()
+    return run_to_sample(new_sample)
 
 
 # Attachments -----------------------------------------------------------------
 
-@api.route('/run/<int:run_id>/attachment')
-class RunAttachmentsResource(Resource):
-    @api.doc(security='token', model=attachments_output)
-    @requires_auth
-    @requires_scope('read:runs')
-    def get(self):
-        if not check_access(path=f"/run/{str(run_id)}", method="GET"):
-            abort(403)
-            return
-        run = Run.query.get(run_id)
-        if not run or run.is_deleted:
-            abort(404)
-            return
+@app.get('/run/{run_id}/attachment', tags=['runs'], response_model=List[AttachmentModel], response_model_exclude_none=True)
+async def get_run_attachments(run_id: int, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
-        return [
-            {
-                'id': attachment.id,
-                'name': attachment.name,
-            }
-            for attachment
-            in run.attachments
-            if check_access(path=f"/run/{str(run.id)}", method="GET") and attachment
-        ]
+    run = db.query(Run).get(run_id)
+    if not run or run.is_deleted:
+        raise HTTPException(status_code=404, detail='Run Not Found')
 
-    @api.doc(security='token', model=attachment_output)
-    @requires_auth
-    @requires_scope('write:runs')
-    def post(self, run_id):
-        if not check_access(path=f"/run/{str(run_id)}", method="GET"):
-            abort(403)
-            return
-        run = Run.query.get(run_id)
-        if not run or run.is_deleted:
-            abort(404)
-            return
+    return [
+        AttachmentModel(id=attachment.id, name=attachment.name)
+        for attachment
+        in run.attachments
+        if check_access(user=current_user.username, path=f"/run/{str(run.id)}", method="GET") and attachment
+    ]
 
-        args = upload_parser.parse_args()
-        uploaded_file = args['file']
+@app.post('/run/{run_id}/attachment', tags=['runs'], response_model=AttachmentModel, response_model_exclude_none=True)
+async def create_run_attachment(run_id: int, file: UploadFile = File(...), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+    run = db.query(Run).get(run_id)
+    if not run or run.is_deleted:
+        raise HTTPException(status_code=404, detail='Run Not Found')
 
-        attachment = Attachment(
-            name=secure_filename(uploaded_file.filename),
-            mimetype=uploaded_file.content_type,
-            data=uploaded_file.read(),
-        )
+    attachment = Attachment(
+        name=file.filename,
+        mimetype=file.content_type,
+        data=await file.read(),
+    )
 
-        db.session.add(attachment)
-        db.session.commit()
-        return {
-            'id': attachment.id,
-            'name': attachment.name,
-        }
+    db.add(attachment)
+    db.commit()
+    return AttachmentModel(id=attachment.id, name=attachment.name)
 
+@app.get('/run/{run_id}/attachment/{attachment_id}', tags=['runs'], response_model_exclude_none=True)
+async def get_run_attachment(run_id: int, attachment_id: int, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+    run = db.query(Run).get(run_id)
+    if not run or run.is_deleted:
+        raise HTTPException(status_code=404, detail='Run Not Found')
 
-@api.route('/run/<int:run_id>/attachment/<int:attachment_id>')
-@api.doc(params={'attachment_id': attachment_id_param})
-class RunAttachmentResource(Resource):
-    @api.doc(security='token', model=attachment_output, params={'version_id': version_id_param})
-    @requires_auth
-    @requires_scope('read:runs')
-    def get(self, run_id, attachment_id):
-        if not check_access(path=f"/run/{str(run_id)}", method="GET"):
-            abort(403)
-            return
-        run = Run.query.get(run_id)
-        if not run or run.is_deleted:
-            abort(404)
-            return
+    attachment = db.query(Attachment).get(attachment_id)
+    if not attachment or attachment.is_deleted:
+        raise HTTPException(status_code=404, detail='Attachment Not Found')
 
-        attachment = Attachment.query.get(attachment_id)
-        if not attachment or attachment.is_deleted:
-            abort(404)
-            return
+    return StreamingResponse(io.BytesIO(attachment.data), media_type=attachment.mimetype if attachment.mimetype else 'application/octet-stream')
 
-        return app.response_class(attachment.data, mimetype=attachment.mimetype if attachment.mimetype else 'application/octet-stream')
+@app.delete('/run/{run_id}/attachment/{attachment_id}', tags=['runs'], response_model=SuccessResponse, response_model_exclude_none=True)
+async def delete_run_attachment(run_id: int, attachment_id: int, purge: bool = False, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+    run = db.query(Run).get(run_id)
+    if not run or run.is_deleted:
+        raise HTTPException(status_code=404, detail='Run Not Found')
 
-    @api.doc(security='token', model=success_output, params={'purge': purge_param})
-    @requires_auth
-    @requires_scope('write:runs')
-    def delete(self, run_id, attachment_id):
-        if not check_access(path=f"/run/{str(run_id)}", method="GET"):
-            abort(403)
-            return
-        run = Run.query.get(run_id)
-        if not run or run.is_deleted:
-            abort(404)
-            return
-
-        purge = request.args.get('purge') == 'true' if request.args.get('purge') else False
-
-        attachment = Attachment.query.get(attachment_id)
-        if not attachment or attachment.is_deleted:
-            abort(404)
-            return
-        if purge:
-            db.session.delete(attachment)
-        else:
-            attachment.is_deleted = True
-        db.session.commit()
-        return {
-            'success': True,
-        }
+    attachment = db.query(Attachment).get(attachment_id)
+    if not attachment or attachment.is_deleted:
+        raise HTTPException(status_code=404, detail='Attachment Not Found')
+    if purge:
+        db.delete(attachment)
+    else:
+        attachment.is_deleted = True
+    db.commit()
+    return success

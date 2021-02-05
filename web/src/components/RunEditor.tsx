@@ -125,7 +125,7 @@ export function RunEditor({
                 disabled={disabled}
                 className="row"
                 targetName="Run"
-                targetPath={`/run/${run.id}`}
+                targetPath={`run/${run.id}`}
                 name={run.name || humanizeRunName(run)}
                 setName={name => setRun({...run, name})}
                 onDelete={onDelete}

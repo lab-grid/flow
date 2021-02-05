@@ -21,11 +21,11 @@ logger = logging.getLogger('alembic.env')
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from flask import current_app
-config.set_main_option(
-    'sqlalchemy.url',
-    str(current_app.extensions['migrate'].db.engine.url).replace('%', '%%'))
-target_metadata = current_app.extensions['migrate'].db.metadata
+
+from database import Base
+from settings import settings
+
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -59,9 +59,8 @@ def run_migrations_offline():
 
     Calls to context.execute() here emit the given string to the
     script output.
-
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = settings.sqlalchemy_database_uri
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -79,12 +78,11 @@ def run_migrations_online():
 
     In this scenario we need to create an Engine
     and associate a connection with the context.
-
     """
 
-    # this callback is used to prevent an auto-migration from being generated
-    # when there are no changes to the schema
-    # reference: http://alembic.zzzcomputing.com/en/latest/cookbook.html
+    # This callback is used to prevent an auto-migration from being generated
+    # when there are no changes to the schema.
+    # SEE: https://alembic.sqlalchemy.org/en/latest/cookbook.html#don-t-generate-empty-migrations-with-autogenerate
     def process_revision_directives(context, revision, directives):
         if getattr(config.cmd_opts, 'autogenerate', False):
             script = directives[0]
@@ -92,8 +90,10 @@ def run_migrations_online():
                 directives[:] = []
                 logger.info('No changes in schema detected.')
 
+    configuration = config.get_section(config.config_ini_section)
+    configuration["sqlalchemy.url"] = settings.sqlalchemy_database_uri
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
+        configuration,
         prefix='sqlalchemy.',
         poolclass=pool.NullPool,
     )
@@ -105,7 +105,6 @@ def run_migrations_online():
             include_object=include_object,
             process_revision_directives=process_revision_directives,
             compare_type=True,
-            **current_app.extensions['migrate'].configure_args
         )
 
         with context.begin_transaction():

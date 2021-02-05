@@ -19,7 +19,7 @@ export function RunEditorPage() {
     const [currentRun, setCurrentRun] = useState<Run>({});
     const { id } = useParams<RunEditorPageParams>();
     const run = useRecoilValue(runQuery({ runId: parseInt(id), queryTime: runTimestamp }));
-    const policies = useRecoilValue(policyCheckQuery({ path: `/run/${parseInt(id)}`, queryTime: runTimestamp }));
+    const policies = useRecoilValue(policyCheckQuery({ path: `run/${parseInt(id)}`, queryTime: runTimestamp }));
     const isWritable = policies.find(policy => policy.method === 'PUT') !== undefined;
     const isDeletable = policies.find(policy => policy.method === 'DELETE') !== undefined;
     const { samples, pageCount: samplesPageCount } = useRecoilValue(runSamplesQuery({ runId: parseInt(id), queryTime: runTimestamp, filterParams: { page: `${samplesPage}` } }));

@@ -1,33 +1,30 @@
-from flask_restx import Resource, fields, Namespace
+from typing import Union
+from fastapi import Depends
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
 
-from server import app, db
-
-
-api = Namespace('server-health', description="Service health checks.", path='/')
-
-
-health_output = api.model('HealthOutput', {
-    'version': fields.String(),
-    'server': fields.Boolean(),
-    'database': fields.Boolean(),
-    'database_error': fields.String()
-})
+from authorization import get_all_roles
+from server import app, get_db
+from settings import settings
+from models import HealthCheck
 
 
-@api.route('/health')
-class HealthResource(Resource):
-    @api.doc(model=health_output)
-    def get(self):
-        status = {
-            'version': app.config['SERVER_VERSION'],
-            'server': True,
-            'database': True
-        }
+@app.get('/health', tags=['system'], response_model=HealthCheck, response_model_exclude_none=True)
+async def health_check(db: Session = Depends(get_db)):
+    status = {
+        'version': settings.server_version,
+        'server': True,
+        'database': True
+    }
 
-        try:
-            db.session.execute('SELECT 1')
-        except Exception as err:
-            status['database'] = False
-            status['database_error'] = str(err)
-            return status, 500
-        return status
+    try:
+        db.execute('SELECT 1')
+    except Exception as err:
+        status['database'] = False
+        status['database_error'] = str(err)
+        return JSONResponse(
+            status_code=500,
+            content=status,
+        )
+    # return HealthCheck(**status)
+    return status

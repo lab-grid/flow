@@ -18,4 +18,4 @@ COPY ./ .
 ENV FLASK_APP=/app/main.py
 ENV SERVER_VERSION=$SERVER_VERSION
 
-CMD gunicorn --bind 0.0.0.0:${PORT} main:app --access-logfile - --error-logfile - --timeout 120 --limit-request-line 0 --workers 4 --log-level=DEBUG
+CMD uvicorn main:app --port ${PORT} --host 0.0.0.0 --timeout-keep-alive 120 --log-level debug

@@ -1,100 +1,97 @@
-import os
-import logging
+from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi_cloudauth.auth0 import Auth0, Auth0Claims, Auth0CurrentUser
+from fastapi_cloudauth.base import BaseTokenVerifier, JWKS
 
-from flask import Flask, jsonify
-from flask.json import JSONEncoder
-from flask_cors import CORS, cross_origin
-from flask_migrate import Migrate
-from flask_restx import Api
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.exceptions import InternalServerError
-# https://github.com/noirbizarre/flask-restplus/issues/565#issuecomment-562610603
-from werkzeug.middleware.proxy_fix import ProxyFix
+from typing import Optional, Type
+from pydantic import BaseModel, Field
+from pydantic.error_wrappers import ValidationError
+from jose import jwk, jwt
+from starlette import status
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, scoped_session
 
-app = Flask(__name__, static_folder='static', static_url_path='')
-app.wsgi_app = ProxyFix(app.wsgi_app)
-
-
-# Configuration ---------------------------------------------------------------
-
-app.config['SERVER_NAME'] = os.environ.get('SERVER_NAME', app.config.get('SERVER_NAME'))
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.environ.get('SQLALCHEMY_TRACK_MODIFICATIONS', 'False') == 'True'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///labflow.db')
-app.config['SQLALCHEMY_ECHO'] = os.environ.get('SQLALCHEMY_ECHO', 'False') == 'True'
-app.config['AUTH_PROVIDER'] = os.environ.get('AUTH_PROVIDER', 'auth0')
-app.config['AUTH0_DOMAIN'] = os.environ.get('AUTH0_DOMAIN', '')
-app.config['AUTH0_CLIENT_ID'] = os.environ.get('AUTH0_CLIENT_ID', 'Msk8I4Ad2ujE76MwOatsmmvEEds5v50h')
-app.config['AUTH0_API_AUDIENCE'] = os.environ.get('AUTH0_API_AUDIENCE', '')
-app.config['AUTH0_AUTHORIZATION_URL'] = os.environ.get('AUTH0_AUTHORIZATION_URL', '')
-app.config['AUTH0_TOKEN_URL'] = os.environ.get('AUTH0_TOKEN_URL', '')
-app.config['CASBIN_MODEL'] = os.environ.get('CASBIN_MODEL', 'casbinmodel.conf')
-app.config['CASBIN_SQLALCHEMY_DATABASE_URI'] = os.environ.get('CASBIN_SQLALCHEMY_DATABASE_URI', app.config['SQLALCHEMY_DATABASE_URI'])
-app.config['RESTX_JSON'] = {'cls': JSONEncoder}  # Add support for serializing datetime/date
-app.config['SERVER_VERSION'] = os.environ.get('SERVER_VERSION', 'local')
-
-
-# API Documentation -----------------------------------------------------------
-
-authorizations = {
-    'token': {
-        'type': 'oauth2',
-        'flow': 'accessCode',
-        # 'flow': 'authorizationCode',
-        'audience': app.config['AUTH0_API_AUDIENCE'],
-        'domain': app.config['AUTH0_DOMAIN'],
-        'clientId': app.config['AUTH0_CLIENT_ID'],
-        'authorizationUrl': app.config['AUTH0_AUTHORIZATION_URL'],
-        'tokenUrl': app.config['AUTH0_TOKEN_URL'],
-        'scopes': {
-            'read:runs': 'Read user runs',
-            'read:protocols': 'Read user protocols',
-            'write:runs': 'Write to user runs',
-            'write:protocols': 'Write to user protocols',
-        }
-    }
-}
-api = Api(
-    app,
-    title='Flow by LabGrid API',
-    version='0.1.0',
-    authorizations=authorizations,
-)
-CORS(app)
+from settings import settings
 
 
 # Database --------------------------------------------------------------------
 
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+engine = create_engine(settings.sqlalchemy_database_uri)
+db_session = scoped_session(
+    sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=engine,
+    ),
+)
+
+# Dependency
+def get_db():
+    db = db_session.session_factory()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
-# Error Handling --------------------------------------------------------------
+# FastAPI Setup ---------------------------------------------------------------
 
-@app.errorhandler(InternalServerError)
-@cross_origin()
-def handle_unhandled_exceptions(e):
-    original = getattr(e, "original_exception", None)
+app = FastAPI(
+    title='Flow by LabGrid API',
+    version='0.1.0',
+    openapi_tags=[
+        {
+            'name': 'groups',
+            'description': 'Operations on user groups.',
+        },
+        {
+            'name': 'users',
+            'description': 'Operations on users.',
+        },
+        {
+            'name': 'system',
+            'description': 'System operations.',
+        },
+        {
+            'name': 'protocols',
+            'description': 'Operations on protocols.',
+        },
+        {
+            'name': 'runs',
+            'description': 'Operations on runs.',
+        },
+        {
+            'name': 'samples',
+            'description': 'Operations on samples.'
+        },
+    ]
+)
 
-    if original is None:
-        # direct 500 error, such as abort(500)
-        return jsonify({
-            "error": "500 Internal Server Error",
-            "error_code": 500,
-            "message": e.description,
-        }), 500
-
-    # wrapped unhandled error
-    return jsonify({
-        "error": "500 Internal Server Error",
-        "error_code": 500,
-        "message": str(e.original),
-    }), 500
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-# Logging ---------------------------------------------------------------------
+# Authentication --------------------------------------------------------------
 
-if not app.debug:
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.INFO)
-    app.logger.addHandler(stream_handler)
+auth = Auth0(domain=settings.auth0_domain)
+
+class Auth0ClaimsPatched(BaseModel):
+    username: str = Field(alias="sub")
+
+class Auth0CurrentUserPatched(Auth0CurrentUser):
+    """
+    Verify `ID token` and extract user information
+    """
+
+    def __init__(self, domain: str, *args, **kwargs):
+        self.user_info = Auth0ClaimsPatched
+        super().__init__(domain, *args, **kwargs)
+
+get_current_user = Auth0CurrentUserPatched(domain=settings.auth0_domain)

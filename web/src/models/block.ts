@@ -58,7 +58,6 @@ export interface PlateAddReagentBlock {
     plateLabel?: string;
     plateLot?: string;
 
-    // TODO: Save input calculator variables.
     values?: {[variable: string]: number};
 }
 
@@ -68,7 +67,6 @@ export interface AddReagentBlock {
 
     reagentLot?: string;
 
-    // TODO: Save input calculator variables.
     values?: {[variable: string]: number};
 }
 

@@ -153,7 +153,7 @@ export function ProtocolEditor({ disableSharing, disablePrint, disableSave, disa
                 className="bg-secondary pt-4 pb-3 px-2"
                 disabled={isSigned || isWitnessed}
                 targetName="Protocol"
-                targetPath={`/protocol/${protocol.id}`}
+                targetPath={`protocol/${protocol.id}`}
                 showPreview={showPreview}
                 setShowPreview={setShowPreview}
                 name={protocol.name}

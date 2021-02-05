@@ -18,7 +18,7 @@ services:
       context: server
       args:
         REACT_APP_VERSION: local+devcontainer
-    command: "python -m flask run --host=0.0.0.0 --port=5000"
+    command: uvicorn main:app --port 5000 --host 0.0.0.0 --timeout-keep-alive 120 --reload --log-level trace
     environment:
       - "SQLALCHEMY_ECHO=True"
     volumes:

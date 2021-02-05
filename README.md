@@ -75,12 +75,12 @@ Once the database, server, and webapp are running, the database itself needs to 
 To update your database to the latest version, first start the database and server containers, run the relevant docker-compose alias command (above), then run:
 ```sh
 #sh
-./server.sh db upgrade
+./server.sh alembic upgrade
 ```
 
 ```powershell
 #powershell
-./server.ps1 db upgrade
+./server.ps1 alembic upgrade
 ```
 
 Whenever changes to the database schema for Flow are made, new migration(s) get created in the server/migrations/versions/ directory. 
