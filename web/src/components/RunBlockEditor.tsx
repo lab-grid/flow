@@ -328,14 +328,11 @@ function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl
                     result[attachment.id] = attachment.name || "";
                 }
             }
-        } catch (ex) {
-            if (!(ex instanceof FetchError) || !ex.response || !((ex.response.status < 400) || (ex.response.status === 404))) {
-                throw ex;
-            }
+        } finally {
+            console.log('Results:', data, result);
+            setResults(data, result);
+            setShowImporter(false);
         }
-        console.log('Results:', data, result);
-        setResults(data, result);
-        setShowImporter(false);
     });
 
     return <>
@@ -411,7 +408,13 @@ function RunBlockFileUploader({ disabled, runId, label, fileData, setFileData }:
     });
     const deleteFile = useRecoilCallback(({ snapshot }) => async (id: string) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
-        await deleteRunAttachment(() => auth0Client, runId, id);
+        try {
+            await deleteRunAttachment(() => auth0Client, runId, id);
+        } catch (ex) {
+            if (!(ex instanceof FetchError) || !ex.response || !((ex.response.status < 400))) {
+                throw ex;
+            }
+        }
         const newFileData = {...fileData};
         delete newFileData[id];
         setFileData(newFileData);
