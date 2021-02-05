@@ -11,7 +11,8 @@ import { auth0State, errorsState } from '../state/atoms';
 import { protocolsQuery, runsQuery } from '../state/selectors';
 import moment from 'moment';
 import { LoadingPage } from '../components/LoadingPage';
-import { FetchError, upsertProtocol, upsertRun } from '../state/api';
+import { apiGetOne, FetchError, upsertProtocol, upsertRun } from '../state/api';
+import { labflowOptions } from '../config';
 
 export function HomePage() {
     const [runsTimestamp, setRunsTimestamp] = React.useState("");
@@ -49,7 +50,13 @@ export function HomePage() {
             history.push(`/protocol/${created.id}`);
         }
     };
-    const createRun = (protocol: Protocol) => async () => {
+    const createRun = useRecoilCallback(({ snapshot }) => async (protocol: Protocol) => {
+        const { auth0Client } = await snapshot.getPromise(auth0State);
+        const fullProtocol: Protocol = await apiGetOne(labflowOptions, () => auth0Client, `protocol/${protocol.id}`);
+        if (fullProtocol) {
+            protocol = fullProtocol;
+        }
+
         // Create new run
         const created = await runUpsert({
             status: 'todo',
@@ -64,7 +71,7 @@ export function HomePage() {
         });
         // Redirect to the new run page editor
         history.push(`/run/${created.id}`);
-    };
+    });
     const refresh = () => {
         setRunsTimestamp(moment().format());
         setProtocolsTimestamp(moment().format());
@@ -95,7 +102,7 @@ export function HomePage() {
                     <Dropdown.Menu>
                         {
                             protocols && protocols.map(protocol =>
-                                <Dropdown.Item key={protocol.id} onClick={createRun(protocol)}>
+                                <Dropdown.Item key={protocol.id} onClick={() => createRun(protocol)}>
                                     {protocol.name || <i>Untitled Protocol</i>}
                                 </Dropdown.Item>
                             )
