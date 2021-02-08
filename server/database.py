@@ -342,6 +342,7 @@ class Sample(BaseModel):
 
     sample_id = Column(String(64), primary_key=True)
     plate_id = Column(String(64), primary_key=True)
+    # TODO: Split these parameters out into a separate join table to reduce data duplication.
     run_version_id = Column(Integer, ForeignKey('run_version.id', use_alter=True), primary_key=True)
     protocol_version_id = Column(Integer, ForeignKey('protocol_version.id', use_alter=True), primary_key=True)
 

@@ -6,6 +6,7 @@ import { Protocol, Protocols } from "../models/protocol";
 import { Run, Runs } from "../models/run";
 import { SampleResults } from "../models/sample-result";
 import { User, Users } from "../models/user";
+import { Operation } from "fast-json-patch";
 
 export class FetchError extends Error {
     constructor(
@@ -233,6 +234,19 @@ export function upsertUser(auth0ClientFn: () => Auth0Client | undefined, user: U
   const method = put ? "PUT" : "POST";
   const path = put ? `user/${user.id}` : "user";
   return apiFetch(labflowOptions, auth0ClientFn, method, path, user);
+}
+
+
+// ----------------------------------------------------------------------------
+// Patches --------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+export function patchProtocol(auth0ClientFn: () => Auth0Client | undefined, protocolId: number, patch: Operation[]): Promise<Protocol> {
+  return apiFetch(labflowOptions, auth0ClientFn, "PATCH", `protocol/${protocolId}`, patch);
+}
+
+export function patchRun(auth0ClientFn: () => Auth0Client | undefined, runId: number, patch: Operation[]): Promise<Run> {
+  return apiFetch(labflowOptions, auth0ClientFn, "PATCH", `run/${runId}`, patch);
 }
 
 

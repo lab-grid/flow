@@ -5,11 +5,14 @@ from fastapi import Depends, HTTPException
 from server import Auth0ClaimsPatched
 from sqlalchemy.orm import Session
 
+import jsonpatch
+
 from server import app, get_db, get_current_user
 from settings import settings
 from authorization import check_access, add_policy, delete_policy, get_policies
 from database import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, versioned_row_to_dict, json_row_to_dict, strip_metadata, Protocol, ProtocolVersion, Run, RunVersion
 from models import Policy, ProtocolModel, ProtocolsModel, SuccessResponse, success
+from pydantic_jsonpatch.jsonpatch import JSONPatch
 
 from api.utils import change_allowed, add_owner, add_updator, paginatify
 
@@ -118,7 +121,7 @@ async def get_protocol(protocol_id: int, version_id: Optional[int] = None, db: S
         if (not protocol_version) or protocol_version.protocol.is_deleted:
             raise HTTPException(status_code=404, detail='Protocol Not Found')
         return versioned_row_to_dict(protocol_version.protocol, protocol_version)
-    
+
     protocol = db.query(Protocol).get(protocol_id)
     if (not protocol) or protocol.is_deleted:
         raise HTTPException(status_code=404, detail='Protocol Not Found')
@@ -135,6 +138,30 @@ async def update_protocol(protocol_id: int, protocol: ProtocolModel, db: Session
         raise HTTPException(status_code=404, detail='Protocol Not Found')
     if not change_allowed(versioned_row_to_dict(new_protocol, new_protocol.current), protocol_dict):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
+    new_protocol_version = ProtocolVersion(data=strip_metadata(protocol_dict), server_version=settings.server_version)
+    new_protocol_version.protocol = new_protocol
+    add_updator(new_protocol_version, current_user.username)
+    new_protocol.current = new_protocol_version
+    db.add(new_protocol_version)
+    db.commit()
+    return versioned_row_to_dict(new_protocol, new_protocol.current)
+
+@app.patch('/protocol/{protocol_id}', tags=['protocols'], response_model=ProtocolModel, response_model_exclude_none=True)
+async def patch_protocol(protocol_id: int, patch: list, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="PUT"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+
+    new_protocol = db.query(Protocol).get(protocol_id)
+    if not new_protocol or new_protocol.is_deleted:
+        raise HTTPException(status_code=404, detail='Protocol Not Found')
+
+    protocol_dict = versioned_row_to_dict(new_protocol, new_protocol.current)
+    json_patch = jsonpatch.JsonPatch(patch)
+    protocol_dict = json_patch.apply(protocol_dict)
+
+    if not change_allowed(versioned_row_to_dict(new_protocol, new_protocol.current), protocol_dict):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+
     new_protocol_version = ProtocolVersion(data=strip_metadata(protocol_dict), server_version=settings.server_version)
     new_protocol_version.protocol = new_protocol
     add_updator(new_protocol_version, current_user.username)

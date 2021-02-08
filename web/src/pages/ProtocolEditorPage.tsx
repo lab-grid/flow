@@ -4,12 +4,13 @@ import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { initialProtocol, Protocol } from '../models/protocol';
 import { auth0State } from '../state/atoms';
 import { protocolQuery, userQuery } from '../state/selectors';
-import { deleteProtocol, upsertProtocol, upsertRun } from '../state/api';
+import { deleteProtocol, patchProtocol, upsertProtocol, upsertRun } from '../state/api';
 import moment from 'moment';
 import { initialRun, Run, Section } from '../models/run';
 import { ProtocolEditor } from '../components/ProtocolEditor';
 import { RunEditor } from '../components/RunEditor';
 import { Block } from '../models/block';
+import { compare } from 'fast-json-patch';
 
 function newRun(protocol: Protocol): Run {
     return {
@@ -44,10 +45,14 @@ export function ProtocolEditorPage() {
         ...(protocol ? newRun(protocol) : {}),
     });
 
-    const protocolUpsert = useRecoilCallback(({ snapshot }) => async (protocol: Protocol) => {
+    const protocolUpsert = useRecoilCallback(({ snapshot }) => async (updatedProtocol: Protocol) => {
         try {
             const { auth0Client } = await snapshot.getPromise(auth0State);
-            return await upsertProtocol(() => auth0Client, protocol);
+            // TODO: Use an observer to gather these changes instead of this slow compare operation.
+            const patch = compare(protocol || {}, updatedProtocol);
+            const protocolId = updatedProtocol.id || parseInt(id);
+            return await patchProtocol(() => auth0Client, protocolId, patch);
+            // return await upsertProtocol(() => auth0Client, updatedProtocol);
         } finally {
             setProtocolTimestamp(moment().format());
             setCurrentProtocol({});

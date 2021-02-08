@@ -4,9 +4,10 @@ import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { initialRun, Run } from '../models/run';
 import { auth0State } from '../state/atoms';
 import { policyCheckQuery, runQuery, runSamplesQuery } from '../state/selectors';
-import { deleteRun, upsertRun } from '../state/api';
+import { deleteRun, patchRun, upsertRun } from '../state/api';
 import moment from 'moment';
 import { RunEditor } from '../components/RunEditor';
+import { compare } from 'fast-json-patch';
 
 export interface RunEditorPageParams {
     id: string;
@@ -23,10 +24,14 @@ export function RunEditorPage() {
     const isWritable = policies.find(policy => policy.method === 'PUT') !== undefined;
     const isDeletable = policies.find(policy => policy.method === 'DELETE') !== undefined;
     const { samples, pageCount: samplesPageCount } = useRecoilValue(runSamplesQuery({ runId: parseInt(id), queryTime: runTimestamp, filterParams: { page: `${samplesPage}` } }));
-    const runUpsert = useRecoilCallback(({ snapshot }) => async (run: Run) => {
+    const runUpsert = useRecoilCallback(({ snapshot }) => async (updatedRun: Run) => {
         try {
             const { auth0Client } = await snapshot.getPromise(auth0State);
-            return await upsertRun(() => auth0Client, run);
+            // TODO: Use an observer to gather these changes instead of this slow compare operation.
+            const patch = compare(run || {}, updatedRun);
+            const runId = updatedRun.id || parseInt(id);
+            return await patchRun(() => auth0Client, runId, patch);
+            // return await upsertRun(() => auth0Client, updatedRun);
         } finally {
             setRunTimestamp(moment().format());
             setCurrentRun({});

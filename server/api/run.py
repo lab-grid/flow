@@ -1,8 +1,9 @@
 import copy
 import io
+import jsonpatch
 
 from functools import reduce, wraps
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from fastapi import Depends, HTTPException, File, UploadFile
 from fastapi.responses import StreamingResponse
@@ -14,6 +15,8 @@ from settings import settings
 from authorization import check_access, add_policy, delete_policy, get_policies, get_roles
 from database import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol, run_to_sample, Sample, SampleVersion, Attachment
 from models import AttachmentModel, SampleResult, SampleResults, Policy, RunModel, RunsModel, SuccessResponse, success
+from pydantic_jsonpatch.jsonpatch import JSONPatch
+from pydantic import BaseModel
 
 from api.utils import change_allowed, add_owner, add_updator, paginatify
 
@@ -53,7 +56,7 @@ def get_samples(run, run_version):
             if 'plateLot' in block:
                 lots.append(block['plateLot'])
 
-            if block['type'] == 'plate-sampler' and 'plates' in block:
+            if block['type'] == 'plate-sampler' and 'plates' in block and block['plates'] is not None:
                 for plate_mapping in block['plates']:
                     if plate_mapping is None:
                         continue
@@ -80,10 +83,10 @@ def get_samples(run, run_version):
                             sample.protocol_version_id = run.protocol_version_id
                             sample.current = sample_version
                             samples.append(sample)
-            if block['type'] == 'end-plate-sequencer' and 'plateSequencingResults' in block:
+            if block['type'] == 'end-plate-sequencer' and 'plateSequencingResults' in block and block['plateSequencingResults'] is not None:
                 for result in block['plateSequencingResults']:
                     results[f"{result['marker1']}-{result['marker2']}"] = result
-            if block['type'] == 'end-plate-sequencer' and 'definition' in block and 'plateMarkers' in block['definition']:
+            if block['type'] == 'end-plate-sequencer' and 'definition' in block and 'plateMarkers' in block['definition'] and block['definition']['plateMarkers'] is not None:
                 for marker in block['definition']['plateMarkers'].values():
                     markers[f"{marker['plateIndex']}-{marker['plateRow']}-{marker['plateColumn']}"] = marker
 
@@ -230,15 +233,7 @@ async def get_run(run_id: int, version_id: Optional[int] = None, db: Session = D
     if (not run) or run.is_deleted:
         raise HTTPException(status_code=404, detail='Run Not Found')
 
-    # return run_to_dict(run, run.current)
-    response = run_to_dict(run, run.current)
-    try:
-        import pprint
-        print("==========================================")
-        pprint.pprint(response['sections'][4]['blocks'][0].get('attachments', None))
-        print("==========================================")
-    finally:
-        return response
+    return run_to_dict(run, run.current)
 
 @app.put('/run/{run_id}', tags=['runs'], response_model=RunModel, response_model_exclude_none=True)
 async def update_run(run_id: int, run: RunModel, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
@@ -253,6 +248,36 @@ async def update_run(run_id: int, run: RunModel, db: Session = Depends(get_db), 
         raise HTTPException(status_code=404, detail='Run Not Found')
     if not change_allowed(run_to_dict(new_run, new_run.current), run_dict):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
+    new_run_version = RunVersion(data=strip_metadata(run_dict), server_version=settings.server_version)
+    new_run_version.run = new_run
+    add_updator(new_run_version, current_user.username)
+    new_run.current = new_run_version
+    db.add(new_run_version)
+    samples = get_samples(new_run, new_run_version)
+    if samples:
+        for sample in samples:
+            db.merge(sample)
+    db.commit()
+    return run_to_dict(new_run, new_run.current)
+
+@app.patch('/run/{run_id}', tags=['runs'], response_model=RunModel, response_model_exclude_none=True)
+async def patch_run(run_id: int, patch: list, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+
+    new_run = db.query(Run).get(run_id)
+    if not new_run or new_run.is_deleted:
+        raise HTTPException(status_code=404, detail='Run Not Found')
+
+    run_dict = versioned_row_to_dict(new_run, new_run.current)
+    run_dict.pop('protocol', None)
+    json_patch = jsonpatch.JsonPatch(patch)
+    run_dict.pop('protocol', None)
+    run_dict = json_patch.apply(run_dict)
+
+    if not change_allowed(run_to_dict(new_run, new_run.current), run_dict):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+
     new_run_version = RunVersion(data=strip_metadata(run_dict), server_version=settings.server_version)
     new_run_version.run = new_run
     add_updator(new_run_version, current_user.username)
