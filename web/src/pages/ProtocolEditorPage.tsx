@@ -4,7 +4,7 @@ import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { initialProtocol, Protocol } from '../models/protocol';
 import { auth0State } from '../state/atoms';
 import { protocolQuery, userQuery } from '../state/selectors';
-import { deleteProtocol, patchProtocol, upsertProtocol, upsertRun } from '../state/api';
+import { deleteProtocol, patchProtocol, upsertRun } from '../state/api';
 import moment from 'moment';
 import { initialRun, Run, Section } from '../models/run';
 import { ProtocolEditor } from '../components/ProtocolEditor';

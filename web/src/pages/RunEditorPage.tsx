@@ -4,7 +4,7 @@ import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { initialRun, Run } from '../models/run';
 import { auth0State } from '../state/atoms';
 import { policyCheckQuery, runQuery, runSamplesQuery } from '../state/selectors';
-import { deleteRun, patchRun, upsertRun } from '../state/api';
+import { deleteRun, patchRun } from '../state/api';
 import moment from 'moment';
 import { RunEditor } from '../components/RunEditor';
 import { compare } from 'fast-json-patch';

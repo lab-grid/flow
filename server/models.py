@@ -66,8 +66,8 @@ class SampleResult(AuditedModel):
     plateRow: Optional[int]
     plateCol: Optional[int]
 
-    signers: Optional[List[str]]
-    witnesses: Optional[List[str]]
+    signers: Optional[List[Optional[str]]]
+    witnesses: Optional[List[Optional[str]]]
 
     plateLots: Optional[List[str]]
 

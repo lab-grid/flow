@@ -52,7 +52,7 @@ async def create_user(user: UserModel, db: Session = Depends(get_db), current_us
     db.commit()
     add_policy(user=current_user.username, path=f"/user/{str(new_user.id)}", method="GET")
     add_policy(user=current_user.username, path=f"/user/{str(new_user.id)}", method="PUT")
-    return add_role(versioned_row_to_dict(new_user, user_version))
+    return add_role(versioned_row_to_dict(new_user, new_user_version))
 
 @app.get('/user/{user_id}', tags=['users'], response_model=UserModel, response_model_exclude_none=True)
 async def get_user(user_id: str, version_id: Optional[int] = None, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):

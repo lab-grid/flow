@@ -1,6 +1,7 @@
 import copy
 import io
 import jsonpatch
+import re
 
 from functools import reduce, wraps
 from typing import List, Optional, Any
@@ -9,6 +10,7 @@ from fastapi import Depends, HTTPException, File, UploadFile
 from fastapi.responses import StreamingResponse
 from server import Auth0ClaimsPatched
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.session import make_transient
 
 from server import app, get_db, get_current_user
 from settings import settings
@@ -35,7 +37,7 @@ def extract_protocol_id(run_dict):
     return None
 
 
-def get_samples(run, run_version):
+def get_samples(run_version, protocol_version):
     samples = []
     markers = {}
     results = {}
@@ -80,15 +82,21 @@ def get_samples(run, run_version):
                                 server_version=settings.server_version,
                             )
                             sample.run_version = run_version
-                            sample.protocol_version_id = run.protocol_version_id
+                            sample.protocol_version_id = run_version.run.protocol_version_id
                             sample.current = sample_version
                             samples.append(sample)
             if block['type'] == 'end-plate-sequencer' and 'plateSequencingResults' in block and block['plateSequencingResults'] is not None:
                 for result in block['plateSequencingResults']:
                     results[f"{result['marker1']}-{result['marker2']}"] = result
-            if block['type'] == 'end-plate-sequencer' and 'definition' in block and 'plateMarkers' in block['definition'] and block['definition']['plateMarkers'] is not None:
-                for marker in block['definition']['plateMarkers'].values():
-                    markers[f"{marker['plateIndex']}-{marker['plateRow']}-{marker['plateColumn']}"] = marker
+
+    if protocol_version.data['sections']:
+        for section in protocol_version.data['sections']:
+            if 'blocks' not in section:
+                continue
+            for block in section['blocks']:
+                if block['type'] == 'end-plate-sequencer' and 'plateMarkers' in block and block['plateMarkers'] is not None:
+                    for marker in block['plateMarkers'].values():
+                        markers[f"{marker['plateIndex']}-{marker['plateRow']}-{marker['plateColumn']}"] = marker
 
     for sample in samples:
         sample.current.data['signers'] = signers
@@ -109,19 +117,26 @@ def get_samples(run, run_version):
 
     return samples
 
-def all_runs(include_archived=False):
-    query = Run.query
+def all_runs(db: Session, include_archived=False):
+    query = db.query(Run)
     if not include_archived:
         query = query.filter(Run.is_deleted != True)
     return query
 
-def all_samples(run, include_archived=False):
-    query = Sample.query
+def all_samples(db: Session, run, include_archived=False):
+    query = db.query(Sample)\
+        .filter(Sample.run_version_id == run.version_id)
     if not include_archived:
         query = query\
-            .filter(Sample.is_deleted != True)\
-            .filter(Sample.run_version_id == run.version_id)
+            .filter(Sample.is_deleted != True)
     return query
+
+def clone_model(db: Session, model, **kwargs):
+    db.expunge(model)
+    make_transient(model)
+    for (field, value) in kwargs.items():
+        setattr(model, field, value)
+    return model
 
 
 @app.get('/run', tags=['runs'], response_model=RunsModel, response_model_exclude_none=True)
@@ -142,35 +157,35 @@ async def get_runs(
     # Add filter specific queries. These will be intersected later on.
     if protocol:
         runs_queries.append(
-            all_runs(archived)\
+            all_runs(db, archived)\
                 .join(ProtocolVersion, ProtocolVersion.id == Run.protocol_version_id)\
                 .filter(ProtocolVersion.protocol_id == protocol)
         )
     if plate:
-        run_version_query = all_runs(archived)\
+        run_version_query = all_runs(db, archived)\
             .join(RunVersion, RunVersion.id == Run.version_id)
         runs_subquery = filter_by_plate_label(run_version_query, plate)
         runs_queries.append(runs_subquery)
     if reagent:
-        run_version_query = all_runs(archived)\
+        run_version_query = all_runs(db, archived)\
             .join(RunVersion, RunVersion.id == Run.version_id)
         runs_subquery = filter_by_reagent_label(run_version_query, reagent)
         runs_queries.append(runs_subquery)
     if sample:
-        run_version_query = all_runs(archived)\
+        run_version_query = all_runs(db, archived)\
             .join(RunVersion, RunVersion.id == Run.version_id)
         runs_subquery = filter_by_sample_label(run_version_query, sample)
         runs_queries.append(runs_subquery)
     if creator:
         runs_queries.append(
-            all_runs(archived)\
+            all_runs(db, archived)\
                 # .filter(Run.id == run)
                 .filter(Run.created_by == creator)
         )
 
     # Add a basic non-deleted items query if no filters were specified.
     if len(runs_queries) == 0:
-        runs_queries.append(all_runs(archived))
+        runs_queries.append(all_runs(db, archived))
 
     # Only return the intersection of all queries.
     runs_query = reduce(lambda a, b: a.intersect(b), runs_queries)
@@ -205,7 +220,7 @@ async def create_run(run: RunModel, db: Session = Depends(get_db), current_user:
     new_run.protocol_version_id = protocol.version_id
     add_owner(new_run, current_user.username)
     db.add_all([new_run, new_run_version])
-    samples = get_samples(new_run, new_run_version)
+    samples = get_samples(new_run_version, protocol.current)
     if samples:
         for sample in samples:
             db.merge(sample)
@@ -253,7 +268,7 @@ async def update_run(run_id: int, run: RunModel, db: Session = Depends(get_db), 
     add_updator(new_run_version, current_user.username)
     new_run.current = new_run_version
     db.add(new_run_version)
-    samples = get_samples(new_run, new_run_version)
+    samples = get_samples(new_run_version, new_run.protocol_version)
     if samples:
         for sample in samples:
             db.merge(sample)
@@ -266,6 +281,7 @@ async def patch_run(run_id: int, patch: list, db: Session = Depends(get_db), cur
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
     new_run = db.query(Run).get(run_id)
+    original_run_version = new_run.current
     if not new_run or new_run.is_deleted:
         raise HTTPException(status_code=404, detail='Run Not Found')
 
@@ -281,12 +297,51 @@ async def patch_run(run_id: int, patch: list, db: Session = Depends(get_db), cur
     new_run_version = RunVersion(data=strip_metadata(run_dict), server_version=settings.server_version)
     new_run_version.run = new_run
     add_updator(new_run_version, current_user.username)
+    original_run_version = new_run.current
     new_run.current = new_run_version
     db.add(new_run_version)
-    samples = get_samples(new_run, new_run_version)
-    if samples:
+    db.commit()
+
+    samples_dirty = False
+    for operation in patch:
+        operation_path = operation.get('path', '')
+        # Check for changes to the path: /sections/*/blocks/*/plates
+        if re.search("^/(sections/([^/]+/(blocks/([^/]+/(plates(/.*)?)?)?)?)?)?$", operation_path):
+            samples_dirty = True
+            break
+        # Check for changes to the path: /sections/*/blocks/*/plateSequencingResults
+        if re.search("^/(sections/([^/]+/(blocks/([^/]+/(plateSequencingResults(/.*)?)?)?)?)?)?$", operation_path):
+            samples_dirty = True
+            break
+        # Check for changes to the path: /protocol/sections/*/blocks/*/plateMarkers
+        if re.search("^/(protocol/(sections/([^/]+/(blocks/([^/]+/(plateMarkers(/.*)?)?)?)?)?)?)?$", operation_path):
+            samples_dirty = True
+            break
+
+    if samples_dirty:
+        print("======================================")
+        print(f"Regenerating samples for run_version: ({new_run.id}, {new_run_version.id})")
+        samples = get_samples(new_run_version, new_run.protocol_version)
+        if samples:
+            for sample in samples:
+                db.merge(sample)
+        print(f"Generated {len(samples)} samples for run_version: ({new_run.id}, {new_run_version.id})")
+        print("======================================")
+    else:
+        print("======================================")
+        print(f"Using old samples for run_version: ({new_run.id}, {new_run_version.id})")
+        samples = db.query(Sample)\
+            .filter(Sample.run_version_id == original_run_version.id)\
+            .distinct()
+        sample_count = 0
         for sample in samples:
-            db.merge(sample)
+            new_sample_version = clone_model(db, sample.current, run_version_id=new_run_version.id)
+            new_sample = clone_model(db, sample, current=new_sample_version, run_version_id=new_run_version.id)
+            db.merge(new_sample)
+            sample_count += 1
+        print(f"Attached {sample_count} existing samples to run_version: ({new_run.id}, {new_run_version.id})")
+        print("======================================")
+
     db.commit()
     return run_to_dict(new_run, new_run.current)
 
@@ -360,29 +415,29 @@ async def get_run_samples(
     # Add filter specific queries. These will be intersected later on.
     if protocol:
         samples_queries.append(
-            all_samples(run, archived)\
+            all_samples(db, run, archived)\
                 .join(ProtocolVersion, ProtocolVersion.id == Sample.protocol_version_id)\
                 .filter(ProtocolVersion.protocol_id == protocol)
         )
     if plate:
         samples_queries.append(
-            all_samples(run, archived)\
+            all_samples(db, run, archived)\
                 .filter(Sample.plate_id == plate)
         )
     if reagent:
-        run_version_query = all_samples(run, archived)\
+        run_version_query = all_samples(db, run, archived)\
             .join(RunVersion, RunVersion.id == Sample.run_version_id)
         samples_subquery = filter_by_reagent_label(run_version_query, reagent)
         samples_queries.append(samples_subquery)
     if creator:
         samples_queries.append(
-            all_samples(run, archived)\
+            all_samples(db, run, archived)\
                 .filter(Sample.created_by == creator)
         )
 
     # Add a basic non-deleted items query if no filters were specified.
     if len(samples_queries) == 0:
-        samples_queries.append(all_samples(run, archived))
+        samples_queries.append(all_samples(db, run, archived))
 
     # Only return the intersection of all queries.
     samples_query = reduce(lambda a, b: a.intersect(b), samples_queries)
@@ -414,6 +469,10 @@ async def get_run_sample(run_id: int, sample_id: str, version_id: Optional[int] 
 async def update_run_sample(run_id: int, sample_id: str, sample: SampleResult, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
     if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
+
+    run = db.query(Run).get(run_id)
+    if not run or run.is_deleted:
+        raise HTTPException(status_code=404, detail='Run Not Found')
 
     sample_dict = sample.dict()
     new_sample = db.query(Sample).filter(Sample.sample_version_id == new_sample.version_id).filter(Sample.sample_id == sample_id).first()

@@ -350,7 +350,7 @@ function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl
             setShow={setShowUploader}
             setTable={parseAndSetResults}
         />
-        <TableImportModal
+        {importerType && <TableImportModal
             url={importUrl || ''}
             checkUrl={importCheckUrl || ''}
             importerType={importerType || 'synchronous'}
@@ -359,7 +359,7 @@ function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl
             show={showImporter}
             setShow={setShowImporter}
             setTable={importResults}
-        />
+        />}
         <InputGroup>
             <Form.Control
                 disabled={true}
@@ -370,9 +370,9 @@ function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl
                 <Button variant="secondary" disabled={disabled} onClick={() => setShowUploader(true)}>
                     Upload
                 </Button>
-                <Button variant="secondary" disabled={disabled} onClick={() => setShowImporter(true)}>
+                {importerType && <Button variant="secondary" disabled={disabled} onClick={() => setShowImporter(true)}>
                     Import
-                </Button>
+                </Button>}
             </InputGroup.Append>
         </InputGroup>
     </>

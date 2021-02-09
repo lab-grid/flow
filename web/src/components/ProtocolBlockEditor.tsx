@@ -65,11 +65,22 @@ function ProtocolBlockNameEditor({ disabled, name, setName, deleteStep }: {
     );
 }
 
+function importerTypeTitle(importerType?: 'asynchronous' | 'synchronous', method?: string) {
+    switch (importerType) {
+        case 'asynchronous':
+            return 'Asynchronous - POST/GET';
+        case 'synchronous':
+            return `Synchronous - ${method}`;
+        case undefined:
+            return 'Disabled'
+    }
+}
+
 function ProtocolBlockURLEditor({ disabled, label, importerType, setImporterType, method, setMethod, url, setUrl, resultsUrl, setResultsUrl }: {
     disabled?: boolean;
     label?: string;
     importerType?: 'synchronous' | 'asynchronous';
-    setImporterType: (importerType: 'synchronous' | 'asynchronous') => void;
+    setImporterType: (importerType?: 'synchronous' | 'asynchronous') => void;
     method?: string;
     setMethod: (method?: string) => void;
     url?: string;
@@ -85,9 +96,10 @@ function ProtocolBlockURLEditor({ disabled, label, importerType, setImporterType
             <DropdownButton
                 as={InputGroup.Prepend}
                 variant="secondary"
-                title={importerType === 'asynchronous' ? 'Asynchronous - POST/GET' : `Synchronous - ${method}`}
+                title={importerTypeTitle(importerType, method)}
                 disabled={disabled}
             >
+                <Dropdown.Item onClick={() => { setMethod(); setImporterType(); }}>Disabled</Dropdown.Item>
                 <Dropdown.Item onClick={() => { setMethod(); setImporterType('asynchronous'); }}>Asynchronous - POST/GET</Dropdown.Item>
                 <Dropdown.Item onClick={() => { setMethod("GET"); setImporterType('synchronous'); }}>Synchronous - GET</Dropdown.Item>
                 <Dropdown.Item onClick={() => { setMethod("PATCH"); setImporterType('synchronous'); }}>Synchronous - PATCH</Dropdown.Item>
@@ -96,7 +108,7 @@ function ProtocolBlockURLEditor({ disabled, label, importerType, setImporterType
                 <Dropdown.Item onClick={() => { setMethod("DELETE"); setImporterType('synchronous'); }}>Synchronous - DELETE</Dropdown.Item>
             </DropdownButton>
             <FormControl
-                disabled={disabled}
+                disabled={disabled || !importerType}
                 placeholder="Enter a task start URL (POST). Path parameters should be preceeded by a ':' character"
                 value={url || ""}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl((e.target as HTMLInputElement).value)}
@@ -803,12 +815,12 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     importerType={block.importerType}
                     setImporterType={importerType => props.setBlock({ ...block, type: 'end-plate-sequencer', importerType })}
                 />
-                <ProtocolBlockParamsEditor
+                {block.importerType && <ProtocolBlockParamsEditor
                     disabled={props.disabled}
                     label="Importer Parameters (set this field to enable results importing)"
                     params={block.importerParams}
                     setParams={importerParams => props.setBlock({ ...block, type: 'end-plate-sequencer', importerParams })}
-                />
+                />}
             </>;
         }
         case 'start-timestamp': {
