@@ -1,6 +1,6 @@
 import moment from "moment";
 import React, { useState } from "react";
-import { Form } from "react-bootstrap";
+import { Button, Form } from "react-bootstrap";
 import { useRecoilState, useRecoilValue } from "recoil";
 import { Run, Section, calculateRunStatus, humanizeRunName } from "../models/run";
 import { SampleResult, exportSampleResultsToCSV } from "../models/sample-result";
@@ -157,7 +157,7 @@ export function RunEditor({
             })}
 
             <div className="row">
-                <small className="col-auto my-auto">Samples (<i><a href="/#" onClick={exportSamples}>Export to CSV</a></i>)</small>
+                <small className="col-auto my-auto">Samples (<i><Button variant="link" size="sm" onClick={exportSamples}>Export to CSV</Button></i>)</small>
                 <hr className="col my-auto" />
                 <small className="col-auto my-auto">
                     {(samples && samples.length) || 0}

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Button, Form } from "react-bootstrap";
-import { useRecoilValue } from "recoil";
+import { Button, Form, Spinner } from "react-bootstrap";
+import { useRecoilCallback, useRecoilValue } from "recoil";
 import { ProtocolsTable } from "../components/ProtocolsTable";
 import { RunsTable } from "../components/RunsTable";
 import { protocolsQuery, runsQuery, samplesQuery, usersQuery } from "../state/selectors";
@@ -128,42 +128,52 @@ export function SearchResultsPage() {
     const { runs, pageCount: runsPageCount } = useRecoilValue(runsQuery({ queryTime, filterParams: runsParams }));
     const { samples, pageCount: samplesPageCount } = useRecoilValue(samplesQuery({ queryTime, filterParams: samplesParams }));
 
-    // For samples exporting.
-    const { auth0Client } = useRecoilValue(auth0State);
+    const [exportingProtocols, setExportingProtocols] = useState(false);
+    const [exportingRuns, setExportingRuns] = useState(false);
+    const [exportingSamples, setExportingSamples] = useState(false);
 
-    const exportProtocols = async () => {
-        if (auth0Client) {
-            return;
+    const exportProtocols = useRecoilCallback(({ snapshot }) => async () => {
+        setExportingProtocols(true);
+        try {
+            const { auth0Client } = await snapshot.getPromise(auth0State);
+            const protocols = await getProtocols(() => auth0Client, filterParams);
+            if (!protocols || !protocols.protocols) {
+                alert('No protocols were found to be exported!');
+                return;
+            }
+            exportProtocolsToCSV(`export-protocol-results-${moment().format()}.csv`, protocols.protocols, true);
+        } finally {
+            setExportingProtocols(false);
         }
-        const protocols = await getProtocols(() => auth0Client, filterParams);
-        if (!protocols || !protocols.protocols) {
-            alert('No protocols were found to be exported!');
-            return;
+    });
+    const exportRuns = useRecoilCallback(({ snapshot }) => async () => {
+        setExportingRuns(true);
+        try {
+            const { auth0Client } = await snapshot.getPromise(auth0State);
+            const runs = await getRuns(() => auth0Client, filterParams);
+            if (!runs || !runs.runs) {
+                alert('No runs were found to be exported!');
+                return;
+            }
+            exportRunsToCSV(`export-run-results-${moment().format()}.csv`, runs.runs, true);
+        } finally {
+            setExportingRuns(false);
         }
-        exportProtocolsToCSV(`export-protocol-results-${moment().format()}.csv`, protocols.protocols, true);
-    };
-    const exportRuns = async () => {
-        if (auth0Client) {
-            return;
+    });
+    const exportSamples = useRecoilCallback(({ snapshot }) => async () => {
+        setExportingSamples(true);
+        try {
+            const { auth0Client } = await snapshot.getPromise(auth0State);
+            const samples = await getSamples(() => auth0Client, filterParams);
+            if (!samples || !samples.samples) {
+                alert('No samples were found to be exported!');
+                return;
+            }
+            exportSampleResultsToCSV(`export-sample-results-${moment().format()}.csv`, samples.samples, true);
+        } finally {
+            setExportingSamples(false);
         }
-        const runs = await getRuns(() => auth0Client, filterParams);
-        if (!runs || !runs.runs) {
-            alert('No runs were found to be exported!');
-            return;
-        }
-        exportRunsToCSV(`export-run-results-${moment().format()}.csv`, runs.runs, true);
-    };
-    const exportSamples = async () => {
-        if (auth0Client) {
-            return;
-        }
-        const samples = await getSamples(() => auth0Client, filterParams);
-        if (!samples || !samples.samples) {
-            alert('No samples were found to be exported!');
-            return;
-        }
-        exportSampleResultsToCSV(`export-sample-results-${moment().format()}.csv`, samples.samples, true);
-    };
+    });
 
     return <div className="container mt-4">
         <Form className="row">
@@ -218,7 +228,7 @@ export function SearchResultsPage() {
             </Button>
         </Form>
         <div className="row">
-            <small className="col-auto my-auto">Protocols (<i><a href="/#" onClick={exportProtocols}>Export to CSV</a></i>)</small>
+            <small className="col-auto my-auto">Protocols (<i><Button variant="link" size="sm" onClick={exportProtocols} disabled={exportingProtocols}>Export to CSV {exportingProtocols && <Spinner size="sm" animation="border" />}</Button></i>)</small>
             <hr className="col my-auto" />
             <small className="col-auto my-auto">
                 {(protocols && protocols.length) || 0}
@@ -226,7 +236,7 @@ export function SearchResultsPage() {
         </div>
         <ProtocolsTable protocols={protocols || []} page={protocolsPage} pageCount={protocolsPageCount} onPageChange={setProtocolsPage} />
         <div className="row">
-            <small className="col-auto my-auto">Runs (<i><a href="/#" onClick={exportRuns}>Export to CSV</a></i>)</small>
+            <small className="col-auto my-auto">Runs (<i><Button variant="link" size="sm" onClick={exportRuns} disabled={exportingRuns}>Export to CSV {exportingRuns && <Spinner size="sm" animation="border" />}</Button></i>)</small>
             <hr className="col my-auto" />
             <small className="col-auto my-auto">
                 {(runs && runs.length) || 0}
@@ -234,7 +244,7 @@ export function SearchResultsPage() {
         </div>
         <RunsTable runs={runs || []} page={runsPage} pageCount={runsPageCount} onPageChange={setRunsPage} />
         <div className="row">
-            <small className="col-auto my-auto">Samples (<i><a href="/#" onClick={exportSamples}>Export to CSV</a></i>)</small>
+            <small className="col-auto my-auto">Samples (<i><Button variant="link" size="sm" onClick={exportSamples} disabled={exportingSamples}>Export to CSV {exportingSamples && <Spinner size="sm" animation="border" />}</Button></i>)</small>
             <hr className="col my-auto" />
             <small className="col-auto my-auto">
                 {(samples && samples.length) || 0}
