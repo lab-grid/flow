@@ -17,6 +17,7 @@ python-multipart = "*"
 pg8000 = "==1.16.5"
 casbin = "*"
 casbin-sqlalchemy-adapter = "*"
+typing-extensions = "*"
 deepdiff = {extras = ["murmur"], version = "*"}
 
 [dev-packages]
