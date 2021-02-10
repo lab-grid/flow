@@ -1,13 +1,11 @@
-FROM continuumio/miniconda3
+FROM python:3.9-alpine
 
 ARG SERVER_VERSION=local+container
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y build-essential libpq-dev
-RUN pip install pipenv
+RUN apk add --update git build-base libffi-dev rust cargo openssl-dev
+RUN pip install -U pip pipenv
 
-# RUN conda install scikit-learn pandas
-# RUN conda install -c rdkit rdkit
 COPY Pipfile Pipfile
 COPY Pipfile.lock Pipfile.lock
 RUN pipenv lock --dev --requirements > requirements.txt

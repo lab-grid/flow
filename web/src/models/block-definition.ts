@@ -143,7 +143,7 @@ export interface EndPlateSequencerBlockDefinition {
 
     id?: string;
     name?: string;
-    plateMarkers?: {[markers: string]: BlockPlateMarkerEntry};
+    plateMarkers?: BlockPlateMarkerEntry[];
 
     importerType?: 'synchronous' | 'asynchronous';
     importerUrl?: string;

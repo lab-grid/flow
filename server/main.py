@@ -8,6 +8,7 @@ import api.group
 import api.protocol
 import api.run
 import api.sample
+import graphql_api
 
 
 if __name__ == "__main__":

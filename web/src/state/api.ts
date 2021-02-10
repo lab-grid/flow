@@ -314,10 +314,10 @@ export async function uploadRunAttachmentBlob(auth0ClientFn: () => Auth0Client |
     return apiUpload(labflowOptions, auth0ClientFn, "POST", `run/${runId}/attachment`, formData);
 }
 
-export async function deleteRunAttachment(auth0ClientFn: () => Auth0Client | undefined, runId: number, attachmentId: string): Promise<void> {
+export async function deleteRunAttachment(auth0ClientFn: () => Auth0Client | undefined, runId: number, attachmentId: number): Promise<void> {
     await apiFetch(labflowOptions, auth0ClientFn, "DELETE", `run/${runId}/attachment/${attachmentId}`);
 }
 
-export async function downloadRunAttachment(auth0ClientFn: () => Auth0Client | undefined, runId: number, attachmentId: string, filename: string): Promise<void> {
+export async function downloadRunAttachment(auth0ClientFn: () => Auth0Client | undefined, runId: number, attachmentId: number, filename: string): Promise<void> {
     await apiDownload(labflowOptions, auth0ClientFn, "GET", `run/${runId}/attachment/${attachmentId}`, filename);
 }

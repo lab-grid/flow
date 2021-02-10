@@ -1,5 +1,7 @@
 import logging
 
+from contextlib import contextmanager
+
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -14,7 +16,7 @@ from jose import jwk, jwt
 from starlette import status
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker
 
 from settings import settings
 
@@ -30,7 +32,7 @@ logger = logging.getLogger(__name__)
 engine = create_engine(settings.sqlalchemy_database_uri)
 # This shouldn't need to be a scoped_session.
 # See: https://github.com/tiangolo/full-stack-fastapi-postgresql/issues/56
-db_session = sessionmaker(
+SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine,
@@ -38,7 +40,29 @@ db_session = sessionmaker(
 
 # Dependency
 def get_db():
-    db = db_session.session_factory()
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@contextmanager
+def SessionTransaction():
+    """Provide a transactional scope around a series of operations."""
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+@contextmanager
+def Session():
+    """Provide a transactional scope around a series of operations."""
+    db = SessionLocal()
     try:
         yield db
     finally:

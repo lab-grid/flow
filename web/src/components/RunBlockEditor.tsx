@@ -2,7 +2,7 @@ import moment from 'moment';
 import React, { useState } from 'react';
 import { Button, Dropdown, DropdownButton, Form, FormControl, InputGroup, Table } from 'react-bootstrap';
 import { Trash, UpcScan } from 'react-bootstrap-icons';
-import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, EndPlateSequencerBlock, Block, StartTimestampBlock, EndTimestampBlock, CalculatorBlock, StartPlateSequencerBlock, BlockAttachment, AddReagentBlock, PlateMapping } from '../models/block';
+import { TextQuestionBlock, OptionsQuestionBlock, PlateSamplerBlock, PlateAddReagentBlock, EndPlateSequencerBlock, Block, StartTimestampBlock, EndTimestampBlock, CalculatorBlock, StartPlateSequencerBlock, AddReagentBlock, PlateMapping, VariableValue } from '../models/block';
 import { BlockPrimer, CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition, AddReagentBlockDefinition } from '../models/block-definition';
 import { TableUploadModal } from './TableUploadModal';
 import { Calculator } from './Calculator';
@@ -83,8 +83,8 @@ function RunBlockOptionsQuestion({ disabled, definition, answer, setAnswer }: {
 function RunBlockCalculatorEditor({ disabled, definition, values, setValues }: {
     disabled?: boolean;
     definition: CalculatorBlockDefinition;
-    values?: {[variable: string]: number};
-    setValues: (values?: {[variable: string]: number}) => void;
+    values?: VariableValue[];
+    setValues: (values?: VariableValue[]) => void;
 }) {
     return <>
         <h4 className="row">{definition.name}</h4>
@@ -269,14 +269,14 @@ interface sequencerRow {
 function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl, importCheckUrl, importerType, importMethod, importParams, results, setResults }: {
     disabled?: boolean;
     runId: number;
-    fileData?: BlockAttachment;
+    fileData?: Attachment[];
     importUrl?: string;
     importCheckUrl?: string;
     importerType?: 'synchronous' | 'asynchronous';
     importMethod?: string;
     importParams?: string[];
     results?: PlateResult[];
-    setResults: (results?: PlateResult[], fileData?: BlockAttachment) => void;
+    setResults: (results?: PlateResult[], fileData?: Attachment[]) => void;
 }) {
     const [showUploader, setShowUploader] = useState(false);
     const [showImporter, setShowImporter] = useState(false);
@@ -311,9 +311,8 @@ function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl
 
     const importResults = useRecoilCallback(({ snapshot }) => async (data: PlateResult[], attachments: {[filename: string]: string}) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
-        const result: BlockAttachment = fileData ? {...fileData} : {};
         const resultPromises: Promise<Attachment>[] = [];
-        const results: Attachment[] = [];
+        const results: Attachment[] = fileData ? [...fileData] : [];
         try {
             for (const [filename, b64File] of Object.entries(attachments)) {
                 const mime = filenameToMime(filename);
@@ -323,14 +322,9 @@ function RunBlockSequencerResultsUploader({ disabled, runId, fileData, importUrl
                 }
             }
             results.push(...await Promise.all(resultPromises));
-            for (const attachment of results) {
-                if (attachment.id) {
-                    result[attachment.id] = attachment.name || "";
-                }
-            }
         } finally {
-            console.log('Results:', data, result);
-            setResults(data, result);
+            console.log('Results:', data, results);
+            setResults(data, results);
             setShowImporter(false);
         }
     });
@@ -382,15 +376,15 @@ function RunBlockFileUploader({ disabled, runId, label, fileData, setFileData }:
     disabled?: boolean;
     runId: number;
     label?: string;
-    fileData?: BlockAttachment;
-    setFileData: (fileData?: BlockAttachment) => void;
+    fileData?: Attachment[];
+    setFileData: (fileData?: Attachment[]) => void;
 }) {
     const uploadFile = useRecoilCallback(({ snapshot }) => async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files) {
             return;
         }
         const files = [...e.target.files];
-        const result: BlockAttachment = fileData ? {...fileData} : {};
+        const results: Attachment[] = fileData ? [...fileData] : [];
         const { auth0Client } = await snapshot.getPromise(auth0State);
         const resultPromises: Promise<Attachment>[] = [];
         for (const file of files) {
@@ -398,28 +392,30 @@ function RunBlockFileUploader({ disabled, runId, label, fileData, setFileData }:
                 resultPromises.push(uploadRunAttachment(() => auth0Client, runId, file));
             }
         }
-        const results = await Promise.all(resultPromises);
-        for (const attachment of results) {
-            if (attachment.id) {
-                result[attachment.id] = attachment.name || "";
-            }
-        }
-        setFileData(result);
+        results.push(...await Promise.all(resultPromises));
+        setFileData(results);
     });
-    const deleteFile = useRecoilCallback(({ snapshot }) => async (id: string) => {
+    const deleteFile = useRecoilCallback(({ snapshot }) => async (index: number) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
+        if (!fileData) {
+            return;
+        }
+        const fileId = fileData[index].id;
+        if (!fileId) {
+            return;
+        }
         try {
-            await deleteRunAttachment(() => auth0Client, runId, id);
+            await deleteRunAttachment(() => auth0Client, runId, fileId);
         } catch (ex) {
             if (!(ex instanceof FetchError) || !ex.response || !((ex.response.status < 400))) {
                 throw ex;
             }
         }
-        const newFileData = {...fileData};
-        delete newFileData[id];
+        const newFileData = [...fileData];
+        newFileData.splice(index, 1);
         setFileData(newFileData);
     });
-    const downloadFile = useRecoilCallback(({ snapshot }) => async (id: string, filename: string) => {
+    const downloadFile = useRecoilCallback(({ snapshot }) => async (id: number, filename: string) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
         await downloadRunAttachment(() => auth0Client, runId, id, filename);
     });
@@ -431,16 +427,16 @@ function RunBlockFileUploader({ disabled, runId, label, fileData, setFileData }:
             label={fileData ? "File saved. Upload new file(s)" : "Upload new file(s)"}
             onChange={uploadFile}
         />
-        {Object.entries(fileData || {}).map(([attachmentId, filename]) =>
-            <div className="d-flex" key={attachmentId}>
+        {(fileData || []).map(attachment =>
+            <div className="d-flex" key={attachment.id}>
                 <Button
                     className="mr-auto my-auto"
                     variant="link"
-                    onClick={() => downloadFile(attachmentId, filename)}
+                    onClick={() => attachment.id && downloadFile(attachment.id, attachment.name || `attachment-${attachment.id}`)}
                 >
-                    {filename}
+                    {attachment.name}
                 </Button>
-                <Button variant="outline-danger" size="sm" onClick={() => deleteFile(attachmentId)}><Trash /></Button>
+                <Button variant="outline-danger" size="sm" onClick={() => attachment.id && deleteFile(attachment.id)}><Trash /></Button>
             </div>
         )}
     </Form.Group>
@@ -500,11 +496,9 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
     plates?: PlateMapping[];
     setPlates: (plates: PlateMapping[]) => void;
 }) {
-    const plateIds = definition.plates && definition.plates.filter(plate => !!plate).map(plate => plate.id);
     const inputRows: JSX.Element[] = [];
     for (let i = 0; i < (definition.plateCount || 0); i++) {
         const plate = plates && plates[i];
-        const id = plateIds && plateIds[i];
         inputRows.push(<tr key={i}>
             <th>Input Plate {i+1} <img alt={`Quadrant ${i}`} src={"../images/quadrant_" + i + ".png"} width="75"/> </th>
             <td>
@@ -563,10 +557,10 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
 function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPlateLabel, plateLot, setPlateLot, values, setValues }: {
     disabled?: boolean;
     definition: PlateAddReagentBlockDefinition;
-    values?: {[variable: string]: number};
+    values?: VariableValue[];
     plateLabel?: string;
     plateLot?: string;
-    setValues: (values?: {[variable: string]: number}) => void;
+    setValues: (values?: VariableValue[]) => void;
     setPlateLabel: (plateLabel?: string) => void;
     setPlateLot: (plateLot?: string) => void;
 }) {
@@ -610,9 +604,9 @@ function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPl
 function RunBlockAddReagentEditor({ disabled, definition, reagentLot, setReagentLot, values, setValues }: {
     disabled?: boolean;
     definition: AddReagentBlockDefinition;
-    values?: {[variable: string]: number};
+    values?: VariableValue[];
     reagentLot?: string;
-    setValues: (values?: {[variable: string]: number}) => void;
+    setValues: (values?: VariableValue[]) => void;
     setReagentLot: (plateLot?: string) => void;
 }) {
     return <>
@@ -726,10 +720,10 @@ function RunBlockEndPlateSequencerEditor({ disabled, runId, definition, attachme
     disabled?: boolean;
     runId: number;
     definition: EndPlateSequencerBlockDefinition;
-    attachments?: BlockAttachment;
-    syncAttachments: (attachment?: BlockAttachment) => void;
+    attachments?: Attachment[];
+    syncAttachments: (attachment?: Attachment[]) => void;
     results?: PlateResult[];
-    setResults: (results?: PlateResult[], attachments?: BlockAttachment) => void;
+    setResults: (results?: PlateResult[], attachments?: Attachment[]) => void;
     timestampLabel?: string;
     setTimestampLabel: (timestampLabel?: string) => void;
     endedOn?: string;

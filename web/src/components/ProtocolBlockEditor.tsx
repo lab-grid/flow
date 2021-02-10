@@ -525,28 +525,19 @@ function ProtocolBlockFormulaEditor({ disabled, formula, setFormula, formulaSigF
 
 function ProtocolBlockMarkersUploader({ disabled, plateMarkers, setPlateMarkers }: {
     disabled?: boolean;
-    plateMarkers?: {[markers: string]: BlockPlateMarkerEntry};
-    setPlateMarkers: (plateMarkers?: {[markers: string]: BlockPlateMarkerEntry}) => void;
+    plateMarkers?: BlockPlateMarkerEntry[];
+    setPlateMarkers: (plateMarkers?: BlockPlateMarkerEntry[]) => void;
 }) {
     const [showUploader, setShowUploader] = useState(false);
 
-    const markersCount = plateMarkers && Object.keys(plateMarkers).length;
+    const markersCount = plateMarkers && plateMarkers.length;
 
     const parseAndSetMarkers = (data: BlockPlateMarkerEntry[]) => {
-        const results: { [marker: string]: BlockPlateMarkerEntry } = {};
-        for (const row of data) {
-            if (!row.marker1 && !row.marker2) {
-                console.warn('Found a row with no markers!', row);
-                return;
-            }
-            results[`${row.marker1}${row.marker2}`] = row;
-        }
-        const labels = Object.keys(results);
-        if (labels.length === 0) {
-            console.warn('Uploaded table contained no data', data, results);
+        if (data.length === 0) {
+            console.warn('Uploaded table contained no data', data);
             return;
         }
-        setPlateMarkers(results);
+        setPlateMarkers(data);
         setShowUploader(false);
     }
 

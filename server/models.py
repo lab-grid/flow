@@ -1,9 +1,9 @@
 # TODO: Consider using this to build ts models: https://pypi.org/project/pydantic-to-typescript/
 
 from pydantic import BaseModel
-from typing import List, Dict, Union, Optional
-from typing_extensions import Literal
+from typing import List, Union, Optional, Literal
 from datetime import datetime
+from graphene.types import generic
 
 
 # System ----------------------------------------------------------------------
@@ -130,13 +130,6 @@ class BlockPlate(BaseModel):
     name: Optional[str]
     size: Optional[int]
 
-class BlockResultsImport(BaseModel):
-    id: str
-    status: str
-    error: Optional[str]
-    results: Optional[List[dict]]
-    attachments: Optional[Dict[str, str]]
-
 class TextQuestionBlockDefinition(BaseModel):
     type: Literal['text-question']
 
@@ -147,8 +140,8 @@ class OptionsQuestionBlockDefinition(BaseModel):
     type: Literal['options-question']
 
     id: str
-    name: Optional[str]
     optionType: Optional[Literal['switch', 'checkbox', 'radio', 'menu-item', 'user']]
+    optionType: Optional[str]
     options: Optional[List[BlockOption]]
 
 class CalculatorBlockDefinition(BaseModel):
@@ -216,7 +209,7 @@ class EndPlateSequencerBlockDefinition(BaseModel):
 
     id: str
     name: Optional[str]
-    plateMarkers: Optional[Dict[str, BlockPlateMarkerEntry]]
+    plateMarkers: Optional[List[BlockPlateMarkerEntry]]
 
     importerType: Optional[Literal['synchronous', 'asynchronous']]
     importerUrl: Optional[str]
@@ -293,6 +286,10 @@ class ProtocolsModel(PaginatedModel):
 
 # Run -------------------------------------------------------------------------
 
+class VariableValue(BaseModel):
+    id: Optional[str]
+    value: Optional[float]
+
 class PlateMapping(BaseModel):
     label: str
     coordinates: Optional[List[PlateCoordinate]]
@@ -314,7 +311,7 @@ class CalculatorBlock(BaseModel):
     type: Literal['calculator']
     definition: CalculatorBlockDefinition
 
-    values: Optional[Dict[str, float]]
+    values: Optional[List[VariableValue]]
 
 class PlateSamplerBlock(BaseModel):
     type: Literal['plate-sampler']
@@ -331,7 +328,7 @@ class PlateAddReagentBlock(BaseModel):
     plateLabel: Optional[str]
     plateLot: Optional[str]
 
-    values: Optional[Dict[str, float]]
+    values: Optional[List[VariableValue]]
 
 class AddReagentBlock(BaseModel):
     type: Literal['add-reagent']
@@ -339,7 +336,7 @@ class AddReagentBlock(BaseModel):
 
     reagentLot: Optional[str]
 
-    values: Optional[Dict[str, float]]
+    values: Optional[List[VariableValue]]
 
 class StartTimestampBlock(BaseModel):
     type: Literal['start-timestamp']
@@ -367,7 +364,7 @@ class EndPlateSequencerBlock(BaseModel):
     type: Literal['end-plate-sequencer']
     definition: EndPlateSequencerBlockDefinition
 
-    attachments: Optional[Dict[str, str]]
+    attachments: Optional[List[AttachmentModel]]
     plateSequencingResults: Optional[List[PlateResult]]
     timestampLabel: Optional[str]
     endedOn: Optional[str]
@@ -433,6 +430,7 @@ class Section(BaseModel):
 
 class RunModel(AuditedModel):
     id: Optional[str]
+    # TODO: Add version_id.
     name: Optional[str]
     notes: Optional[str]
     status: Optional[str]

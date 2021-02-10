@@ -100,7 +100,7 @@ def get_samples(run_version, protocol_version):
                 continue
             for block in section['blocks']:
                 if block['type'] == 'end-plate-sequencer' and 'plateMarkers' in block and block['plateMarkers'] is not None:
-                    for marker in block['plateMarkers'].values():
+                    for marker in block['plateMarkers']:
                         markers[f"{marker['plateIndex']}-{marker['plateRow']}-{marker['plateColumn']}"] = marker
 
     for sample in samples:

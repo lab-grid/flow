@@ -1,4 +1,4 @@
 export type Attachment = {
-    id?: string;
+    id?: number;
     name?: string;
 };

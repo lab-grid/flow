@@ -1,3 +1,4 @@
+import { Attachment } from "./attachment";
 import { CalculatorBlockDefinition, EndTimestampBlockDefinition, OptionsQuestionBlockDefinition, PlateAddReagentBlockDefinition, PlateSamplerBlockDefinition, EndPlateSequencerBlockDefinition, StartTimestampBlockDefinition, TextQuestionBlockDefinition, StartPlateSequencerBlockDefinition, AddReagentBlockDefinition } from "./block-definition";
 import { PlateCoordinate } from "./plate-coordinate";
 import { PlateResult } from "./plate-result";
@@ -13,7 +14,10 @@ export type Block = TextQuestionBlock
     | StartTimestampBlock
     | EndTimestampBlock;
 
-export type BlockAttachment = {[filename: string]: string};
+export type VariableValue = {
+    id?: string;
+    value?: number;
+}
 
 export type PlateMapping = {
     label?: string;
@@ -39,7 +43,7 @@ export interface CalculatorBlock {
     type: 'calculator';
     definition: CalculatorBlockDefinition;
 
-    values?: {[variable: string]: number};
+    values?: VariableValue[];
 }
 
 export interface PlateSamplerBlock {
@@ -58,7 +62,7 @@ export interface PlateAddReagentBlock {
     plateLabel?: string;
     plateLot?: string;
 
-    values?: {[variable: string]: number};
+    values?: VariableValue[];
 }
 
 export interface AddReagentBlock {
@@ -67,7 +71,7 @@ export interface AddReagentBlock {
 
     reagentLot?: string;
 
-    values?: {[variable: string]: number};
+    values?: VariableValue[];
 }
 
 export interface StartTimestampBlock {
@@ -99,7 +103,7 @@ export interface EndPlateSequencerBlock {
     type: 'end-plate-sequencer';
     definition: EndPlateSequencerBlockDefinition;
 
-    attachments?: BlockAttachment;
+    attachments?: Attachment[];
     plateSequencingResults?: PlateResult[];
     timestampLabel?: string;
     endedOn?: string;
