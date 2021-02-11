@@ -1,7 +1,7 @@
 import moment from "moment";
 import React, { useState } from "react";
-import { Button, Form } from "react-bootstrap";
-import { useRecoilState, useRecoilValue } from "recoil";
+import { Button, Form, Spinner } from "react-bootstrap";
+import { useRecoilCallback, useRecoilState } from "recoil";
 import { Run, Section, calculateRunStatus, humanizeRunName } from "../models/run";
 import { SampleResult, exportSampleResultsToCSV } from "../models/sample-result";
 import { deserializeSlate, initialSlateValue, serializeSlate } from "../slate";
@@ -51,9 +51,7 @@ export function RunEditor({
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
     const [showImportExportModal, setShowImportExportModal] = useState(false);
     const [errors, setErrors] = useRecoilState(errorsState);
-
-    // For samples export.
-    const { auth0Client } = useRecoilValue(auth0State);
+    const [exportingSamples, setExportingSamples] = useState(false);
 
     const isCompleted = (run && run.status) === 'completed';
 
@@ -99,17 +97,23 @@ export function RunEditor({
         }
     }
 
-    const exportSamples = async () => {
-        if (!run || !run.id || auth0Client) {
-            return;
+    const exportSamples = useRecoilCallback(({ snapshot }) => async () => {
+        setExportingSamples(true);
+        try {
+            const { auth0Client } = await snapshot.getPromise(auth0State);
+            if (!run || !run.id || !auth0Client) {
+                return;
+            }
+            const samples = await getRunSamples(() => auth0Client, run.id);
+            if (!samples || !samples.samples) {
+                alert('No samples were found to be exported!');
+                return;
+            }
+            exportSampleResultsToCSV(`export-sample-results-${moment().format()}.csv`, samples.samples, true);
+        } finally {
+            setExportingSamples(false);
         }
-        const samples = await getRunSamples(() => auth0Client, run.id);
-        if (!samples || !samples.samples) {
-            alert('No samples were found to be exported!');
-            return;
-        }
-        exportSampleResultsToCSV(`export-sample-results-${moment().format()}.csv`, samples.samples, true);
-    };
+    });
 
     return <>
         <ImportExportModal
@@ -157,7 +161,7 @@ export function RunEditor({
             })}
 
             <div className="row">
-                <small className="col-auto my-auto">Samples (<i><Button variant="link" size="sm" onClick={exportSamples}>Export to CSV</Button></i>)</small>
+                <small className="col-auto my-auto">Samples (<i><Button variant="link" size="sm" onClick={exportSamples} disabled={exportingSamples}>Export to CSV {exportingSamples && <Spinner size="sm" animation="border" />}</Button></i>)</small>
                 <hr className="col my-auto" />
                 <small className="col-auto my-auto">
                     {(samples && samples.length) || 0}
