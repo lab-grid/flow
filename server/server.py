@@ -1,8 +1,11 @@
+import logging
+
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi_cloudauth.auth0 import Auth0, Auth0Claims, Auth0CurrentUser
 from fastapi_cloudauth.base import BaseTokenVerifier, JWKS
+from fastapi_utils.timing import add_timing_middleware
 
 from typing import Optional, Type
 from pydantic import BaseModel, Field
@@ -16,15 +19,21 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from settings import settings
 
 
+# Logging ---------------------------------------------------------------------
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
 # Database --------------------------------------------------------------------
 
 engine = create_engine(settings.sqlalchemy_database_uri)
-db_session = scoped_session(
-    sessionmaker(
-        autocommit=False,
-        autoflush=False,
-        bind=engine,
-    ),
+# This shouldn't need to be a scoped_session.
+# See: https://github.com/tiangolo/full-stack-fastapi-postgresql/issues/56
+db_session = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
 )
 
 # Dependency
@@ -76,6 +85,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+add_timing_middleware(app, record=logger.info)
 
 
 # Authentication --------------------------------------------------------------

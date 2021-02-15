@@ -12,11 +12,7 @@ from sqlalchemy.sql import func, text
 from sqlalchemy.orm.attributes import flag_modified
 
 
-from server import db_session
-
-
 Base = declarative_base()
-Base.query = db_session.query_property()
 
 
 # Helpers ---------------------------------------------------------------------

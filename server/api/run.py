@@ -2,12 +2,14 @@ import copy
 import io
 import jsonpatch
 import re
+import logging
 
 from functools import reduce, wraps
 from typing import List, Optional, Any
 
-from fastapi import Depends, HTTPException, File, UploadFile
+from fastapi import Depends, HTTPException, File, UploadFile, Request
 from fastapi.responses import StreamingResponse
+from fastapi_utils.timing import add_timing_middleware, record_timing
 from server import Auth0ClaimsPatched
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.session import make_transient
@@ -21,6 +23,9 @@ from pydantic_jsonpatch.jsonpatch import JSONPatch
 from pydantic import BaseModel
 
 from api.utils import change_allowed, add_owner, add_updator, paginatify
+
+
+logger = logging.getLogger(__name__)
 
 
 def run_to_dict(run, run_version, include_large_fields=True):
@@ -276,7 +281,7 @@ async def update_run(run_id: int, run: RunModel, db: Session = Depends(get_db), 
     return run_to_dict(new_run, new_run.current)
 
 @app.patch('/run/{run_id}', tags=['runs'], response_model=RunModel, response_model_exclude_none=True)
-async def patch_run(run_id: int, patch: list, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+async def patch_run(request: Request, run_id: int, patch: list, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
     if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
@@ -284,6 +289,8 @@ async def patch_run(run_id: int, patch: list, db: Session = Depends(get_db), cur
     original_run_version = new_run.current
     if not new_run or new_run.is_deleted:
         raise HTTPException(status_code=404, detail='Run Not Found')
+
+    record_timing(request, note=f"Fetched run {run_id}")
 
     run_dict = versioned_row_to_dict(new_run, new_run.current)
     run_dict.pop('protocol', None)
@@ -302,6 +309,8 @@ async def patch_run(run_id: int, patch: list, db: Session = Depends(get_db), cur
     db.add(new_run_version)
     db.commit()
 
+    record_timing(request, note=f"Saved changes to run {run_id}")
+
     samples_dirty = False
     for operation in patch:
         operation_path = operation.get('path', '')
@@ -319,17 +328,22 @@ async def patch_run(run_id: int, patch: list, db: Session = Depends(get_db), cur
             break
 
     if samples_dirty:
-        print("======================================")
-        print(f"Regenerating samples for run_version: ({new_run.id}, {new_run_version.id})")
+        logger.info("======================================")
+        logger.info(f"Regenerating samples for run_version: ({new_run.id}, {new_run_version.id})")
         samples = get_samples(new_run_version, new_run.protocol_version)
+
+        record_timing(request, note=f"Regenerated run {new_run.id} samples (len: {len(samples)})")
+
         if samples:
             for sample in samples:
                 db.merge(sample)
-        print(f"Generated {len(samples)} samples for run_version: ({new_run.id}, {new_run_version.id})")
-        print("======================================")
+        logger.info(f"Generated {len(samples)} samples for run_version: ({new_run.id}, {new_run_version.id})")
+        logger.info("======================================")
+
+        record_timing(request, note=f"Saved {len(samples)} regenerated samples to run {new_run.id}")
     else:
-        print("======================================")
-        print(f"Using old samples for run_version: ({new_run.id}, {new_run_version.id})")
+        logger.info("======================================")
+        logger.info(f"Using old samples for run_version: ({new_run.id}, {new_run_version.id})")
         samples = db.query(Sample)\
             .filter(Sample.run_version_id == original_run_version.id)\
             .distinct()
@@ -339,8 +353,10 @@ async def patch_run(run_id: int, patch: list, db: Session = Depends(get_db), cur
             new_sample = clone_model(db, sample, current=new_sample_version, run_version_id=new_run_version.id)
             db.merge(new_sample)
             sample_count += 1
-        print(f"Attached {sample_count} existing samples to run_version: ({new_run.id}, {new_run_version.id})")
-        print("======================================")
+        logger.info(f"Attached {sample_count} existing samples to run_version: ({new_run.id}, {new_run_version.id})")
+        logger.info("======================================")
+
+        record_timing(request, note=f"Attached {sample_count} existing samples to run {new_run.id}")
 
     db.commit()
     return run_to_dict(new_run, new_run.current)
