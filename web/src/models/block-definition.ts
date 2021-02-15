@@ -75,6 +75,7 @@ export interface CalculatorBlockDefinition {
     name?: string;
 
     formula?: string;
+    formulaSigFigs?: number;
     variables?: BlockVariable[];
 }
 
@@ -98,6 +99,7 @@ export interface PlateAddReagentBlockDefinition {
     reagentLabel?: string;
 
     formula?: string;
+    formulaSigFigs?: number;
     variables?: BlockVariable[];
 }
 
@@ -109,6 +111,7 @@ export interface AddReagentBlockDefinition {
     reagentLabel?: string;
 
     formula?: string;
+    formulaSigFigs?: number;
     variables?: BlockVariable[];
 }
 

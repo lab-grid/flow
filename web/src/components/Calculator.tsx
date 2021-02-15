@@ -6,6 +6,7 @@ import { BlockVariable } from '../models/block-definition';
 export interface CalculatorProps {
     disabled?: boolean;
     formula?: string;
+    formulaSigFigs?: number;
     variables?: BlockVariable[];
     name?: string;
     values?: {[variable: string]: number};
@@ -46,7 +47,7 @@ export function Calculator(props: CalculatorProps) {
                         {formulaPretty && <div dangerouslySetInnerHTML={{__html: formulaPretty}} />}
                     </Form.Text> */}
                     <InputGroup.Append>
-                        <InputGroup.Text> = {evaluatedFormula}</InputGroup.Text>
+                        <InputGroup.Text> = {evaluatedFormula.toFixed(props.formulaSigFigs || 6)}</InputGroup.Text>
                     </InputGroup.Append>
                 </InputGroup>
             </Form.Group>

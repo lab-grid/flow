@@ -483,10 +483,12 @@ function ProtocolBlockVariableEditor({ disabled, deletable, placeholder, variabl
     </Form.Group>
 }
 
-function ProtocolBlockFormulaEditor({ disabled, formula, setFormula, variables, setVariables }: {
+function ProtocolBlockFormulaEditor({ disabled, formula, setFormula, formulaSigFigs, setFormulaSigFigs, variables, setVariables }: {
     disabled?: boolean;
     formula?: string;
     setFormula: (formula?: string) => void;
+    formulaSigFigs?: number;
+    setFormulaSigFigs: (formulaSigFigs?: number) => void;
     variables?: BlockVariable[];
     setVariables: (variables?: BlockVariable[]) => void;
 }) {
@@ -507,6 +509,15 @@ function ProtocolBlockFormulaEditor({ disabled, formula, setFormula, variables, 
                 disabled={disabled}
                 variables={variables}
                 setVariables={setVariables}
+            />
+        </Form.Group>
+        <Form.Group>
+            <Form.Label>Formula Output Significant Figures</Form.Label>
+            <Form.Control
+                disabled={disabled}
+                type="number"
+                value={formulaSigFigs}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormulaSigFigs(parseInt((e.target as HTMLInputElement).value))}
             />
         </Form.Group>
     </>
@@ -639,6 +650,8 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     disabled={props.disabled}
                     formula={block.formula}
                     setFormula={formula => props.setBlock({ ...block, type: 'calculator', formula })}
+                    formulaSigFigs={block.formulaSigFigs}
+                    setFormulaSigFigs={formulaSigFigs => props.setBlock({ ...block, type: 'calculator', formulaSigFigs })}
                     variables={block.variables}
                     setVariables={variables => props.setBlock({ ...block, type: 'calculator', variables })}
                 />
@@ -718,6 +731,8 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     disabled={props.disabled}
                     formula={block.formula}
                     setFormula={formula => props.setBlock({ ...block, type: 'plate-add-reagent', formula })}
+                    formulaSigFigs={block.formulaSigFigs}
+                    setFormulaSigFigs={formulaSigFigs => props.setBlock({ ...block, type: 'plate-add-reagent', formulaSigFigs })}
                     variables={block.variables}
                     setVariables={variables => props.setBlock({ ...block, type: 'plate-add-reagent', variables })}
                 />
@@ -742,6 +757,8 @@ export function ProtocolBlockEditor(props: ProtocolBlockEditorProps) {
                     disabled={props.disabled}
                     formula={block.formula}
                     setFormula={formula => props.setBlock({ ...block, type: 'add-reagent', formula })}
+                    formulaSigFigs={block.formulaSigFigs}
+                    setFormulaSigFigs={formulaSigFigs => props.setBlock({ ...block, type: 'add-reagent', formulaSigFigs })}
                     variables={block.variables}
                     setVariables={variables => props.setBlock({ ...block, type: 'add-reagent', variables })}
                 />
