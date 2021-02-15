@@ -296,6 +296,7 @@ class ProtocolsModel(PaginatedModel):
 class PlateMapping(BaseModel):
     label: str
     coordinates: Optional[List[PlateCoordinate]]
+    primer: Optional[str]
 
 class TextQuestionBlock(BaseModel):
     type: Literal['text-question']
@@ -320,7 +321,6 @@ class PlateSamplerBlock(BaseModel):
     definition: PlateSamplerBlockDefinition
 
     plates: Optional[List[Optional[PlateMapping]]]
-    platePrimers: Optional[Dict[str, str]]
 
     outputPlateLabel: Optional[str]
 

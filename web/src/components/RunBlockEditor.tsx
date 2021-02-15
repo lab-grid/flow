@@ -492,15 +492,13 @@ function RunBlockPlateLotEditor({ disabled, lot, setLot }: {
     </InputGroup>
 }
 
-function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, setOutputPlateLabel, plates, setPlates, platePrimers, setPlatePrimers }: {
+function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, setOutputPlateLabel, plates, setPlates }: {
     disabled?: boolean;
     definition: PlateSamplerBlockDefinition;
     outputPlateLabel?: string;
     setOutputPlateLabel: (outputPlateLabel?: string) => void;
     plates?: PlateMapping[];
     setPlates: (plates: PlateMapping[]) => void;
-    platePrimers?: { [label: string]: string };
-    setPlatePrimers: (platePrimers: { [label: string]: string }) => void;
 }) {
     const plateIds = definition.plates && definition.plates.filter(plate => !!plate).map(plate => plate.id);
     const inputRows: JSX.Element[] = [];
@@ -518,17 +516,15 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
                     plateIndex={i+1}
                     setCoordinates={(label, coordinates) => {
                         const newPlates = [...(plates || [])];
-                        newPlates[i] = { label, coordinates };
+                        newPlates[i] = { ...plate, label, coordinates };
                         setPlates(newPlates);
                     }}
                     platePrimers={definition.platePrimers}
-                    platePrimer={platePrimers && id && platePrimers[id]}
+                    platePrimer={plate && plate.primer}
                     setPlatePrimer={primer => {
-                        if (id && primer) {
-                            const newPrimers = { ...platePrimers };
-                            newPrimers[id] = primer;
-                            setPlatePrimers(newPrimers);
-                        }
+                        const newPlates = [...(plates || [])];
+                        newPlates[i] = { ...plate, primer };
+                        setPlates(newPlates);
                     }}
                 />
             </td>
@@ -952,8 +948,6 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
                     setOutputPlateLabel={outputPlateLabel => props.setBlock({ ...block, type: 'plate-sampler', outputPlateLabel })}
                     plates={props.block && props.block.plates}
                     setPlates={plates => props.setBlock({ ...block, type: 'plate-sampler', plates })}
-                    platePrimers={props.block && props.block.platePrimers}
-                    setPlatePrimers={platePrimers => props.setBlock({ ...block, type: 'plate-sampler', platePrimers })}
                 />
             );
         }

@@ -18,6 +18,7 @@ export type BlockAttachment = {[filename: string]: string};
 export type PlateMapping = {
     label?: string;
     coordinates?: PlateCoordinate[];
+    primer?: string;
 };
 
 export interface TextQuestionBlock {
@@ -46,7 +47,6 @@ export interface PlateSamplerBlock {
     definition: PlateSamplerBlockDefinition;
 
     plates?: PlateMapping[]
-    platePrimers?: {[label: string]: string};
 
     outputPlateLabel?: string;
 }
