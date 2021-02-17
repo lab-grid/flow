@@ -35,6 +35,8 @@ class PaginatedModel(BaseModel):
 
 class UserModel(AuditedModel):
     id: str
+    user_id: Optional[str]
+    version_id: Optional[int]
     email: Optional[str]
     fullName: Optional[str]
     avatar: Optional[str]
@@ -131,13 +133,13 @@ class BlockPlate(BaseModel):
     size: Optional[int]
 
 class TextQuestionBlockDefinition(BaseModel):
-    type: Literal['text-question']
+    type: Literal['text-question'] = 'text-question'
 
     id: str
     name: Optional[str]
 
 class OptionsQuestionBlockDefinition(BaseModel):
-    type: Literal['options-question']
+    type: Literal['options-question'] = 'options-question'
 
     id: str
     optionType: Optional[Literal['switch', 'checkbox', 'radio', 'menu-item', 'user']]
@@ -145,7 +147,7 @@ class OptionsQuestionBlockDefinition(BaseModel):
     options: Optional[List[BlockOption]]
 
 class CalculatorBlockDefinition(BaseModel):
-    type: Literal['calculator']
+    type: Literal['calculator'] = 'calculator'
 
     id: str
     name: Optional[str]
@@ -154,7 +156,7 @@ class CalculatorBlockDefinition(BaseModel):
     variables: Optional[List[BlockVariable]]
 
 class PlateSamplerBlockDefinition(BaseModel):
-    type: Literal['plate-sampler']
+    type: Literal['plate-sampler'] = 'plate-sampler'
 
     id: str
     name: Optional[str]
@@ -163,7 +165,7 @@ class PlateSamplerBlockDefinition(BaseModel):
     platePrimers: Optional[List[BlockPrimer]]
 
 class PlateAddReagentBlockDefinition(BaseModel):
-    type: Literal['plate-add-reagent']
+    type: Literal['plate-add-reagent'] = 'plate-add-reagent'
 
     id: str
     name: Optional[str]
@@ -175,7 +177,7 @@ class PlateAddReagentBlockDefinition(BaseModel):
     variables: Optional[List[BlockVariable]]
 
 class AddReagentBlockDefinition(BaseModel):
-    type: Literal['add-reagent']
+    type: Literal['add-reagent'] = 'add-reagent'
 
     id: str
     name: Optional[str]
@@ -185,19 +187,19 @@ class AddReagentBlockDefinition(BaseModel):
     variables: Optional[List[BlockVariable]]
 
 class StartTimestampBlockDefinition(BaseModel):
-    type: Literal['start-timestamp']
+    type: Literal['start-timestamp'] = 'start-timestamp'
 
     id: str
     name: Optional[str]
 
 class EndTimestampBlockDefinition(BaseModel):
-    type: Literal['end-timestamp']
+    type: Literal['end-timestamp'] = 'end-timestamp'
 
     id: str
     name: Optional[str]
 
 class StartPlateSequencerBlockDefinition(BaseModel):
-    type: Literal['start-plate-sequencer']
+    type: Literal['start-plate-sequencer'] = 'start-plate-sequencer'
 
     id: str
     name: Optional[str]
@@ -205,7 +207,7 @@ class StartPlateSequencerBlockDefinition(BaseModel):
     plateCount: Optional[int]
 
 class EndPlateSequencerBlockDefinition(BaseModel):
-    type: Literal['end-plate-sequencer']
+    type: Literal['end-plate-sequencer'] = 'end-plate-sequencer'
 
     id: str
     name: Optional[str]
@@ -270,6 +272,8 @@ class SectionDefinition(BaseModel):
 
 class ProtocolModel(AuditedModel):
     id: Optional[str]
+    protocol_id: Optional[int]
+    version_id: Optional[int]
     name: Optional[str]
     description: Optional[str]
 
@@ -296,25 +300,25 @@ class PlateMapping(BaseModel):
     primer: Optional[str]
 
 class TextQuestionBlock(BaseModel):
-    type: Literal['text-question']
+    type: Literal['text-question'] = 'text-question'
     definition: TextQuestionBlockDefinition
 
     answer: Optional[str]
 
 class OptionsQuestionBlock(BaseModel):
-    type: Literal['options-question']
+    type: Literal['options-question'] = 'options-question'
     definition: OptionsQuestionBlockDefinition
 
     answer: Optional[str]
 
 class CalculatorBlock(BaseModel):
-    type: Literal['calculator']
+    type: Literal['calculator'] = 'calculator'
     definition: CalculatorBlockDefinition
 
     values: Optional[List[VariableValue]]
 
 class PlateSamplerBlock(BaseModel):
-    type: Literal['plate-sampler']
+    type: Literal['plate-sampler'] = 'plate-sampler'
     definition: PlateSamplerBlockDefinition
 
     plates: Optional[List[Optional[PlateMapping]]]
@@ -322,7 +326,7 @@ class PlateSamplerBlock(BaseModel):
     outputPlateLabel: Optional[str]
 
 class PlateAddReagentBlock(BaseModel):
-    type: Literal['plate-add-reagent']
+    type: Literal['plate-add-reagent'] = 'plate-add-reagent'
     definition: PlateAddReagentBlockDefinition
 
     plateLabel: Optional[str]
@@ -331,7 +335,7 @@ class PlateAddReagentBlock(BaseModel):
     values: Optional[List[VariableValue]]
 
 class AddReagentBlock(BaseModel):
-    type: Literal['add-reagent']
+    type: Literal['add-reagent'] = 'add-reagent'
     definition: AddReagentBlockDefinition
 
     reagentLot: Optional[str]
@@ -339,21 +343,21 @@ class AddReagentBlock(BaseModel):
     values: Optional[List[VariableValue]]
 
 class StartTimestampBlock(BaseModel):
-    type: Literal['start-timestamp']
+    type: Literal['start-timestamp'] = 'start-timestamp'
     definition: StartTimestampBlockDefinition
 
     timestampLabel: Optional[str]
     startedOn: Optional[str]
 
 class EndTimestampBlock(BaseModel):
-    type: Literal['end-timestamp']
+    type: Literal['end-timestamp'] = 'end-timestamp'
     definition: EndTimestampBlockDefinition
 
     timestampLabel: Optional[str]
     endedOn: Optional[str]
 
 class StartPlateSequencerBlock(BaseModel):
-    type: Literal['start-plate-sequencer']
+    type: Literal['start-plate-sequencer'] = 'start-plate-sequencer'
     definition: StartPlateSequencerBlockDefinition
 
     plateLabels: Optional[List[str]]
@@ -361,7 +365,7 @@ class StartPlateSequencerBlock(BaseModel):
     startedOn: Optional[str]
 
 class EndPlateSequencerBlock(BaseModel):
-    type: Literal['end-plate-sequencer']
+    type: Literal['end-plate-sequencer'] = 'end-plate-sequencer'
     definition: EndPlateSequencerBlockDefinition
 
     attachments: Optional[List[AttachmentModel]]
@@ -430,6 +434,8 @@ class Section(BaseModel):
 
 class RunModel(AuditedModel):
     id: Optional[str]
+    run_id: Optional[int]
+    version_id: Optional[int]
     # TODO: Add version_id.
     name: Optional[str]
     notes: Optional[str]

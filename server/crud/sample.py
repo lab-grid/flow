@@ -47,40 +47,40 @@ def crud_get_samples(
     # Add filter specific queries. These will be intersected later on.
     if protocol:
         samples_queries.append(
-            all_samples(archived)\
+            all_samples(db, archived)\
                 .join(ProtocolVersion, ProtocolVersion.id == Sample.protocol_version_id)\
                 .filter(ProtocolVersion.protocol_id == protocol)
         )
     if run:
         samples_queries.append(
-            all_samples(archived)\
+            all_samples(db, archived)\
                 # .join(RunVersion, RunVersion.id == Sample.run_version_id)\
                 .filter(RunVersion.run_id == run)
         )
     if plate:
         samples_queries.append(
-            all_samples(archived)\
+            all_samples(db, archived)\
                 .filter(Sample.plate_id == plate)
         )
     if reagent:
-        run_version_query = all_samples(archived) # \
+        run_version_query = all_samples(db, archived) # \
             # .join(RunVersion, RunVersion.id == Sample.run_version_id)
         samples_subquery = filter_by_reagent_label(run_version_query, reagent)
         samples_queries.append(samples_subquery)
     if sample:
         samples_queries.append(
-            all_samples(archived)\
+            all_samples(db, archived)\
                 .filter(Sample.sample_id == sample)
         )
     if creator:
         samples_queries.append(
-            all_samples(archived)\
+            all_samples(db, archived)\
                 .filter(Sample.created_by == creator)
         )
 
     # Add a basic non-deleted items query if no filters were specified.
     if len(samples_queries) == 0:
-        samples_queries.append(all_samples(archived))
+        samples_queries.append(all_samples(db, archived))
 
     # Only return the intersection of all queries.
     samples_query = reduce(lambda a, b: a.intersect(b), samples_queries)

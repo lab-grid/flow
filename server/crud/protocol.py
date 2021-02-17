@@ -8,6 +8,7 @@ from database import (
     filter_by_plate_label,
     filter_by_reagent_label,
     filter_by_sample_label,
+    Protocol,
     ProtocolVersion,
     Run,
     RunVersion,

@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { humanizeRunName, Run } from "../models/run";
 import { Paginator } from "./Paginator";
 
-export interface RunsProps {
+export interface RunsTableProps {
     className?: string;
     runs: Run[];
 
@@ -15,7 +15,7 @@ export interface RunsProps {
     onPageChange?: (page: number) => void;
 }
 
-export function RunsTable({ className, runs, page, pageCount, onPageChange }: RunsProps) {
+export function RunsTable({ className, runs, page, pageCount, onPageChange }: RunsTableProps) {
     return <>
         <Table className={className} striped bordered hover responsive>
             <thead>

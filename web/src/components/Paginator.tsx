@@ -5,8 +5,8 @@ export function Paginator({className, style, page, pageCount, onPageChange}: {
     className?: string;
     style?: CSSProperties;
 
-    page?: number;
-    pageCount?: number;
+    page?: number | null;
+    pageCount?: number | null;
 
     onPageChange?: (page: number) => void;
 }) {

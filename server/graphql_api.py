@@ -254,6 +254,11 @@ class VersionedPydanticObjectType(PydanticObjectType):
             return cls._meta.model.parse_obj(versioned_row_to_dict(row, row.current))
 
 
+def add_ids(input: dict, **kwargs) -> dict:
+    for key, value in kwargs.items():
+        input[key] = value
+    return input
+
 class UserNode(VersionedPydanticObjectType):
     class Meta:
         model = UserModel
@@ -271,7 +276,7 @@ class SampleNode(VersionedPydanticObjectType):
         model = SampleResult
         interfaces = (relay.Node, )
 
-    owner = relay.Node.Field(UserNode)
+    owner = graphene.Field(UserNode)
 
     @staticmethod
     def resolve_owner(root, info):
@@ -323,8 +328,8 @@ class RunNode(VersionedPydanticObjectType):
         model = RunModel
         interfaces = (relay.Node, )
 
-    protocol = relay.Node.Field(ProtocolNode)
-    owner = relay.Node.Field(UserNode)
+    protocol = graphene.Field(ProtocolNode)
+    owner = graphene.Field(UserNode)
     samples = relay.ConnectionField(SampleConnection)
 
     @staticmethod
@@ -399,14 +404,78 @@ def get_current_user_from_request(request: Request):
 class Query(graphene.ObjectType):
     node = relay.Node.Field()
 
-    protocol = relay.Node.Field(ProtocolNode)
-    all_protocols = relay.ConnectionField(ProtocolConnection)
-    run = relay.Node.Field(RunNode)
-    all_runs = relay.ConnectionField(RunConnection)
-    user = relay.Node.Field(UserNode)
-    all_users = relay.ConnectionField(UserConnection)
-    sample = relay.Node.Field(SampleNode)
-    all_samples = relay.ConnectionField(SampleConnection)
+    protocol = relay.Node.Field(
+        ProtocolNode,
+        version_id=graphene.Int(required=False),
+    )
+    all_protocols = relay.ConnectionField(
+        ProtocolConnection,
+
+        # Search parameters
+        run=graphene.Int(required=False),
+        plate=graphene.String(required=False),
+        reagent=graphene.String(required=False),
+        sample=graphene.String(required=False),
+        creator=graphene.String(required=False),
+        archived=graphene.Boolean(required=False),
+
+        # Paging parameters
+        page=graphene.Int(required=False),
+        per_page=graphene.Int(required=False),
+    )
+    run = relay.Node.Field(
+        RunNode,
+        version_id=graphene.Int(required=False),
+    )
+    all_runs = relay.ConnectionField(
+        RunConnection,
+
+        # Search parameters
+        protocol=graphene.Int(required=False),
+        plate=graphene.String(required=False),
+        reagent=graphene.String(required=False),
+        sample=graphene.String(required=False),
+        creator=graphene.String(required=False),
+        archived=graphene.Boolean(required=False),
+
+        # Paging parameters
+        page=graphene.Int(required=False),
+        per_page=graphene.Int(required=False),
+    )
+    user = relay.Node.Field(
+        UserNode,
+        version_id=graphene.Int(required=False),
+    )
+    all_users = relay.ConnectionField(
+        UserConnection,
+
+        # Search parameters
+        archived=graphene.Boolean(required=False),
+
+        # Paging parameters
+        page=graphene.Int(required=False),
+        per_page=graphene.Int(required=False),
+    )
+    sample = relay.Node.Field(
+        SampleNode,
+        version_id=graphene.Int(required=False),
+    )
+    all_samples = relay.ConnectionField(
+        SampleConnection,
+
+        # Search parameters
+        protocol=graphene.Int(required=False),
+        run=graphene.Int(required=False),
+        plate=graphene.String(required=False),
+        reagent=graphene.String(required=False),
+        sample=graphene.String(required=False),
+        creator=graphene.String(required=False),
+        archived=graphene.Boolean(required=False),
+
+        # Paging parameters
+        page=graphene.Int(required=False),
+        per_page=graphene.Int(required=False),
+    )
 
     @staticmethod
     def resolve_protocol(root, info, id: int):
@@ -416,7 +485,7 @@ class Query(graphene.ObjectType):
 
         with Session() as db:
             model_dict = crud_get_protocol(
-                item_to_dict=lambda protocol: versioned_row_to_dict(protocol, protocol.current),
+                item_to_dict=lambda protocol: add_ids(versioned_row_to_dict(protocol, protocol.current), protocol_id=protocol.id),
 
                 db=db,
                 current_user=current_user,
@@ -455,12 +524,12 @@ class Query(graphene.ObjectType):
 
         with Session() as db:
             pagination_dict = crud_get_protocols(
-                item_to_dict=lambda protocol: versioned_row_to_dict(protocol, protocol.current),
+                item_to_dict=lambda protocol: add_ids(versioned_row_to_dict(protocol, protocol.current), protocol_id=protocol.id),
 
                 db=db,
                 current_user=current_user,
 
-                protocol=protocol,
+                run=run,
                 plate=plate,
                 reagent=reagent,
                 sample=sample,
@@ -504,7 +573,7 @@ class Query(graphene.ObjectType):
 
         with Session() as db:
             model_dict = crud_get_run(
-                item_to_dict=lambda run: versioned_row_to_dict(run, run.current),
+                item_to_dict=lambda run: add_ids(versioned_row_to_dict(run, run.current), run_id=run.id),
 
                 db=db,
                 current_user=current_user,
@@ -543,7 +612,7 @@ class Query(graphene.ObjectType):
 
         with Session() as db:
             pagination_dict = crud_get_runs(
-                item_to_dict=lambda run: versioned_row_to_dict(run, run.current),
+                item_to_dict=lambda run: add_ids(versioned_row_to_dict(run, run.current), run_id=run.id),
 
                 db=db,
                 current_user=current_user,
@@ -586,7 +655,7 @@ class Query(graphene.ObjectType):
 
         with Session() as db:
             model_dict = crud_get_user(
-                item_to_dict=lambda user: versioned_row_to_dict(user, user.current),
+                item_to_dict=lambda user: add_ids(versioned_row_to_dict(user, user.current), user_id=user.id),
 
                 db=db,
                 current_user=current_user,
@@ -597,23 +666,34 @@ class Query(graphene.ObjectType):
             return UserModel.parse_obj(model_dict)
 
     @staticmethod
-    def resolve_all_users(root, info):
+    def resolve_all_users(
+        root,
+        info,
+
+        # Search parameters
+        archived: Optional[bool] = None,
+        
+        # Paging parameters
+        page: Optional[int] = None,
+        per_page: Optional[int] = None,
+
+        # Currently unused
+        before: Optional[str] = None,
+        after: Optional[str] = None,
+        first: Optional[int] = None,
+        last: Optional[int] = None,
+    ):
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
         with Session() as db:
             pagination_dict = crud_get_users(
-                item_to_dict=lambda user: versioned_row_to_dict(user, user.current),
+                item_to_dict=lambda user: add_ids(versioned_row_to_dict(user, user.current), user_id=user.id),
 
                 db=db,
                 current_user=current_user,
 
-                protocol=protocol,
-                plate=plate,
-                reagent=reagent,
-                sample=sample,
-                creator=creator,
                 archived=archived,
 
                 page=page,
@@ -661,7 +741,29 @@ class Query(graphene.ObjectType):
             return SampleResult.parse_obj(model_dict)
 
     @staticmethod
-    def resolve_all_samples(root, info):
+    def resolve_all_samples(
+        root,
+        info,
+
+        # Search params
+        protocol: Optional[int] = None,
+        run: Optional[int] = None,
+        plate: Optional[str] = None,
+        reagent: Optional[str] = None,
+        sample: Optional[str] = None,
+        creator: Optional[str] = None,
+        archived: Optional[bool] = None,
+
+        # Paging parameters
+        page: Optional[int] = None,
+        per_page: Optional[int] = None,
+
+        # Currently unused
+        before: Optional[str] = None,
+        after: Optional[str] = None,
+        first: Optional[int] = None,
+        last: Optional[int] = None,
+    ):
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
@@ -674,6 +776,7 @@ class Query(graphene.ObjectType):
                 current_user=current_user,
 
                 protocol=protocol,
+                run=run,
                 plate=plate,
                 reagent=reagent,
                 sample=sample,
@@ -707,7 +810,7 @@ class Query(graphene.ObjectType):
 @app.middleware("http")
 async def add_current_user(request: Request, call_next):
     # Only do the following if this is the graphql app.
-    if request.url.path == "/graphql":
+    if request.url.path.startswith("/graphql") and request.method != "OPTIONS":
         try:
             request.state.user = await get_current_user(await HTTPBearer()(request))
         except HTTPException as ex:

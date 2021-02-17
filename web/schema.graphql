@@ -3,7 +3,7 @@ schema {
 }
 
 type AddReagentBlockDefinitionSchema {
-  type: String!
+  type: String
   id: String!
   name: String
   reagentLabel: String
@@ -12,7 +12,7 @@ type AddReagentBlockDefinitionSchema {
 }
 
 type AddReagentBlockSchema {
-  type: String!
+  type: String
   definition: AddReagentBlockDefinitionSchema!
   reagentLot: String
   values: [VariableValueSchema]
@@ -59,7 +59,7 @@ type BlockVariableSchema {
 }
 
 type CalculatorBlockDefinitionSchema {
-  type: String!
+  type: String
   id: String!
   name: String
   formula: String
@@ -67,7 +67,7 @@ type CalculatorBlockDefinitionSchema {
 }
 
 type CalculatorBlockSchema {
-  type: String!
+  type: String
   definition: CalculatorBlockDefinitionSchema!
   values: [VariableValueSchema]
 }
@@ -75,7 +75,7 @@ type CalculatorBlockSchema {
 scalar DateTime
 
 type EndPlateSequencerBlockDefinitionSchema {
-  type: String!
+  type: String
   id: String!
   name: String
   plateMarkers: [BlockPlateMarkerEntrySchema]
@@ -87,7 +87,7 @@ type EndPlateSequencerBlockDefinitionSchema {
 }
 
 type EndPlateSequencerBlockSchema {
-  type: String!
+  type: String
   definition: EndPlateSequencerBlockDefinitionSchema!
   attachments: [AttachmentSchema]
   plateSequencingResults: [PlateResultSchema]
@@ -96,13 +96,13 @@ type EndPlateSequencerBlockSchema {
 }
 
 type EndTimestampBlockDefinitionSchema {
-  type: String!
+  type: String
   id: String!
   name: String
 }
 
 type EndTimestampBlockSchema {
-  type: String!
+  type: String
   definition: EndTimestampBlockDefinitionSchema!
   timestampLabel: String
   endedOn: String
@@ -113,14 +113,14 @@ interface Node {
 }
 
 type OptionsQuestionBlockDefinitionSchema {
-  type: String!
+  type: String
   id: String!
   optionType: String
   options: [BlockOptionSchema]
 }
 
 type OptionsQuestionBlockSchema {
-  type: String!
+  type: String
   definition: OptionsQuestionBlockDefinitionSchema!
   answer: String
 }
@@ -133,7 +133,7 @@ type PageInfo {
 }
 
 type PlateAddReagentBlockDefinitionSchema {
-  type: String!
+  type: String
   id: String!
   name: String
   plateName: String
@@ -144,7 +144,7 @@ type PlateAddReagentBlockDefinitionSchema {
 }
 
 type PlateAddReagentBlockSchema {
-  type: String!
+  type: String
   definition: PlateAddReagentBlockDefinitionSchema!
   plateLabel: String
   plateLot: String
@@ -175,7 +175,7 @@ type PlateResultSchema {
 }
 
 type PlateSamplerBlockDefinitionSchema {
-  type: String!
+  type: String
   id: String!
   name: String
   plates: [BlockPlateSchema]
@@ -184,7 +184,7 @@ type PlateSamplerBlockDefinitionSchema {
 }
 
 type PlateSamplerBlockSchema {
-  type: String!
+  type: String
   definition: PlateSamplerBlockDefinitionSchema!
   plates: [PlateMappingSchema]
   outputPlateLabel: String
@@ -208,6 +208,8 @@ type ProtocolNode implements Node {
   updatedOn: DateTime
   updatedBy: String
   id: ID!
+  protocolId: Int
+  versionId: Int
   name: String
   description: String
   sections: [SectionDefinitionSchema]
@@ -221,13 +223,13 @@ type ProtocolNode implements Node {
 type Query {
   node(id: ID!): Node
   protocol(id: ID!): ProtocolNode
-  allProtocols(before: String, after: String, first: Int, last: Int): ProtocolConnection
+  allProtocols(run: Int, plate: String, reagent: String, sample: String, creator: String, archived: Boolean, page: Int, perPage: Int, before: String, after: String, first: Int, last: Int): ProtocolConnection
   run(id: ID!): RunNode
-  allRuns(before: String, after: String, first: Int, last: Int): RunConnection
+  allRuns(protocol: Int, plate: String, reagent: String, sample: String, creator: String, archived: Boolean, page: Int, perPage: Int, before: String, after: String, first: Int, last: Int): RunConnection
   user(id: ID!): UserNode
-  allUsers(before: String, after: String, first: Int, last: Int): UserConnection
+  allUsers(archived: Boolean, page: Int, perPage: Int, before: String, after: String, first: Int, last: Int): UserConnection
   sample(id: ID!): SampleNode
-  allSamples(before: String, after: String, first: Int, last: Int): SampleConnection
+  allSamples(protocol: Int, run: Int, plate: String, reagent: String, sample: String, creator: String, archived: Boolean, page: Int, perPage: Int, before: String, after: String, first: Int, last: Int): SampleConnection
 }
 
 type RunConnection {
@@ -248,13 +250,15 @@ type RunNode implements Node {
   updatedOn: DateTime
   updatedBy: String
   id: ID!
+  runId: Int
+  versionId: Int
   name: String
   notes: String
   status: String
   sections: [SectionSchema]
   sampleOverrides: [SampleNode]
-  protocol(id: ID!): ProtocolNode
-  owner(id: ID!): UserNode
+  protocol: ProtocolNode
+  owner: UserNode
   samples(before: String, after: String, first: Int, last: Int): SampleConnection
 }
 
@@ -289,7 +293,7 @@ type SampleNode implements Node {
   plateLots: [String]
   completedOn: String
   id: ID!
-  owner(id: ID!): UserNode
+  owner: UserNode
 }
 
 type SectionDefinitionSchema {
@@ -310,7 +314,7 @@ type SectionSchema {
 }
 
 type StartPlateSequencerBlockDefinitionSchema {
-  type: String!
+  type: String
   id: String!
   name: String
   plates: [BlockPlateSchema]
@@ -318,7 +322,7 @@ type StartPlateSequencerBlockDefinitionSchema {
 }
 
 type StartPlateSequencerBlockSchema {
-  type: String!
+  type: String
   definition: StartPlateSequencerBlockDefinitionSchema!
   plateLabels: [String]
   timestampLabel: String
@@ -326,26 +330,26 @@ type StartPlateSequencerBlockSchema {
 }
 
 type StartTimestampBlockDefinitionSchema {
-  type: String!
+  type: String
   id: String!
   name: String
 }
 
 type StartTimestampBlockSchema {
-  type: String!
+  type: String
   definition: StartTimestampBlockDefinitionSchema!
   timestampLabel: String
   startedOn: String
 }
 
 type TextQuestionBlockDefinitionSchema {
-  type: String!
+  type: String
   id: String!
   name: String
 }
 
 type TextQuestionBlockSchema {
-  type: String!
+  type: String
   definition: TextQuestionBlockDefinitionSchema!
   answer: String
 }
@@ -372,6 +376,8 @@ type UserNode implements Node {
   updatedOn: DateTime
   updatedBy: String
   id: ID!
+  userId: String
+  versionId: Int
   email: String
   fullName: String
   avatar: String
