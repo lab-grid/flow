@@ -16,6 +16,8 @@ from models import UserModel, UsersModel
 
 from api.utils import add_owner, add_updator, paginatify
 
+from crud.user import crud_get_users, crud_get_user
+
 
 def add_role(d):
     d['role'] = get_roles(d['id'])
@@ -23,16 +25,20 @@ def add_role(d):
 
 
 @app.get('/user', tags=['users'], response_model=UsersModel, response_model_exclude_none=True)
-async def get_users(page: Optional[int] = None, per_page: Optional[int] = None, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    return paginatify(
-        items_label='users',
-        items=[
-            user
-            for user
-            in db.query(User).filter(User.is_deleted != True).all()
-            if check_access(user=current_user.username, path=f"/user/{user.id}", method="GET")
-        ],
+async def get_users(
+    page: Optional[int] = None,
+    per_page: Optional[int] = None,
+
+    db: Session = Depends(get_db),
+    current_user: Auth0ClaimsPatched = Depends(get_current_user),
+):
+    return crud_get_users(
         item_to_dict=lambda user: add_role(versioned_row_to_dict(user, user.current)),
+
+        db=db,
+        current_user=current_user,
+
+        archived=False,
         page=page,
         per_page=per_page,
     )
@@ -56,23 +62,15 @@ async def create_user(user: UserModel, db: Session = Depends(get_db), current_us
 
 @app.get('/user/{user_id}', tags=['users'], response_model=UserModel, response_model_exclude_none=True)
 async def get_user(user_id: str, version_id: Optional[int] = None, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    user_id = urllib.parse.unquote(user_id)
-    if user_id != current_user.username and not check_access(user=current_user.username, path=f"/user/{user_id}", method="GET"):
-        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+    return crud_get_user(
+        item_to_dict=lambda user: add_role(versioned_row_to_dict(user, user.current)),
 
-    if version_id:
-        user_version = UserVersion.query\
-            .filter(UserVersion.id == version_id)\
-            .filter(User.id == user_id)\
-            .first()
-        if (not user_version) or user_version.user.is_deleted:
-            raise HTTPException(status_code=404, detail='User Not Found')
-        return add_role(versioned_row_to_dict(user_version.user, user_version))
-    
-    user = db.query(User).get(user_id)
-    if (not user) or user.is_deleted:
-        raise HTTPException(status_code=404, detail='User Not Found')
-    return add_role(versioned_row_to_dict(user, user.current))
+        db=db,
+        current_user=current_user,
+        
+        user_id=user_id,
+        version_id=version_id,
+    )
 
 @app.put('/user/{user_id}', tags=['users'], response_model=UserModel, response_model_exclude_none=True)
 async def update_user(user_id: str, user: UserModel, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):

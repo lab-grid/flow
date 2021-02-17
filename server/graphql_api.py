@@ -6,13 +6,18 @@ from graphene import relay
 from graphene_pydantic import PydanticObjectType
 from starlette.graphql import GraphQLApp
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from fastapi import Request, Response, HTTPException
 from fastapi.security.http import HTTPBearer
 
 from database import Protocol, ProtocolVersion, Run, RunVersion, User, UserVersion, Sample, SampleVersion, versioned_row_to_dict
 from models import SampleResult, ProtocolModel, RunModel, UserModel, SectionDefinition
 from server import app, Session, get_current_user
+from authorization import check_access
+from crud.run import crud_get_runs, crud_get_run, crud_get_run_samples, crud_get_run_sample
+from crud.protocol import crud_get_protocols, crud_get_protocol
+from crud.user import crud_get_users, crud_get_user
+from crud.sample import crud_get_samples, crud_get_sample
 
 import models
 
@@ -258,6 +263,9 @@ class UserConnection(relay.Connection):
     class Meta:
         node = UserNode
 
+    page = graphene.Int(required=False)
+    pageCount = graphene.Int(required=False)
+
 class SampleNode(VersionedPydanticObjectType):
     class Meta:
         model = SampleResult
@@ -268,17 +276,21 @@ class SampleNode(VersionedPydanticObjectType):
     @staticmethod
     def resolve_owner(root, info):
         with Session() as db:
-            row = db.query(User)\
-                .filter(and_(
-                    User.is_deleted != True,
-                    User.id == root.created_by,
-                ))\
-                .first()
-            return UserModel.parse_obj(versioned_row_to_dict(row, row.current))
+            return UserModel.parse_obj(
+                crud_get_user(
+                    item_to_dict=lambda user: versioned_row_to_dict(row, row.current),
+                    db=db,
+                    current_user=current_user,
+                    user_id=root.created_by,
+                ),
+            )
 
 class SampleConnection(relay.Connection):
     class Meta:
         node = SampleNode
+
+    page = graphene.Int(required=False)
+    pageCount = graphene.Int(required=False)
 
 class ProtocolNode(VersionedPydanticObjectType):
     class Meta:
@@ -290,20 +302,21 @@ class ProtocolNode(VersionedPydanticObjectType):
     @staticmethod
     def resolve_owner(root, info):
         with Session() as db:
-            row = db.query(User)\
-                .filter(and_(
-                    User.is_deleted != True,
-                ))\
-                .join(Protocol, and_(
-                    Protocol.id == root.id,
-                    Protocol.created_by == User.id,
-                ))\
-                .first()
-            return UserModel.parse_obj(versioned_row_to_dict(row, row.current))
+            return UserModel.parse_obj(
+                crud_get_user(
+                    item_to_dict=lambda user: versioned_row_to_dict(row, row.current),
+                    db=db,
+                    current_user=current_user,
+                    user_id=root.created_by,
+                ),
+            )
 
 class ProtocolConnection(relay.Connection):
     class Meta:
         node = ProtocolNode
+
+    page = graphene.Int(required=False)
+    pageCount = graphene.Int(required=False)
 
 class RunNode(VersionedPydanticObjectType):
     class Meta:
@@ -328,35 +341,55 @@ class RunNode(VersionedPydanticObjectType):
     @staticmethod
     def resolve_owner(root, info):
         with Session() as db:
-            row = db.query(User)\
-                .filter(and_(
-                    User.is_deleted != True,
-                    User.id == root.created_by,
-                ))\
-                .first()
-            return UserModel.parse_obj(versioned_row_to_dict(row, row.current))
+            return UserModel.parse_obj(
+                crud_get_user(
+                    item_to_dict=lambda user: versioned_row_to_dict(row, row.current),
+                    db=db,
+                    current_user=current_user,
+                    user_id=root.created_by,
+                ),
+            )
 
     @staticmethod
     def resolve_samples(root, info):
         with Session() as db:
-            rows = db.query(Sample)\
-                .filter(and_(
-                    Sample.is_deleted != True,
-                ))\
-                .join(Run, and_(
-                    Run.id == root.id,
-                    Run.version_id == Sample.run_version_id,
-                ))\
-                .distinct()
-            return [
-                SampleResult.parse_obj(versioned_row_to_dict(row, row.current))
-                for row
-                in rows
-            ]
+            pagination_dict = crud_get_run_samples(
+                item_to_dict=lambda sample: versioned_row_to_dict(row, row.current),
+                
+                db=db,
+                current_user=current_user,
+
+                run_id=root.id,
+
+                page=page,
+                per_page=per_page,
+            )
+
+            return SampleConnection(
+                page=pagination_dict.get('page', None),
+                pageCount=pagination_dict.get('pageCount', None),
+                edges=[
+                    SampleConnection.Edge(
+                        node=SampleResult.parse_obj(r),
+                        cursor=f"{pagination_dict.get('page', 1)}.{i}",
+                    )
+                    for i, r
+                    in enumerate(pagination_dict['samples'])
+                ],
+                page_info=relay.PageInfo(
+                    has_next_page=pagination_dict.get('page', 1) < pagination_dict.get('pageCount', 1),
+                    has_previous_page=pagination_dict.get('page', 1) > pagination_dict.get('pageCount', 1),
+                    start_cursor="1.0",
+                    end_cursor=f"1.{len(pagination_dict['samples'])}" if pagination_dict.get('pageCount', None) is None else f"{pagination_dict['pageCount']}.{len(pagination_dict['samples'])}",
+                ),
+            )
 
 class RunConnection(relay.Connection):
     class Meta:
         node = RunNode
+
+    page = graphene.Int(required=False)
+    pageCount = graphene.Int(required=False)
 
 
 def get_current_user_from_request(request: Request):
@@ -375,98 +408,301 @@ class Query(graphene.ObjectType):
     sample = relay.Node.Field(SampleNode)
     all_samples = relay.ConnectionField(SampleConnection)
 
+    @staticmethod
     def resolve_protocol(root, info, id: int):
         current_user = get_current_user_from_request(info.context['request'])
-
-        if not check_access(user=current_user.username, path=f"/protocol/{id}", method="GET"):
-            raise HTTPException(403, f"User {current_user.username} does not have access to GET /protocol/{id}")
+        if current_user is None:
+            raise HTTPException(401, "Unauthorized")
 
         with Session() as db:
-            row = db.query(Protocol).get(id)
-            return ProtocolModel.parse_obj(versioned_row_to_dict(row, row.current))
+            model_dict = crud_get_protocol(
+                item_to_dict=lambda protocol: versioned_row_to_dict(protocol, protocol.current),
+
+                db=db,
+                current_user=current_user,
+
+                protocol_id=id,
+                version_id=version_id,
+            )
+            return ProtocolModel.parse_obj(model_dict)
 
     @staticmethod
-    def resolve_all_protocols(root, info):
+    def resolve_all_protocols(
+        root,
+        info,
+
+        # Search parameters
+        run: Optional[int] = None,
+        plate: Optional[str] = None,
+        reagent: Optional[str] = None,
+        sample: Optional[str] = None,
+        creator: Optional[str] = None,
+        archived: Optional[bool] = None,
+
+        # Paging parameters
+        page: Optional[int] = None,
+        per_page: Optional[int] = None,
+
+        # Currently unused
+        before: Optional[str] = None,
+        after: Optional[str] = None,
+        first: Optional[int] = None,
+        last: Optional[int] = None,
+    ):
         current_user = get_current_user_from_request(info.context['request'])
+        if current_user is None:
+            raise HTTPException(401, "Unauthorized")
 
         with Session() as db:
-            rows = db.query(Protocol).all()
-            return [
-                ProtocolModel.parse_obj(versioned_row_to_dict(row, row.current))
-                for row
-                in rows
-                if check_access(user=current_user.username, path=f"/protocol/{row.id}", method="GET")
-            ]
+            pagination_dict = crud_get_protocols(
+                item_to_dict=lambda protocol: versioned_row_to_dict(protocol, protocol.current),
 
-    def resolve_run(root, info, id: int):
-        current_user = get_current_user_from_request(info.context['request'])
+                db=db,
+                current_user=current_user,
 
-        if not check_access(user=current_user.username, path=f"/run/{id}", method="GET"):
-            raise HTTPException(403, f"User {current_user.username} does not have access to GET /run/{id}")
+                protocol=protocol,
+                plate=plate,
+                reagent=reagent,
+                sample=sample,
+                creator=creator,
+                archived=archived,
 
-        with Session() as db:
-            row = db.query(Run).get(id)
-            return RunModel.parse_obj(versioned_row_to_dict(row, row.current))
+                page=page,
+                per_page=per_page,
+            )
+
+            return ProtocolConnection(
+                page=pagination_dict.get('page', None),
+                pageCount=pagination_dict.get('pageCount', None),
+                edges=[
+                    ProtocolConnection.Edge(
+                        node=ProtocolModel.parse_obj(r),
+                        cursor=f"{pagination_dict.get('page', 1)}.{i}",
+                    )
+                    for i, r
+                    in enumerate(pagination_dict['protocols'])
+                ],
+                page_info=relay.PageInfo(
+                    has_next_page=pagination_dict.get('page', 1) < pagination_dict.get('pageCount', 1),
+                    has_previous_page=pagination_dict.get('page', 1) > pagination_dict.get('pageCount', 1),
+                    start_cursor="1.0",
+                    end_cursor=f"1.{len(pagination_dict['protocols'])}" if pagination_dict.get('pageCount', None) is None else f"{pagination_dict['pageCount']}.{len(pagination_dict['protocols'])}",
+                ),
+            )
 
     @staticmethod
-    def resolve_all_runs(root, info):
+    def resolve_run(
+        root,
+        info,
+        
+        id: int,
+        version_id: int,
+    ):
         current_user = get_current_user_from_request(info.context['request'])
+        if current_user is None:
+            raise HTTPException(401, "Unauthorized")
 
         with Session() as db:
-            rows = db.query(Run).all()
-            return [
-                RunModel.parse_obj(versioned_row_to_dict(row, row.current))
-                for row
-                in rows
-                if check_access(user=current_user.username, path=f"/run/{row.id}", method="GET")
-            ]
+            model_dict = crud_get_run(
+                item_to_dict=lambda run: versioned_row_to_dict(run, run.current),
 
+                db=db,
+                current_user=current_user,
+
+                run_id=id,
+                version_id=version_id,
+            )
+            return RunModel.parse_obj(model_dict)
+
+    @staticmethod
+    def resolve_all_runs(
+        root,
+        info,
+
+        # Search parameters
+        protocol: Optional[int] = None,
+        plate: Optional[str] = None,
+        reagent: Optional[str] = None,
+        sample: Optional[str] = None,
+        creator: Optional[str] = None,
+        archived: Optional[bool] = None,
+
+        # Paging parameters
+        page: Optional[int] = None,
+        per_page: Optional[int] = None,
+
+        # Currently unused
+        before: Optional[str] = None,
+        after: Optional[str] = None,
+        first: Optional[int] = None,
+        last: Optional[int] = None,
+    ):
+        current_user = get_current_user_from_request(info.context['request'])
+        if current_user is None:
+            raise HTTPException(401, "Unauthorized")
+
+        with Session() as db:
+            pagination_dict = crud_get_runs(
+                item_to_dict=lambda run: versioned_row_to_dict(run, run.current),
+
+                db=db,
+                current_user=current_user,
+
+                protocol=protocol,
+                plate=plate,
+                reagent=reagent,
+                sample=sample,
+                creator=creator,
+                archived=archived,
+
+                page=page,
+                per_page=per_page,
+            )
+
+            return RunConnection(
+                page=pagination_dict.get('page', None),
+                pageCount=pagination_dict.get('pageCount', None),
+                edges=[
+                    RunConnection.Edge(
+                        node=RunModel.parse_obj(r),
+                        cursor=f"{pagination_dict.get('page', 1)}.{i}",
+                    )
+                    for i, r
+                    in enumerate(pagination_dict['runs'])
+                ],
+                page_info=relay.PageInfo(
+                    has_next_page=pagination_dict.get('page', 1) < pagination_dict.get('pageCount', 1),
+                    has_previous_page=pagination_dict.get('page', 1) > pagination_dict.get('pageCount', 1),
+                    start_cursor="1.0",
+                    end_cursor=f"1.{len(pagination_dict['runs'])}" if pagination_dict.get('pageCount', None) is None else f"{pagination_dict['pageCount']}.{len(pagination_dict['runs'])}",
+                ),
+            )
+
+    @staticmethod
     def resolve_user(root, info, id: str):
         current_user = get_current_user_from_request(info.context['request'])
-
-        if not check_access(user=current_user.username, path=f"/user/{id}", method="GET"):
-            raise HTTPException(403, f"User {current_user.username} does not have access to GET /user/{id}")
+        if current_user is None:
+            raise HTTPException(401, "Unauthorized")
 
         with Session() as db:
-            row = db.query(User).get(id)
-            return UserModel.parse_obj(versioned_row_to_dict(row, row.current))
+            model_dict = crud_get_user(
+                item_to_dict=lambda user: versioned_row_to_dict(user, user.current),
+
+                db=db,
+                current_user=current_user,
+
+                user_id=id,
+                version_id=version_id,
+            )
+            return UserModel.parse_obj(model_dict)
 
     @staticmethod
     def resolve_all_users(root, info):
         current_user = get_current_user_from_request(info.context['request'])
+        if current_user is None:
+            raise HTTPException(401, "Unauthorized")
 
         with Session() as db:
-            rows = db.query(User).all()
-            return [
-                UserModel.parse_obj(versioned_row_to_dict(row, row.current))
-                for row
-                in rows
-                if check_access(user=current_user.username, path=f"/user/{row.id}", method="GET")
-            ]
+            pagination_dict = crud_get_users(
+                item_to_dict=lambda user: versioned_row_to_dict(user, user.current),
 
+                db=db,
+                current_user=current_user,
+
+                protocol=protocol,
+                plate=plate,
+                reagent=reagent,
+                sample=sample,
+                creator=creator,
+                archived=archived,
+
+                page=page,
+                per_page=per_page,
+            )
+
+            return UserConnection(
+                page=pagination_dict.get('page', None),
+                pageCount=pagination_dict.get('pageCount', None),
+                edges=[
+                    UserConnection.Edge(
+                        node=UserModel.parse_obj(r),
+                        cursor=f"{pagination_dict.get('page', 1)}.{i}",
+                    )
+                    for i, r
+                    in enumerate(pagination_dict['users'])
+                ],
+                page_info=relay.PageInfo(
+                    has_next_page=pagination_dict.get('page', 1) < pagination_dict.get('pageCount', 1),
+                    has_previous_page=pagination_dict.get('page', 1) > pagination_dict.get('pageCount', 1),
+                    start_cursor="1.0",
+                    end_cursor=f"1.{len(pagination_dict['users'])}" if pagination_dict.get('pageCount', None) is None else f"{pagination_dict['pageCount']}.{len(pagination_dict['users'])}",
+                ),
+            )
+
+    @staticmethod
     def resolve_sample(root, info, sample_id: str, plate_id: str, run_version_id: int, protocol_version_id: int):
         current_user = get_current_user_from_request(info.context['request'])
+        if current_user is None:
+            raise HTTPException(401, "Unauthorized")
 
         with Session() as db:
-            row = db.query(Sample).get((sample_id, plate_id, run_version_id, protocol_version_id))
+            model_dict = crud_get_sample(
+                item_to_dict=lambda sample: versioned_row_to_dict(sample, sample.current),
 
-            if not check_access(user=current_user.username, path=f"/run/{row.run_version.run_id}", method="GET"):
-                raise HTTPException(403, f"User {current_user.username} does not have access to GET sample ({sample_id}, {plate_id}, {run_version_id}, {protocol_version_id})")
+                db=db,
+                current_user=current_user,
 
-            return SampleModel.parse_obj(versioned_row_to_dict(row, row.current))
+                sample_id=sample_id,
+                plate_id=plate_id,
+                run_version_id=run_version_id,
+                protocol_version_id=protocol_version_id,
+                version_id=version_id,
+            )
+            return SampleResult.parse_obj(model_dict)
 
     @staticmethod
     def resolve_all_samples(root, info):
         current_user = get_current_user_from_request(info.context['request'])
+        if current_user is None:
+            raise HTTPException(401, "Unauthorized")
 
         with Session() as db:
-            rows = db.query(Sample).all()
-            return [
-                SampleModel.parse_obj(versioned_row_to_dict(row, row.current))
-                for row
-                in rows
-                if check_access(user=current_user.username, path=f"/run/{row.run_version.run_id}", method="GET")
-            ]
+            pagination_dict = crud_get_samples(
+                item_to_dict=lambda sample: versioned_row_to_dict(sample, sample.current),
+
+                db=db,
+                current_user=current_user,
+
+                protocol=protocol,
+                plate=plate,
+                reagent=reagent,
+                sample=sample,
+                creator=creator,
+                archived=archived,
+
+                page=page,
+                per_page=per_page,
+            )
+
+            return SampleConnection(
+                page=pagination_dict.get('page', None),
+                pageCount=pagination_dict.get('pageCount', None),
+                edges=[
+                    SampleConnection.Edge(
+                        node=SampleResult.parse_obj(r),
+                        cursor=f"{pagination_dict.get('page', 1)}.{i}",
+                    )
+                    for i, r
+                    in enumerate(pagination_dict['samples'])
+                ],
+                page_info=relay.PageInfo(
+                    has_next_page=pagination_dict.get('page', 1) < pagination_dict.get('pageCount', 1),
+                    has_previous_page=pagination_dict.get('page', 1) > pagination_dict.get('pageCount', 1),
+                    start_cursor="1.0",
+                    end_cursor=f"1.{len(pagination_dict['samples'])}" if pagination_dict.get('pageCount', None) is None else f"{pagination_dict['pageCount']}.{len(pagination_dict['samples'])}",
+                ),
+            )
+
 
 @app.middleware("http")
 async def add_current_user(request: Request, call_next):
@@ -479,4 +715,7 @@ async def add_current_user(request: Request, call_next):
 
     return await call_next(request)
 
-app.add_route("/graphql", GraphQLApp(schema=graphene.Schema(query=Query)))
+
+schema = graphene.Schema(query=Query)
+
+app.add_route("/graphql", GraphQLApp(schema=schema))

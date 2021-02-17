@@ -24,6 +24,8 @@ from pydantic import BaseModel
 
 from api.utils import change_allowed, add_owner, add_updator, paginatify
 
+from crud.run import crud_get_runs, crud_get_run, crud_get_run_samples, crud_get_run_sample
+
 
 logger = logging.getLogger(__name__)
 
@@ -122,12 +124,6 @@ def get_samples(run_version, protocol_version):
 
     return samples
 
-def all_runs(db: Session, include_archived=False):
-    query = db.query(Run)
-    if not include_archived:
-        query = query.filter(Run.is_deleted != True)
-    return query
-
 def all_samples(db: Session, run, include_archived=False):
     query = db.query(Sample)\
         .filter(Sample.run_version_id == run.version_id)
@@ -157,53 +153,19 @@ async def get_runs(
     db: Session = Depends(get_db),
     current_user: Auth0ClaimsPatched = Depends(get_current_user)
 ):
-    runs_queries = []
-
-    # Add filter specific queries. These will be intersected later on.
-    if protocol:
-        runs_queries.append(
-            all_runs(db, archived)\
-                .join(ProtocolVersion, ProtocolVersion.id == Run.protocol_version_id)\
-                .filter(ProtocolVersion.protocol_id == protocol)
-        )
-    if plate:
-        run_version_query = all_runs(db, archived)\
-            .join(RunVersion, RunVersion.id == Run.version_id)
-        runs_subquery = filter_by_plate_label(run_version_query, plate)
-        runs_queries.append(runs_subquery)
-    if reagent:
-        run_version_query = all_runs(db, archived)\
-            .join(RunVersion, RunVersion.id == Run.version_id)
-        runs_subquery = filter_by_reagent_label(run_version_query, reagent)
-        runs_queries.append(runs_subquery)
-    if sample:
-        run_version_query = all_runs(db, archived)\
-            .join(RunVersion, RunVersion.id == Run.version_id)
-        runs_subquery = filter_by_sample_label(run_version_query, sample)
-        runs_queries.append(runs_subquery)
-    if creator:
-        runs_queries.append(
-            all_runs(db, archived)\
-                # .filter(Run.id == run)
-                .filter(Run.created_by == creator)
-        )
-
-    # Add a basic non-deleted items query if no filters were specified.
-    if len(runs_queries) == 0:
-        runs_queries.append(all_runs(db, archived))
-
-    # Only return the intersection of all queries.
-    runs_query = reduce(lambda a, b: a.intersect(b), runs_queries)
-
-    return paginatify(
-        items_label='runs',
-        items=[
-            run
-            for run
-            in runs_query.distinct().order_by(Run.created_on.desc())
-            if check_access(user=current_user.username, path=f"/run/{str(run.id)}", method="GET") and run and run.current
-        ],
+    return crud_get_runs(
         item_to_dict=lambda run: run_to_dict(run, run.current, include_large_fields=False),
+
+        db=db,
+        current_user=current_user,
+
+        protocol=protocol,
+        plate=plate,
+        reagent=reagent,
+        sample=sample,
+        creator=creator,
+        archived=archived,
+
         page=page,
         per_page=per_page,
     )
@@ -237,23 +199,15 @@ async def create_run(run: RunModel, db: Session = Depends(get_db), current_user:
 
 @app.get('/run/{run_id}', tags=['runs'], response_model=RunModel, response_model_exclude_none=True)
 async def get_run(run_id: int, version_id: Optional[int] = None, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
-        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+    return crud_get_run(
+        item_to_dict=lambda run: run_to_dict(run, run.current),
 
-    if version_id:
-        run_version = RunVersion.query\
-            .filter(RunVersion.id == version_id)\
-            .filter(Run.id == run_id)\
-            .first()
-        if (not run_version) or run_version.run.is_deleted:
-            raise HTTPException(status_code=404, detail='Run Not Found')
-        return run_to_dict(run_version.run, run_version)
-    
-    run = db.query(Run).get(run_id)
-    if (not run) or run.is_deleted:
-        raise HTTPException(status_code=404, detail='Run Not Found')
+        db=db,
+        current_user=current_user,
 
-    return run_to_dict(run, run.current)
+        run_id=run_id,
+        version_id=version_id,
+    )
 
 @app.put('/run/{run_id}', tags=['runs'], response_model=RunModel, response_model_exclude_none=True)
 async def update_run(run_id: int, run: RunModel, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
@@ -420,66 +374,34 @@ async def get_run_samples(
     db: Session = Depends(get_db),
     current_user: Auth0ClaimsPatched = Depends(get_current_user)
 ):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
-        raise HTTPException(status_code=403, detail='Insufficient Permissions')
-    run = db.query(Run).get(run_id)
-    if not run or run.is_deleted:
-        raise HTTPException(status_code=404, detail='Run Not Found')
-
-    samples_queries = []
-
-    # Add filter specific queries. These will be intersected later on.
-    if protocol:
-        samples_queries.append(
-            all_samples(db, run, archived)\
-                .join(ProtocolVersion, ProtocolVersion.id == Sample.protocol_version_id)\
-                .filter(ProtocolVersion.protocol_id == protocol)
-        )
-    if plate:
-        samples_queries.append(
-            all_samples(db, run, archived)\
-                .filter(Sample.plate_id == plate)
-        )
-    if reagent:
-        run_version_query = all_samples(db, run, archived)\
-            .join(RunVersion, RunVersion.id == Sample.run_version_id)
-        samples_subquery = filter_by_reagent_label(run_version_query, reagent)
-        samples_queries.append(samples_subquery)
-    if creator:
-        samples_queries.append(
-            all_samples(db, run, archived)\
-                .filter(Sample.created_by == creator)
-        )
-
-    # Add a basic non-deleted items query if no filters were specified.
-    if len(samples_queries) == 0:
-        samples_queries.append(all_samples(db, run, archived))
-
-    # Only return the intersection of all queries.
-    samples_query = reduce(lambda a, b: a.intersect(b), samples_queries)
-
-    return paginatify(
-        items_label='samples',
-        items=[
-            sample
-            for sample
-            in samples_query.distinct().order_by(Sample.sample_id.asc())
-        ],
+    return crud_get_run_samples(
         item_to_dict=lambda sample: run_to_sample(sample),
+
+        db=db,
+        current_user=current_user,
+
+        run_id=run_id,
+        protocol=protocol,
+        plate=plate,
+        reagent=reagent,
+        creator=creator,
+        archived=archived,
         page=page,
         per_page=per_page,
     )
 
 @app.get('/run/{run_id}/sample/{sample_id}', tags=['runs'], response_model=SampleResults, response_model_exclude_none=True)
 async def get_run_sample(run_id: int, sample_id: str, version_id: Optional[int] = None, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
-        raise HTTPException(status_code=403, detail='Insufficient Permissions')
-    run = db.query(Run).get(run_id)
-    if not run or run.is_deleted:
-        raise HTTPException(status_code=404, detail='Run Not Found')
-    sample = db.query(Sample).filter(Sample.run_version_id == run.version_id).filter(Sample.sample_id == sample_id).first()
-    # sample = get_samples(run=run, run_version=run.current, sample_id=sample_id).first()
-    return run_to_sample(sample)
+    return crud_get_run_sample(
+        item_to_dict=lambda sample: run_to_sample(sample),
+
+        db=db,
+        current_user=current_user,
+
+        run_id=run_id,
+        sample_id=sample_id,
+        version_id=version_id,
+    )
 
 @app.put('/run/{run_id}/sample/{sample_id}', tags=['runs'], response_model=SampleResults, response_model_exclude_none=True)
 async def update_run_sample(run_id: int, sample_id: str, sample: SampleResult, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):

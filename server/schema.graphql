@@ -1,0 +1,384 @@
+schema {
+  query: Query
+}
+
+type AddReagentBlockDefinitionSchema {
+  type: String!
+  id: String!
+  name: String
+  reagentLabel: String
+  formula: String
+  variables: [BlockVariableSchema]
+}
+
+type AddReagentBlockSchema {
+  type: String!
+  definition: AddReagentBlockDefinitionSchema!
+  reagentLot: String
+  values: [VariableValueSchema]
+}
+
+type AttachmentSchema {
+  id: Int
+  name: String
+}
+
+type BlockOptionSchema {
+  id: String!
+  option: String!
+}
+
+type BlockParamSchema {
+  id: String!
+  param: String!
+}
+
+type BlockPlateMarkerEntrySchema {
+  marker1: String
+  marker2: String
+  plateIndex: Int
+  plateRow: Int
+  plateColumn: Int
+}
+
+type BlockPlateSchema {
+  id: String!
+  name: String
+  size: Int
+}
+
+type BlockPrimerSchema {
+  id: String!
+  primer: String!
+}
+
+type BlockVariableSchema {
+  id: String!
+  name: String!
+  defaultValue: Float
+}
+
+type CalculatorBlockDefinitionSchema {
+  type: String!
+  id: String!
+  name: String
+  formula: String
+  variables: [BlockVariableSchema]
+}
+
+type CalculatorBlockSchema {
+  type: String!
+  definition: CalculatorBlockDefinitionSchema!
+  values: [VariableValueSchema]
+}
+
+scalar DateTime
+
+type EndPlateSequencerBlockDefinitionSchema {
+  type: String!
+  id: String!
+  name: String
+  plateMarkers: [BlockPlateMarkerEntrySchema]
+  importerType: String
+  importerUrl: String
+  importerCheckUrl: String
+  importerMethod: String
+  importerParams: [BlockParamSchema]
+}
+
+type EndPlateSequencerBlockSchema {
+  type: String!
+  definition: EndPlateSequencerBlockDefinitionSchema!
+  attachments: [AttachmentSchema]
+  plateSequencingResults: [PlateResultSchema]
+  timestampLabel: String
+  endedOn: String
+}
+
+type EndTimestampBlockDefinitionSchema {
+  type: String!
+  id: String!
+  name: String
+}
+
+type EndTimestampBlockSchema {
+  type: String!
+  definition: EndTimestampBlockDefinitionSchema!
+  timestampLabel: String
+  endedOn: String
+}
+
+interface Node {
+  id: ID!
+}
+
+type OptionsQuestionBlockDefinitionSchema {
+  type: String!
+  id: String!
+  optionType: String
+  options: [BlockOptionSchema]
+}
+
+type OptionsQuestionBlockSchema {
+  type: String!
+  definition: OptionsQuestionBlockDefinitionSchema!
+  answer: String
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type PlateAddReagentBlockDefinitionSchema {
+  type: String!
+  id: String!
+  name: String
+  plateName: String
+  plateSize: Int
+  reagentLabel: String
+  formula: String
+  variables: [BlockVariableSchema]
+}
+
+type PlateAddReagentBlockSchema {
+  type: String!
+  definition: PlateAddReagentBlockDefinitionSchema!
+  plateLabel: String
+  plateLot: String
+  values: [VariableValueSchema]
+}
+
+type PlateCoordinateSchema {
+  row: Int
+  col: Int
+  plateIndex: Int
+  sampleLabel: String
+}
+
+type PlateMappingSchema {
+  label: String!
+  coordinates: [PlateCoordinateSchema]
+  primer: String
+}
+
+type PlateResultSchema {
+  plateLabel: String
+  plateIndex: Int
+  plateRow: Int
+  plateCol: Int
+  marker1: String
+  marker2: String
+  classification: String
+}
+
+type PlateSamplerBlockDefinitionSchema {
+  type: String!
+  id: String!
+  name: String
+  plates: [BlockPlateSchema]
+  plateCount: Int
+  platePrimers: [BlockPrimerSchema]
+}
+
+type PlateSamplerBlockSchema {
+  type: String!
+  definition: PlateSamplerBlockDefinitionSchema!
+  plates: [PlateMappingSchema]
+  outputPlateLabel: String
+}
+
+type ProtocolConnection {
+  pageInfo: PageInfo!
+  edges: [ProtocolEdge]!
+  page: Int
+  pageCount: Int
+}
+
+type ProtocolEdge {
+  node: ProtocolNode
+  cursor: String!
+}
+
+type ProtocolNode implements Node {
+  createdOn: DateTime
+  createdBy: String
+  updatedOn: DateTime
+  updatedBy: String
+  id: ID!
+  name: String
+  description: String
+  sections: [SectionDefinitionSchema]
+  signature: String
+  witness: String
+  signedOn: String
+  witnessedOn: String
+  owner: UserNode
+}
+
+type Query {
+  node(id: ID!): Node
+  protocol(id: ID!): ProtocolNode
+  allProtocols(before: String, after: String, first: Int, last: Int): ProtocolConnection
+  run(id: ID!): RunNode
+  allRuns(before: String, after: String, first: Int, last: Int): RunConnection
+  user(id: ID!): UserNode
+  allUsers(before: String, after: String, first: Int, last: Int): UserConnection
+  sample(id: ID!): SampleNode
+  allSamples(before: String, after: String, first: Int, last: Int): SampleConnection
+}
+
+type RunConnection {
+  pageInfo: PageInfo!
+  edges: [RunEdge]!
+  page: Int
+  pageCount: Int
+}
+
+type RunEdge {
+  node: RunNode
+  cursor: String!
+}
+
+type RunNode implements Node {
+  createdOn: DateTime
+  createdBy: String
+  updatedOn: DateTime
+  updatedBy: String
+  id: ID!
+  name: String
+  notes: String
+  status: String
+  sections: [SectionSchema]
+  sampleOverrides: [SampleNode]
+  protocol(id: ID!): ProtocolNode
+  owner(id: ID!): UserNode
+  samples(before: String, after: String, first: Int, last: Int): SampleConnection
+}
+
+type SampleConnection {
+  pageInfo: PageInfo!
+  edges: [SampleEdge]!
+  page: Int
+  pageCount: Int
+}
+
+type SampleEdge {
+  node: SampleNode
+  cursor: String!
+}
+
+type SampleNode implements Node {
+  createdOn: DateTime
+  createdBy: String
+  updatedOn: DateTime
+  updatedBy: String
+  sampleID: String!
+  runID: Int!
+  protocolID: Int!
+  plateID: String!
+  result: String
+  marker1: String
+  marker2: String
+  plateRow: Int
+  plateCol: Int
+  signers: [String]
+  witnesses: [String]
+  plateLots: [String]
+  completedOn: String
+  id: ID!
+  owner(id: ID!): UserNode
+}
+
+type SectionDefinitionSchema {
+  id: String!
+  name: String
+  blocks: [UnionOfTextQuestionBlockDefinitionOptionsQuestionBlockDefinitionCalculatorBlockDefinitionPlateSamplerBlockDefinitionPlateAddReagentBlockDefinitionAddReagentBlockDefinitionStartTimestampBlockDefinitionEndTimestampBlockDefinitionStartPlateSequencerBlockDefinitionEndPlateSequencerBlockDefinition]
+  requiresSignature: Boolean
+  requiresWitness: Boolean
+}
+
+type SectionSchema {
+  blocks: [UnionOfTextQuestionBlockOptionsQuestionBlockCalculatorBlockPlateSamplerBlockPlateAddReagentBlockAddReagentBlockStartTimestampBlockEndTimestampBlockStartPlateSequencerBlockEndPlateSequencerBlock]
+  definition: SectionDefinitionSchema!
+  signature: String
+  witness: String
+  signedOn: String
+  witnessedOn: String
+}
+
+type StartPlateSequencerBlockDefinitionSchema {
+  type: String!
+  id: String!
+  name: String
+  plates: [BlockPlateSchema]
+  plateCount: Int
+}
+
+type StartPlateSequencerBlockSchema {
+  type: String!
+  definition: StartPlateSequencerBlockDefinitionSchema!
+  plateLabels: [String]
+  timestampLabel: String
+  startedOn: String
+}
+
+type StartTimestampBlockDefinitionSchema {
+  type: String!
+  id: String!
+  name: String
+}
+
+type StartTimestampBlockSchema {
+  type: String!
+  definition: StartTimestampBlockDefinitionSchema!
+  timestampLabel: String
+  startedOn: String
+}
+
+type TextQuestionBlockDefinitionSchema {
+  type: String!
+  id: String!
+  name: String
+}
+
+type TextQuestionBlockSchema {
+  type: String!
+  definition: TextQuestionBlockDefinitionSchema!
+  answer: String
+}
+
+union UnionOfTextQuestionBlockDefinitionOptionsQuestionBlockDefinitionCalculatorBlockDefinitionPlateSamplerBlockDefinitionPlateAddReagentBlockDefinitionAddReagentBlockDefinitionStartTimestampBlockDefinitionEndTimestampBlockDefinitionStartPlateSequencerBlockDefinitionEndPlateSequencerBlockDefinition = TextQuestionBlockDefinitionSchema | OptionsQuestionBlockDefinitionSchema | CalculatorBlockDefinitionSchema | PlateSamplerBlockDefinitionSchema | PlateAddReagentBlockDefinitionSchema | AddReagentBlockDefinitionSchema | StartTimestampBlockDefinitionSchema | EndTimestampBlockDefinitionSchema | StartPlateSequencerBlockDefinitionSchema | EndPlateSequencerBlockDefinitionSchema
+
+union UnionOfTextQuestionBlockOptionsQuestionBlockCalculatorBlockPlateSamplerBlockPlateAddReagentBlockAddReagentBlockStartTimestampBlockEndTimestampBlockStartPlateSequencerBlockEndPlateSequencerBlock = TextQuestionBlockSchema | OptionsQuestionBlockSchema | CalculatorBlockSchema | PlateSamplerBlockSchema | PlateAddReagentBlockSchema | AddReagentBlockSchema | StartTimestampBlockSchema | EndTimestampBlockSchema | StartPlateSequencerBlockSchema | EndPlateSequencerBlockSchema
+
+type UserConnection {
+  pageInfo: PageInfo!
+  edges: [UserEdge]!
+  page: Int
+  pageCount: Int
+}
+
+type UserEdge {
+  node: UserNode
+  cursor: String!
+}
+
+type UserNode implements Node {
+  createdOn: DateTime
+  createdBy: String
+  updatedOn: DateTime
+  updatedBy: String
+  id: ID!
+  email: String
+  fullName: String
+  avatar: String
+  roles: [String]
+}
+
+type VariableValueSchema {
+  id: String
+  value: Float
+}

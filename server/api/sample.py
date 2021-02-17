@@ -13,14 +13,7 @@ from models import SampleResult, SampleResults, SuccessResponse, success
 
 from api.utils import change_allowed, add_owner, add_updator, paginatify
 
-
-def all_samples(include_archived=False):
-    query = Sample.query\
-        .join(RunVersion, RunVersion.id == Sample.run_version_id)\
-        .join(Run, Run.version_id == RunVersion.id)
-    if not include_archived:
-        query = query.filter(Sample.is_deleted != True)
-    return query
+from crud.sample import crud_get_samples, crud_get_sample
 
 
 @app.get('/sample', tags=['samples'], response_model=SampleResults, response_model_exclude_none=True)
@@ -37,80 +30,46 @@ async def get_samples(
     db: Session = Depends(get_db),
     current_user: Auth0ClaimsPatched = Depends(get_current_user)
 ):
-    samples_queries = []
-
-    # Add filter specific queries. These will be intersected later on.
-    if protocol:
-        samples_queries.append(
-            all_samples(archived)\
-                .join(ProtocolVersion, ProtocolVersion.id == Sample.protocol_version_id)\
-                .filter(ProtocolVersion.protocol_id == protocol)
-        )
-    if run:
-        samples_queries.append(
-            all_samples(archived)\
-                # .join(RunVersion, RunVersion.id == Sample.run_version_id)\
-                .filter(RunVersion.run_id == run)
-        )
-    if plate:
-        samples_queries.append(
-            all_samples(archived)\
-                .filter(Sample.plate_id == plate)
-        )
-    if reagent:
-        run_version_query = all_samples(archived) # \
-            # .join(RunVersion, RunVersion.id == Sample.run_version_id)
-        samples_subquery = filter_by_reagent_label(run_version_query, reagent)
-        samples_queries.append(samples_subquery)
-    if sample:
-        samples_queries.append(
-            all_samples(archived)\
-                .filter(Sample.sample_id == sample)
-        )
-    if creator:
-        samples_queries.append(
-            all_samples(archived)\
-                .filter(Sample.created_by == creator)
-        )
-
-    # Add a basic non-deleted items query if no filters were specified.
-    if len(samples_queries) == 0:
-        samples_queries.append(all_samples(archived))
-
-    # Only return the intersection of all queries.
-    samples_query = reduce(lambda a, b: a.intersect(b), samples_queries)
-
-    return paginatify(
-        items_label='samples',
-        items=[
-            sample
-            for sample
-            in samples_query.distinct().order_by(Sample.created_on.desc())
-            if check_access(user=current_user.username, path=f"/run/{str(sample.run_version.run_id)}", method="GET") and sample and sample.current
-        ],
+    return crud_get_samples(
         item_to_dict=lambda sample: run_to_sample(sample),
+
+        db=db,
+        current_user=current_user,
+        
+        protocol=protocol,
+        run=run,
+        plate=plate,
+        reagent=reagent,
+        sample=sample,
+        creator=creator,
+        archived=archived,
         page=page,
         per_page=per_page,
     )
 
 @app.get('/sample/{sample_id}', tags=['samples'], response_model=SampleResult, response_model_exclude_none=True)
-async def get_sample(sample_id: str, version_id: Optional[int] = None, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    sample = db.query(Sample).get(sample_id)
-    if not check_access(user=current_user.username, path=f"/run/{str(sample.run_version.run_id)}", method="GET"):
-        raise HTTPException(status_code=403, detail='Insufficient Permissions')
-    
-    if version_id:
-        sample_version = SampleVersion.query\
-            .filter(SampleVersion.id == version_id)\
-            .filter(Sample.id == sample_id)\
-            .first()
-        if (not sample_version) or sample_version.sample.is_deleted:
-            raise HTTPException(status_code=404, detail='Sample Version Not Found')
-        return run_to_sample(sample_version.sample)
-    
-    if (not sample) or sample.is_deleted:
-        raise HTTPException(status_code=404, detail='Sample Not Found')
-    return run_to_sample(sample)
+async def get_sample(
+    sample_id: str,
+    plate_id: str,
+    run_version_id: int,
+    protocol_version_id: int,
+
+    version_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: Auth0ClaimsPatched = Depends(get_current_user),
+):
+    return crud_get_sample(
+        item_to_dict=lambda sample: run_to_sample(sample),
+
+        db=db,
+        current_user=current_user,
+
+        sample_id=sample_id,
+        plate_id=plate_id,
+        run_version_id=run_version_id,
+        protocol_version_id=protocol_version_id,
+        version_id=version_id,
+    )
 
 @app.put('/sample/{sample_id}', tags=['samples'], response_model=SampleResult, response_model_exclude_none=True)
 async def update_sample(sample_id: str, sample: SampleResult, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):

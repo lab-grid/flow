@@ -16,12 +16,7 @@ from pydantic_jsonpatch.jsonpatch import JSONPatch
 
 from api.utils import change_allowed, add_owner, add_updator, paginatify
 
-
-def all_protocols(include_archived=False):
-    query = Protocol.query
-    if not include_archived:
-        query = query.filter(Protocol.is_deleted != True)
-    return query
+from crud.protocol import crud_get_protocols, crud_get_protocol
 
 
 @app.get('/protocol', tags=['protocols'], response_model=ProtocolsModel, response_model_exclude_none=True)
@@ -37,58 +32,18 @@ async def get_protocols(
     db: Session = Depends(get_db),
     current_user: Auth0ClaimsPatched = Depends(get_current_user)
 ):
-    protocols_queries = []
-    if run:
-        protocols_queries.append(
-            all_protocols(archived)\
-                .join(ProtocolVersion, ProtocolVersion.protocol_id == Protocol.id)\
-                .join(Run, Run.protocol_version_id == ProtocolVersion.id)\
-                .filter(Run.id == run)
-        )
-    if plate:
-        run_version_query = all_protocols(archived)\
-            .join(ProtocolVersion, ProtocolVersion.protocol_id == Protocol.id)\
-            .join(Run, Run.protocol_version_id == ProtocolVersion.id)\
-            .join(RunVersion, RunVersion.id == Run.version_id)
-        protocols_subquery = filter_by_plate_label(run_version_query, plate)
-        protocols_queries.append(protocols_subquery)
-    if reagent:
-        run_version_query = all_protocols(archived)\
-            .join(ProtocolVersion, ProtocolVersion.protocol_id == Protocol.id)\
-            .join(Run, Run.protocol_version_id == ProtocolVersion.id)\
-            .join(RunVersion, RunVersion.id == Run.version_id)
-        protocols_subquery = filter_by_reagent_label(run_version_query, reagent)
-        protocols_queries.append(protocols_subquery)
-    if sample:
-        run_version_query = all_protocols(archived)\
-            .join(ProtocolVersion, ProtocolVersion.protocol_id == Protocol.id)\
-            .join(Run, Run.protocol_version_id == ProtocolVersion.id)\
-            .join(RunVersion, RunVersion.id == Run.version_id)
-        protocols_subquery = filter_by_sample_label(run_version_query, sample)
-        protocols_queries.append(protocols_subquery)
-    if creator:
-        protocols_queries.append(
-            all_protocols(archived)\
-                # .filter(Protocol.id == protocol)\
-                .filter(Protocol.created_by == creator)
-        )
-
-    # Add a basic non-deleted items query if no filters were specified.
-    if len(protocols_queries) == 0:
-        protocols_queries.append(all_protocols(archived))
-
-    # Only return the intersection of all queries.
-    protocols_query = reduce(lambda a, b: a.intersect(b), protocols_queries)
-
-    return paginatify(
-        items_label='protocols',
-        items=[
-            protocol
-            for protocol
-            in protocols_query.distinct().order_by(Protocol.created_on.desc())
-            if check_access(user=current_user.username, path=f"/protocol/{str(protocol.id)}", method="GET") and protocol and protocol.current
-        ],
+    return crud_get_protocols(
         item_to_dict=lambda protocol: versioned_row_to_dict(protocol, protocol.current, include_large_fields=False),
+
+        db=db,
+        current_user=current_user,
+
+        run=run,
+        plate=plate,
+        reagent=reagent,
+        sample=sample,
+        creator=creator,
+        archived=archived,
         page=page,
         per_page=per_page,
     )
@@ -110,22 +65,15 @@ async def create_protocol(protocol: ProtocolModel, db: Session = Depends(get_db)
 
 @app.get('/protocol/{protocol_id}', tags=['protocols'], response_model=ProtocolModel, response_model_exclude_none=True)
 async def get_protocol(protocol_id: int, version_id: Optional[int] = None, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="GET"):
-        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+    return crud_get_protocol(
+        item_to_dict=lambda protocol: versioned_row_to_dict(protocol, protocol.current),
 
-    if version_id:
-        protocol_version = ProtocolVersion.query\
-            .filter(ProtocolVersion.id == version_id)\
-            .filter(Protocol.id == protocol_id)\
-            .first()
-        if (not protocol_version) or protocol_version.protocol.is_deleted:
-            raise HTTPException(status_code=404, detail='Protocol Not Found')
-        return versioned_row_to_dict(protocol_version.protocol, protocol_version)
+        db=db,
+        current_user=current_user,
 
-    protocol = db.query(Protocol).get(protocol_id)
-    if (not protocol) or protocol.is_deleted:
-        raise HTTPException(status_code=404, detail='Protocol Not Found')
-    return versioned_row_to_dict(protocol, protocol.current)
+        protocol_id=protocol_id,
+        version_id=version_id,
+    )
 
 @app.put('/protocol/{protocol_id}', tags=['protocols'], response_model=ProtocolModel, response_model_exclude_none=True)
 async def update_protocol(protocol_id: int, protocol: ProtocolModel, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
