@@ -1,19 +1,16 @@
 import graphene
-import datetime
 
 from sqlalchemy import and_
 from graphene import relay
 from graphene_pydantic import PydanticObjectType
 from starlette.graphql import GraphQLApp
-from pydantic import BaseModel
-from typing import List, Optional
+from typing import Optional
 from fastapi import Request, Response, HTTPException
 from fastapi.security.http import HTTPBearer
 
 from database import Protocol, ProtocolVersion, Run, RunVersion, User, UserVersion, Sample, SampleVersion, versioned_row_to_dict
 from models import SampleResult, ProtocolModel, RunModel, UserModel, SectionDefinition
 from server import app, Session, get_current_user
-from authorization import check_access
 from crud.run import crud_get_runs, crud_get_run, crud_get_run_samples, crud_get_run_sample
 from crud.protocol import crud_get_protocols, crud_get_protocol
 from crud.user import crud_get_users, crud_get_user
@@ -280,10 +277,14 @@ class SampleNode(VersionedPydanticObjectType):
 
     @staticmethod
     def resolve_owner(root, info):
+        current_user = get_current_user_from_request(info.context['request'])
+        if current_user is None:
+            raise HTTPException(401, "Unauthorized")
+
         with Session() as db:
             return UserModel.parse_obj(
                 crud_get_user(
-                    item_to_dict=lambda user: versioned_row_to_dict(row, row.current),
+                    item_to_dict=lambda user: versioned_row_to_dict(user, user.current),
                     db=db,
                     current_user=current_user,
                     user_id=root.created_by,
@@ -306,10 +307,14 @@ class ProtocolNode(VersionedPydanticObjectType):
 
     @staticmethod
     def resolve_owner(root, info):
+        current_user = get_current_user_from_request(info.context['request'])
+        if current_user is None:
+            raise HTTPException(401, "Unauthorized")
+
         with Session() as db:
             return UserModel.parse_obj(
                 crud_get_user(
-                    item_to_dict=lambda user: versioned_row_to_dict(row, row.current),
+                    item_to_dict=lambda user: versioned_row_to_dict(user, user.current),
                     db=db,
                     current_user=current_user,
                     user_id=root.created_by,
@@ -334,6 +339,10 @@ class RunNode(VersionedPydanticObjectType):
 
     @staticmethod
     def resolve_protocol(root, info):
+        current_user = get_current_user_from_request(info.context['request'])
+        if current_user is None:
+            raise HTTPException(401, "Unauthorized")
+
         with Session() as db:
             row_version = db.query(ProtocolVersion)\
                 .join(Run, and_(
@@ -341,14 +350,18 @@ class RunNode(VersionedPydanticObjectType):
                     Run.protocol_version_id == ProtocolVersion.id,
                 ))\
                 .first()
-            return ProtocolModel.parse_obj(versioned_row_to_dict(row_version.protocol, row_version))
+            return ProtocolModel.parse_obj(add_ids(versioned_row_to_dict(row_version.protocol, row_version.protocol.current), protocol_id=row_version.protocol_id))
 
     @staticmethod
     def resolve_owner(root, info):
+        current_user = get_current_user_from_request(info.context['request'])
+        if current_user is None:
+            raise HTTPException(401, "Unauthorized")
+
         with Session() as db:
             return UserModel.parse_obj(
                 crud_get_user(
-                    item_to_dict=lambda user: versioned_row_to_dict(row, row.current),
+                    item_to_dict=lambda user: add_ids(versioned_row_to_dict(user, user.current), user_id=user.id),
                     db=db,
                     current_user=current_user,
                     user_id=root.created_by,
@@ -356,15 +369,26 @@ class RunNode(VersionedPydanticObjectType):
             )
 
     @staticmethod
-    def resolve_samples(root, info):
+    def resolve_samples(
+        root,
+        info,
+
+        # Paging parameters
+        page: Optional[int] = None,
+        per_page: Optional[int] = None,
+    ):
+        current_user = get_current_user_from_request(info.context['request'])
+        if current_user is None:
+            raise HTTPException(401, "Unauthorized")
+
         with Session() as db:
             pagination_dict = crud_get_run_samples(
-                item_to_dict=lambda sample: versioned_row_to_dict(row, row.current),
+                item_to_dict=lambda sample: versioned_row_to_dict(sample, sample.current),
                 
                 db=db,
                 current_user=current_user,
 
-                run_id=root.id,
+                run_id=root.run_id,
 
                 page=page,
                 per_page=per_page,
@@ -480,7 +504,7 @@ class Query(graphene.ObjectType):
     )
 
     @staticmethod
-    def resolve_protocol(root, info, id: int):
+    def resolve_protocol(root, info, id: int, version_id: Optional[int]):
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
@@ -654,7 +678,7 @@ class Query(graphene.ObjectType):
             )
 
     @staticmethod
-    def resolve_user(root, info, id: str):
+    def resolve_user(root, info, id: str, version_id: Optional[int]):
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
@@ -726,7 +750,7 @@ class Query(graphene.ObjectType):
             )
 
     @staticmethod
-    def resolve_sample(root, info, sample_id: str, plate_id: str, run_version_id: int, protocol_version_id: int):
+    def resolve_sample(root, info, sample_id: str, plate_id: str, run_version_id: int, protocol_version_id: int, version_id: Optional[int]):
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")

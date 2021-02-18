@@ -3,13 +3,15 @@
 import copy
 import logging
 import pprint
-from sqlalchemy import and_, or_, func, Column, Boolean, DateTime, ForeignKey, ForeignKeyConstraint, Integer, LargeBinary, String
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql.expression import column, literal_column
+from sqlalchemy import or_, func, Column, Boolean, DateTime, ForeignKey, ForeignKeyConstraint, Integer, LargeBinary, String
+from sqlalchemy.orm import relationship, Session
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.ext.declarative import declared_attr, declarative_base
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.sql import func, text
-from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy.sql import func
+
+
+logger = logging.getLogger(__name__)
 
 
 Base = declarative_base()
@@ -155,6 +157,7 @@ def filter_by_plate_label(run_version_query, plate_id):
 
 def filter_by_reagent_label(run_version_query, reagent_id):
     return run_version_query.filter(
+        # TODO: FIXME. This doesn't work if we remove repeated definitions.
         func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].definition.reagentLabel ? (@ == "{reagent_id}"))')
     )
 
@@ -365,3 +368,83 @@ class Sample(BaseModel):
         cascade="all, delete",
         order_by=SampleVersion.updated_on,
     )
+
+
+# Fixes for changing plateMarkers from a dictionary to a list.
+
+def fix_plate_markers_block(block):
+    if block is None:
+        return False
+
+    if block.get('type', None) == 'end-plate-sequencer' and type(block.get('plateMarkers', None)) == dict:
+        block['plateMarkers'] = list(block['plateMarkers'].values())
+        return True
+    if block.get('type', None) == 'end-plate-sequencer' and type(block.get('attachments', None)) == dict:
+        block['attachments'] = [{'id': key, 'name': value} for key, value in block['attachments'].items()]
+        return True
+    if block.get('type', None) in {'calculator', 'plate-add-reagent', 'add-reagent'} and type(block.get('values', None)) == dict:
+        block['values'] = [{'id': key, 'value': value} for key, value in block['values'].items()]
+        return True
+    return False
+
+def fix_plate_markers_section(section):
+    if section is None or section.get('blocks', None) is None:
+        return False
+
+    changes_made = False
+    for block in section['blocks']:
+        changes_made = changes_made or fix_plate_markers_block(block)
+    return changes_made
+
+def fix_plate_markers_protocol_field(protocol):
+    if protocol.current.data.get('sections', None) is None:
+        return protocol
+
+    changes_made = False
+    for section in protocol.current.data['sections']:
+        changes_made = changes_made or fix_plate_markers_section(section)
+    return changes_made
+
+def fix_plate_markers_protocol(db: Session, protocol: Protocol) -> Protocol:
+    if protocol.current.data.get('sections', None) is None:
+        return protocol
+
+    changes_made = False
+    for section in protocol.current.data['sections']:
+        changes_made = changes_made or fix_plate_markers_section(section)
+
+    if changes_made:
+        flag_modified(protocol.current, 'data')
+        db.commit()
+        logger.info(f"Updated protocol ({protocol.id}, {protocol.version_id}) with new plateMarkers format.")
+
+    return protocol
+
+def fix_plate_markers_run(db: Session, run: Run) -> Run:
+    changes_made = False
+
+    if run.current.data.get('protocol', None) is not None:
+        changes_made = changes_made or fix_plate_markers_protocol_field(run.current.data['protocol'])
+
+    if run.current.data.get('sections', None) is not None:
+        for section in run.current.data['sections']:
+            # Handle section definition
+            if section.get('definition', None) is not None:
+                changes_made = changes_made or fix_plate_markers_section(section['definition'])
+
+            if section is None or section.get('blocks', None) is None:
+                continue
+
+            # Handle block definition
+            for block in section['blocks']:
+                if block is not None:
+                    changes_made = changes_made or fix_plate_markers_block(block)
+                    if block.get('definition', None) is not None:
+                        changes_made = changes_made or fix_plate_markers_block(block['definition'])
+
+    if changes_made:
+        flag_modified(run.current, 'data')
+        db.commit()
+        logger.info(f"Updated run ({run.id}, {run.version_id}) with new plateMarkers format.")
+
+    return run

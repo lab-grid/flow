@@ -3,7 +3,6 @@
 from pydantic import BaseModel
 from typing import List, Union, Optional, Literal
 from datetime import datetime
-from graphene.types import generic
 
 
 # System ----------------------------------------------------------------------
@@ -96,7 +95,7 @@ class PlateCoordinate(BaseModel):
 
 class PlateResult(BaseModel):
     plateLabel: Optional[str]
-    plateIndex: Optional[int]
+    plateIndex: Optional[str]
     plateRow: Optional[int]
     plateCol: Optional[int]
     marker1: Optional[str]

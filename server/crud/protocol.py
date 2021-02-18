@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session, Query
 from typing import Optional, List
 from functools import reduce
+from fastapi import HTTPException
 
 from authorization import check_access
 from server import Auth0ClaimsPatched
@@ -12,6 +13,7 @@ from database import (
     ProtocolVersion,
     Run,
     RunVersion,
+    fix_plate_markers_protocol,
 )
 from api.utils import paginatify
 
@@ -95,7 +97,7 @@ def crud_get_protocols(
             in protocols_query.distinct().order_by(Protocol.created_on.desc())
             if check_access(user=current_user.username, path=f"/protocol/{str(protocol.id)}", method="GET") and protocol and protocol.current
         ],
-        item_to_dict=item_to_dict,
+        item_to_dict=lambda protocol: item_to_dict(fix_plate_markers_protocol(db, protocol)),
         page=page,
         per_page=per_page,
     )
@@ -124,4 +126,4 @@ def crud_get_protocol(
     protocol = db.query(Protocol).get(protocol_id)
     if (not protocol) or protocol.is_deleted:
         raise HTTPException(status_code=404, detail='Protocol Not Found')
-    return item_to_dict(protocol)
+    return item_to_dict(fix_plate_markers_protocol(db, protocol))

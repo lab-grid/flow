@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session, Query
 from typing import Optional, List
 from functools import reduce
+from fastapi import HTTPException
 
 from authorization import check_access
 from server import Auth0ClaimsPatched
@@ -12,6 +13,7 @@ from database import (
     Run,
     RunVersion,
     Sample,
+    fix_plate_markers_run,
 )
 from api.utils import paginatify
 
@@ -97,7 +99,7 @@ def crud_get_runs(
             in runs_query.distinct().order_by(Run.created_on.desc())
             if check_access(user=current_user.username, path=f"/run/{str(run.id)}", method="GET") and run and run.current
         ],
-        item_to_dict=item_to_dict,
+        item_to_dict=lambda run: item_to_dict(fix_plate_markers_run(db, run)),
         page=page,
         per_page=per_page,
     )
@@ -127,7 +129,7 @@ def crud_get_run(
     if (not run) or run.is_deleted:
         raise HTTPException(status_code=404, detail='Run Not Found')
 
-    return item_to_dict(run)
+    return item_to_dict(fix_plate_markers_run(db, run))
 
 
 def crud_get_run_samples(

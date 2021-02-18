@@ -2,7 +2,7 @@ import urllib.parse
 
 from sqlalchemy.orm import Session, Query
 from typing import Optional, List
-from functools import reduce
+from fastapi import HTTPException
 
 from authorization import check_access
 from server import Auth0ClaimsPatched
