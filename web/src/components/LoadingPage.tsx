@@ -2,7 +2,7 @@ import React from 'react';
 import { Spinner } from 'react-bootstrap';
 
 export function LoadingPage() {
-  return <div className="d-flex mt-5">
+  return <div className="d-flex w-100 mt-5">
     <div className="col"></div>
     <div className="col-auto">
       <Spinner
