@@ -30,8 +30,11 @@ export function ResultsTable({ className, results, page, pageCount, onPageChange
                 </tr>
             </thead>
             <tbody>
-                {results.map(result => (
-                    <tr key={`${result.protocolID}-${result.runID}-${result.sampleID}-${result.marker1}-${result.marker2}`}>
+                {results.map(result => {
+                    const signers = result.signers ? result.signers.filter(signer => !!signer) : [];
+                    const witnesses = result.witnesses ? result.witnesses.filter(witness => !!witness) : [];
+
+                    return <tr key={`${result.protocolID}-${result.runID}-${result.sampleID}-${result.marker1}-${result.marker2}`}>
                         <td>{result.sampleID || <i>Unknown</i>}</td>
                         <td>{result.result || <i>Unknown</i>}</td>
                         <td>
@@ -41,14 +44,14 @@ export function ResultsTable({ className, results, page, pageCount, onPageChange
                             {result.protocolID && <Link to={`/protocol/${result.protocolID}`}>{result.protocolID}</Link>}
                         </td>
                         <td>
-                            {result.signers && (result.signers.length === 1 ? result.signers[0] : <ul>{result.signers.map(signer => <li>{signer}</li>)}</ul>)}
+                            {signers && (signers.length === 1 ? signers[0] : <ul>{signers.map(signer => <li>{signer}</li>)}</ul>)}
                         </td>
                         <td>
-                            {result.witnesses && (result.witnesses.length === 1 ? result.witnesses[0] : <ul>{result.witnesses.map(witness => <li>{witness}</li>)}</ul>)}
+                            {witnesses && (witnesses.length === 1 ? witnesses[0] : <ul>{witnesses.map(witness => <li>{witness}</li>)}</ul>)}
                         </td>
                         <td>{result.completedOn && moment(result.completedOn).format("LLLL")}</td>
-                    </tr>
-                ))}
+                    </tr>;
+                })}
             </tbody>
         </Table>
         {(page || pageCount) && (pageCount || 1) > 1 && <Paginator
