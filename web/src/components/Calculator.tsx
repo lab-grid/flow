@@ -30,8 +30,15 @@ export function Calculator(props: CalculatorProps) {
             continue
         }
         const varSchema = currentVariables[variable.id];
-        currentValues[varSchema.name] = variable.value;
-        currentInputValues[varSchema.name] = variable.value;
+        if (!varSchema) {
+            console.log('Found empty/unmatched value:', variable, varSchema, currentVariables);
+            console.log('Using variable.id instead', variable.id);
+            currentValues[variable.id] = variable.value;
+            currentInputValues[variable.id] = variable.value;
+        } else {
+            currentValues[varSchema.name] = variable.value;
+            currentInputValues[varSchema.name] = variable.value;
+        }
     }
 
     let evaluatedFormula: any = undefined;
