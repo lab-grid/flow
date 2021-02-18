@@ -70,7 +70,7 @@ class SampleResult(AuditedModel):
     signers: Optional[List[Optional[str]]]
     witnesses: Optional[List[Optional[str]]]
 
-    plateLots: Optional[List[str]]
+    plateLots: Optional[List[Optional[str]]]
 
     completedOn: Optional[str]
 
