@@ -35,7 +35,7 @@ const network = new RelayNetworkLayer(
     process.env.NODE_ENV !== "production" ? errorMiddleware() : null,
     process.env.NODE_ENV !== "production" ? perfMiddleware() : null,
     retryMiddleware({
-      fetchTimeout: 15000,
+      fetchTimeout: 60000,
       retryDelays: (attempt) => Math.pow(2, attempt + 4) * 100,
       statusCodes: [500, 503, 504],
     }),
