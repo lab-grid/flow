@@ -1,6 +1,6 @@
 import moment from "moment";
-import React from "react";
-import { Button, Dropdown, Table } from "react-bootstrap";
+import React, { useState } from "react";
+import { Button, Dropdown, Spinner, Table } from "react-bootstrap";
 import { createFragmentContainer, createRefetchContainer, QueryRenderer, RelayRefetchProp } from "react-relay";
 import { graphql } from 'babel-plugin-relay/macro';
 import { Link, useHistory } from "react-router-dom";
@@ -15,14 +15,14 @@ import { useRecoilCallback } from "recoil";
 import { labflowOptions } from "../config";
 import { Block } from "../models/block";
 import { Protocol } from "../models/protocol";
-import { Run, Section } from "../models/run";
-import { upsertRun, apiGetOne } from "../state/api";
+import { exportRunsToCSV, Run, Section } from "../models/run";
+import { upsertRun, apiGetOne, getRuns } from "../state/api";
 import { auth0State } from "../state/atoms";
 
 
 const runsQuery = graphql`
-query RunsTableNew_Query($page: Int, $perPage: Int, $protocol: Int, $plate: String, $reagent: String, $sample: String, $creator: String, $archived: Boolean) {
-    allRuns(page: $page, perPage: $perPage, protocol: $protocol, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived) {
+query RunsTableNew_Query($page: Int, $perPage: Int, $protocol: Int, $run: Int, $plate: String, $reagent: String, $sample: String, $creator: String, $archived: Boolean) {
+    allRuns(page: $page, perPage: $perPage, protocol: $protocol, run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived) {
         ...RunsTableNew_pagerData
         edges {
             node {
@@ -133,28 +133,33 @@ const RunsPagerFragment = createRefetchContainer(
 
 export function RunsTable({
     protocolFilter,
+    runFilter,
     plateFilter,
     reagentFilter,
     sampleFilter,
     creatorFilter,
     archivedFilter,
 
+    hideHeader,
     hideActions,
     hideCreate,
     hideRefresh,
 }: {
     protocolFilter?: number;
+    runFilter?: number;
     plateFilter?: string;
     reagentFilter?: string;
     sampleFilter?: string;
     creatorFilter?: string;
     archivedFilter?: boolean;
 
+    hideHeader?: boolean;
     hideActions?: boolean;
     hideCreate?: boolean;
     hideRefresh?: boolean;
 }) {
     const history = useHistory();
+    const [exportingRuns, setExportingRuns] = useState(false);
     const runUpsert = useRecoilCallback(({ snapshot }) => async (run: Run) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
         return await upsertRun(() => auth0Client, run);
@@ -179,28 +184,54 @@ export function RunsTable({
         history.push(`/run/${created.id}`);
     });
 
+    const filterParams: {[name: string]: string} = {};
     const variables: RunsTableNew_QueryVariables = {
         page: 1,
         perPage: defaultPerPage,
     };
-    if (protocolFilter !== undefined) {
+    if (protocolFilter !== undefined && protocolFilter !== null) {
         variables.protocol = protocolFilter;
+        filterParams.protocol = protocolFilter.toString();
     }
-    if (plateFilter !== undefined) {
+    if (runFilter !== undefined && runFilter !== null) {
+        variables.run = runFilter;
+        filterParams.run = runFilter.toString();
+    }
+    if (plateFilter !== undefined && plateFilter !== null) {
         variables.plate = plateFilter;
+        filterParams.plate = plateFilter;
     }
-    if (reagentFilter !== undefined) {
+    if (reagentFilter !== undefined && reagentFilter !== null) {
         variables.reagent = reagentFilter;
+        filterParams.reagent = reagentFilter;
     }
-    if (sampleFilter !== undefined) {
+    if (sampleFilter !== undefined && sampleFilter !== null) {
         variables.sample = sampleFilter;
+        filterParams.sample = sampleFilter;
     }
-    if (creatorFilter !== undefined) {
+    if (creatorFilter !== undefined && creatorFilter !== null) {
         variables.creator = creatorFilter;
+        filterParams.creator = creatorFilter;
     }
-    if (archivedFilter !== undefined) {
+    if (archivedFilter !== undefined && archivedFilter !== null) {
         variables.archived = archivedFilter;
+        filterParams.archived = archivedFilter ? "true" : "false";
     }
+
+    const exportRuns = useRecoilCallback(({ snapshot }) => async () => {
+        setExportingRuns(true);
+        try {
+            const { auth0Client } = await snapshot.getPromise(auth0State);
+            const runs = await getRuns(() => auth0Client, filterParams);
+            if (!runs || !runs.runs) {
+                alert('No runs were found to be exported!');
+                return;
+            }
+            exportRunsToCSV(`export-run-results-${moment().format()}.csv`, runs.runs, true);
+        } finally {
+            setExportingRuns(false);
+        }
+    });
 
     return <QueryRenderer<RunsTableNew_Query>
         environment={environment}
@@ -215,6 +246,21 @@ export function RunsTable({
                 }
         
                 return <>
+                    {
+                        !hideHeader && <div className="row w-100">
+                            <small className="col-auto my-auto">
+                                Runs (<i>
+                                    <Button variant="link" size="sm" onClick={exportRuns} disabled={exportingRuns}>
+                                        Export to CSV {exportingRuns && <Spinner size="sm" animation="border" />}
+                                    </Button>
+                                </i>)
+                            </small>
+                            <hr className="col my-auto" />
+                            <small className="col-auto my-auto">
+                                {(props.allRuns.edges.length) || 0}
+                            </small>
+                        </div>
+                    }
                     <Table striped bordered hover responsive>
                         <thead>
                             <tr>

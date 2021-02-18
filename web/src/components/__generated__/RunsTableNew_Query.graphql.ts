@@ -8,6 +8,7 @@ export type RunsTableNew_QueryVariables = {
     page?: number | null;
     perPage?: number | null;
     protocol?: number | null;
+    run?: number | null;
     plate?: string | null;
     reagent?: string | null;
     sample?: string | null;
@@ -45,13 +46,14 @@ query RunsTableNew_Query(
   $page: Int
   $perPage: Int
   $protocol: Int
+  $run: Int
   $plate: String
   $reagent: String
   $sample: String
   $creator: String
   $archived: Boolean
 ) {
-  allRuns(page: $page, perPage: $perPage, protocol: $protocol, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived) {
+  allRuns(page: $page, perPage: $perPage, protocol: $protocol, run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived) {
     ...RunsTableNew_pagerData
     edges {
       node {
@@ -129,9 +131,14 @@ v6 = {
 v7 = {
   "defaultValue": null,
   "kind": "LocalArgument",
+  "name": "run"
+},
+v8 = {
+  "defaultValue": null,
+  "kind": "LocalArgument",
   "name": "sample"
 },
-v8 = [
+v9 = [
   {
     "kind": "Variable",
     "name": "archived",
@@ -169,25 +176,30 @@ v8 = [
   },
   {
     "kind": "Variable",
+    "name": "run",
+    "variableName": "run"
+  },
+  {
+    "kind": "Variable",
     "name": "sample",
     "variableName": "sample"
   }
 ],
-v9 = {
+v10 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
   "name": "id",
   "storageKey": null
 },
-v10 = {
+v11 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
   "name": "protocolId",
   "storageKey": null
 },
-v11 = {
+v12 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
@@ -204,7 +216,8 @@ return {
       (v4/*: any*/),
       (v5/*: any*/),
       (v6/*: any*/),
-      (v7/*: any*/)
+      (v7/*: any*/),
+      (v8/*: any*/)
     ],
     "kind": "Fragment",
     "metadata": null,
@@ -212,7 +225,7 @@ return {
     "selections": [
       {
         "alias": null,
-        "args": (v8/*: any*/),
+        "args": (v9/*: any*/),
         "concreteType": "RunConnection",
         "kind": "LinkedField",
         "name": "allRuns",
@@ -234,7 +247,7 @@ return {
                 "name": "node",
                 "plural": false,
                 "selections": [
-                  (v9/*: any*/),
+                  (v10/*: any*/),
                   {
                     "args": null,
                     "kind": "FragmentSpread",
@@ -278,8 +291,8 @@ return {
                 "name": "node",
                 "plural": false,
                 "selections": [
-                  (v10/*: any*/),
-                  (v11/*: any*/)
+                  (v11/*: any*/),
+                  (v12/*: any*/)
                 ],
                 "storageKey": null
               }
@@ -299,9 +312,10 @@ return {
       (v2/*: any*/),
       (v3/*: any*/),
       (v5/*: any*/),
+      (v7/*: any*/),
       (v4/*: any*/),
       (v6/*: any*/),
-      (v7/*: any*/),
+      (v8/*: any*/),
       (v1/*: any*/),
       (v0/*: any*/)
     ],
@@ -310,7 +324,7 @@ return {
     "selections": [
       {
         "alias": null,
-        "args": (v8/*: any*/),
+        "args": (v9/*: any*/),
         "concreteType": "RunConnection",
         "kind": "LinkedField",
         "name": "allRuns",
@@ -346,7 +360,7 @@ return {
                 "name": "node",
                 "plural": false,
                 "selections": [
-                  (v9/*: any*/),
+                  (v10/*: any*/),
                   {
                     "alias": null,
                     "args": null,
@@ -354,7 +368,7 @@ return {
                     "name": "runId",
                     "storageKey": null
                   },
-                  (v11/*: any*/),
+                  (v12/*: any*/),
                   {
                     "alias": null,
                     "args": null,
@@ -391,8 +405,8 @@ return {
                     "name": "protocol",
                     "plural": false,
                     "selections": [
-                      (v11/*: any*/),
-                      (v9/*: any*/)
+                      (v12/*: any*/),
+                      (v10/*: any*/)
                     ],
                     "storageKey": null
                   }
@@ -429,9 +443,9 @@ return {
                 "name": "node",
                 "plural": false,
                 "selections": [
-                  (v10/*: any*/),
                   (v11/*: any*/),
-                  (v9/*: any*/)
+                  (v12/*: any*/),
+                  (v10/*: any*/)
                 ],
                 "storageKey": null
               }
@@ -444,14 +458,14 @@ return {
     ]
   },
   "params": {
-    "cacheID": "6676925f2a04e03b72f1cd5bad94f99d",
+    "cacheID": "7a20fc012e559a3f1400fdeb76d5d47b",
     "id": null,
     "metadata": {},
     "name": "RunsTableNew_Query",
     "operationKind": "query",
-    "text": "query RunsTableNew_Query(\n  $page: Int\n  $perPage: Int\n  $protocol: Int\n  $plate: String\n  $reagent: String\n  $sample: String\n  $creator: String\n  $archived: Boolean\n) {\n  allRuns(page: $page, perPage: $perPage, protocol: $protocol, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived) {\n    ...RunsTableNew_pagerData\n    edges {\n      node {\n        id\n        ...RunsTableNew_run\n      }\n    }\n  }\n  allProtocols {\n    edges {\n      node {\n        protocolId\n        name\n        id\n      }\n    }\n  }\n}\n\nfragment RunsTableNew_pagerData on RunConnection {\n  page\n  pageCount\n}\n\nfragment RunsTableNew_run on RunNode {\n  runId\n  name\n  createdBy\n  createdOn\n  updatedOn\n  status\n  protocol {\n    name\n    id\n  }\n}\n"
+    "text": "query RunsTableNew_Query(\n  $page: Int\n  $perPage: Int\n  $protocol: Int\n  $run: Int\n  $plate: String\n  $reagent: String\n  $sample: String\n  $creator: String\n  $archived: Boolean\n) {\n  allRuns(page: $page, perPage: $perPage, protocol: $protocol, run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived) {\n    ...RunsTableNew_pagerData\n    edges {\n      node {\n        id\n        ...RunsTableNew_run\n      }\n    }\n  }\n  allProtocols {\n    edges {\n      node {\n        protocolId\n        name\n        id\n      }\n    }\n  }\n}\n\nfragment RunsTableNew_pagerData on RunConnection {\n  page\n  pageCount\n}\n\nfragment RunsTableNew_run on RunNode {\n  runId\n  name\n  createdBy\n  createdOn\n  updatedOn\n  status\n  protocol {\n    name\n    id\n  }\n}\n"
   }
 };
 })();
-(node as any).hash = '640f9a6f231867da71079b76ba17d719';
+(node as any).hash = '6b02e857058f4e73853c09e147eabc47';
 export default node;

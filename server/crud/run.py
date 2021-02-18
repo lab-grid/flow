@@ -37,6 +37,7 @@ def crud_get_runs(
     current_user: Auth0ClaimsPatched,
 
     protocol: Optional[int] = None,
+    run: Optional[int] = None,
     plate: Optional[str] = None,
     reagent: Optional[str] = None,
     sample: Optional[str] = None,
@@ -53,6 +54,11 @@ def crud_get_runs(
             all_runs(db, archived)\
                 .join(ProtocolVersion, ProtocolVersion.id == Run.protocol_version_id)\
                 .filter(ProtocolVersion.protocol_id == protocol)
+        )
+    if run:
+        runs_queries.append(
+            all_runs(db, archived)\
+                .filter(Run.id == run)
         )
     if plate:
         run_version_query = all_runs(db, archived)\

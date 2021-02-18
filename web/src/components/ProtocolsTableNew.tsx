@@ -1,6 +1,6 @@
 import moment from "moment";
-import React from "react";
-import { Button, Table } from "react-bootstrap";
+import React, { useState } from "react";
+import { Button, Spinner, Table } from "react-bootstrap";
 import { graphql } from 'babel-plugin-relay/macro';
 import { Link, useHistory } from "react-router-dom";
 import { Paginator } from "./Paginator";
@@ -12,14 +12,14 @@ import { ProtocolsTableNew_Query, ProtocolsTableNew_QueryVariables } from "./__g
 import { LoadingPage } from "./LoadingPage";
 import environment from "../environment";
 import { useRecoilState, useRecoilCallback } from "recoil";
-import { Protocol } from "../models/protocol";
-import { upsertProtocol, FetchError } from "../state/api";
+import { exportProtocolsToCSV, Protocol } from "../models/protocol";
+import { upsertProtocol, FetchError, getProtocols } from "../state/api";
 import { errorsState, auth0State } from "../state/atoms";
 
 
 const protocolsQuery = graphql`
-query ProtocolsTableNew_Query($run: Int, $plate: String, $reagent: String, $sample: String, $creator: String, $archived: Boolean, $page: Int, $perPage: Int) {
-    allProtocols(run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived, page: $page, perPage: $perPage) {
+query ProtocolsTableNew_Query($protocol: Int, $run: Int, $plate: String, $reagent: String, $sample: String, $creator: String, $archived: Boolean, $page: Int, $perPage: Int) {
+    allProtocols(protocol: $protocol, run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived, page: $page, perPage: $perPage) {
         ...ProtocolsTableNew_pagerData
         edges {
             node {
@@ -112,6 +112,7 @@ const ProtocolsPagerFragment = createRefetchContainer(
 // <ProtocolsTable /> ---------------------------------------------------------
 
 export function ProtocolsTable({
+    protocolFilter,
     runFilter,
     plateFilter,
     reagentFilter,
@@ -119,10 +120,12 @@ export function ProtocolsTable({
     creatorFilter,
     archivedFilter,
 
+    hideHeader,
     hideActions,
     hideCreate,
     hideRefresh,
 }: {
+    protocolFilter?: number;
     runFilter?: number;
     plateFilter?: string;
     reagentFilter?: string;
@@ -130,11 +133,13 @@ export function ProtocolsTable({
     creatorFilter?: string;
     archivedFilter?: boolean;
 
+    hideHeader?: boolean;
     hideActions?: boolean;
     hideCreate?: boolean;
     hideRefresh?: boolean;
 }) {
     const history = useHistory();
+    const [exportingProtocols, setExportingProtocols] = useState(false);
     const [errors, setErrors] = useRecoilState(errorsState);
     const protocolUpsert = useRecoilCallback(({ snapshot }) => async (protocol: Protocol) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
@@ -158,28 +163,53 @@ export function ProtocolsTable({
             history.push(`/protocol/${created.id}`);
         }
     });
+    const exportProtocols = useRecoilCallback(({ snapshot }) => async () => {
+        setExportingProtocols(true);
+        try {
+            const { auth0Client } = await snapshot.getPromise(auth0State);
+            const protocols = await getProtocols(() => auth0Client, filterParams);
+            if (!protocols || !protocols.protocols) {
+                alert('No protocols were found to be exported!');
+                return;
+            }
+            exportProtocolsToCSV(`export-protocol-results-${moment().format()}.csv`, protocols.protocols, true);
+        } finally {
+            setExportingProtocols(false);
+        }
+    });
 
+    const filterParams: {[name: string]: string} = {};
     const variables: ProtocolsTableNew_QueryVariables = {
         page: 1,
         perPage: defaultPerPage,
     };
+    if (protocolFilter !== undefined && protocolFilter !== null) {
+        variables.protocol = protocolFilter;
+        filterParams.protocol = protocolFilter.toString();
+    }
     if (runFilter !== undefined) {
         variables.run = runFilter;
+        filterParams.run = runFilter.toString();
     }
     if (plateFilter !== undefined) {
         variables.plate = plateFilter;
+        filterParams.plate = plateFilter;
     }
     if (reagentFilter !== undefined) {
         variables.reagent = reagentFilter;
+        filterParams.reagent = reagentFilter;
     }
     if (sampleFilter !== undefined) {
         variables.sample = sampleFilter;
+        filterParams.sample = sampleFilter;
     }
     if (creatorFilter !== undefined) {
         variables.creator = creatorFilter;
+        filterParams.creator = creatorFilter;
     }
     if (archivedFilter !== undefined) {
         variables.archived = archivedFilter;
+        filterParams.archived = archivedFilter ? "true" : "false";
     }
     return <QueryRenderer<ProtocolsTableNew_Query>
         environment={environment}
@@ -194,6 +224,21 @@ export function ProtocolsTable({
                 }
         
                 return <>
+                    {
+                        !hideHeader && <div className="row w-100">
+                            <small className="col-auto my-auto">
+                                Protocols (<i>
+                                    <Button variant="link" size="sm" onClick={exportProtocols} disabled={exportingProtocols}>
+                                        Export to CSV {exportingProtocols && <Spinner size="sm" animation="border" />}
+                                    </Button>
+                                </i>)
+                            </small>
+                            <hr className="col my-auto" />
+                            <small className="col-auto my-auto">
+                                {(props.allProtocols.edges.length) || 0}
+                            </small>
+                        </div>
+                    }
                     <Table striped bordered hover responsive>
                         <thead>
                             <tr>

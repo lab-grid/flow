@@ -29,6 +29,7 @@ def crud_get_protocols(
     db: Session,
     current_user: Auth0ClaimsPatched,
 
+    protocol: Optional[int] = None,
     run: Optional[int] = None,
     plate: Optional[str] = None,
     reagent: Optional[str] = None,
@@ -39,6 +40,11 @@ def crud_get_protocols(
     per_page: Optional[int] = None,
 ) -> List[dict]:
     protocols_queries = []
+    if protocol:
+        protocols_queries.append(
+            all_protocols(db, archived)\
+                .filter(Protocol.id == protocol)
+        )
     if run:
         protocols_queries.append(
             all_protocols(db, archived)\

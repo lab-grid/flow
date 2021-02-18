@@ -1,16 +1,14 @@
 import React, { useState } from "react";
 import { Button, Form, Spinner } from "react-bootstrap";
 import { useRecoilCallback, useRecoilValue } from "recoil";
-import { ProtocolsTable } from "../components/ProtocolsTable";
-import { RunsTable } from "../components/RunsTable";
-import { protocolsQuery, runsQuery, samplesQuery, usersQuery } from "../state/selectors";
+import { ProtocolsTable } from "../components/ProtocolsTableNew";
+import { RunsTable } from "../components/RunsTableNew";
+import { samplesQuery, usersQuery } from "../state/selectors";
 import moment from 'moment';
 import { ResultsTable } from "../components/ResultsTable";
-import { exportProtocolsToCSV } from "../models/protocol";
-import { exportRunsToCSV } from "../models/run";
 import { exportSampleResultsToCSV } from "../models/sample-result";
 import { User } from "../models/user";
-import { getProtocols, getRuns, getSamples } from "../state/api";
+import { getSamples } from "../state/api";
 import { auth0State } from "../state/atoms";
 
 function ParametricSearch({
@@ -108,8 +106,6 @@ function ParametricSearch({
 
 export function SearchResultsPage() {
     const [queryTime, setQueryTime] = useState("");
-    const [protocolsPage, setProtocolsPage] = useState(1);
-    const [runsPage, setRunsPage] = useState(1);
     const [samplesPage, setSamplesPage] = useState(1);
     const [filterParams, setFilterParams] = useState<{[name: string]: string}>({});
     const [filterPlateId, setFilterPlateId] = useState("");
@@ -121,45 +117,11 @@ export function SearchResultsPage() {
     const [includeArchived, setIncludeArchived] = useState(false);
 
     const { users } = useRecoilValue(usersQuery({ queryTime }));
-    const protocolsParams = { ...filterParams, page: `${protocolsPage}` };
-    const runsParams = { ...filterParams, page: `${runsPage}` };
     const samplesParams = { ...filterParams, page: `${samplesPage}` };
-    const { protocols, pageCount: protocolsPageCount } = useRecoilValue(protocolsQuery({ queryTime, filterParams: protocolsParams }));
-    const { runs, pageCount: runsPageCount } = useRecoilValue(runsQuery({ queryTime, filterParams: runsParams }));
     const { samples, pageCount: samplesPageCount } = useRecoilValue(samplesQuery({ queryTime, filterParams: samplesParams }));
 
-    const [exportingProtocols, setExportingProtocols] = useState(false);
-    const [exportingRuns, setExportingRuns] = useState(false);
     const [exportingSamples, setExportingSamples] = useState(false);
 
-    const exportProtocols = useRecoilCallback(({ snapshot }) => async () => {
-        setExportingProtocols(true);
-        try {
-            const { auth0Client } = await snapshot.getPromise(auth0State);
-            const protocols = await getProtocols(() => auth0Client, filterParams);
-            if (!protocols || !protocols.protocols) {
-                alert('No protocols were found to be exported!');
-                return;
-            }
-            exportProtocolsToCSV(`export-protocol-results-${moment().format()}.csv`, protocols.protocols, true);
-        } finally {
-            setExportingProtocols(false);
-        }
-    });
-    const exportRuns = useRecoilCallback(({ snapshot }) => async () => {
-        setExportingRuns(true);
-        try {
-            const { auth0Client } = await snapshot.getPromise(auth0State);
-            const runs = await getRuns(() => auth0Client, filterParams);
-            if (!runs || !runs.runs) {
-                alert('No runs were found to be exported!');
-                return;
-            }
-            exportRunsToCSV(`export-run-results-${moment().format()}.csv`, runs.runs, true);
-        } finally {
-            setExportingRuns(false);
-        }
-    });
     const exportSamples = useRecoilCallback(({ snapshot }) => async () => {
         setExportingSamples(true);
         try {
@@ -227,22 +189,22 @@ export function SearchResultsPage() {
                 Search
             </Button>
         </Form>
-        <div className="row">
-            <small className="col-auto my-auto">Protocols (<i><Button variant="link" size="sm" onClick={exportProtocols} disabled={exportingProtocols}>Export to CSV {exportingProtocols && <Spinner size="sm" animation="border" />}</Button></i>)</small>
-            <hr className="col my-auto" />
-            <small className="col-auto my-auto">
-                {(protocols && protocols.length) || 0}
-            </small>
-        </div>
-        <ProtocolsTable protocols={protocols || []} page={protocolsPage} pageCount={protocolsPageCount} onPageChange={setProtocolsPage} />
-        <div className="row">
-            <small className="col-auto my-auto">Runs (<i><Button variant="link" size="sm" onClick={exportRuns} disabled={exportingRuns}>Export to CSV {exportingRuns && <Spinner size="sm" animation="border" />}</Button></i>)</small>
-            <hr className="col my-auto" />
-            <small className="col-auto my-auto">
-                {(runs && runs.length) || 0}
-            </small>
-        </div>
-        <RunsTable runs={runs || []} page={runsPage} pageCount={runsPageCount} onPageChange={setRunsPage} />
+        <ProtocolsTable
+            runFilter={filterRunId ? parseInt(filterRunId) : undefined}
+            plateFilter={filterPlateId}
+            reagentFilter={filterReagentId}
+            sampleFilter={filterSampleId}
+            creatorFilter={filterCreator}
+            archivedFilter={includeArchived}
+        />
+        <RunsTable
+            protocolFilter={filterProtocolId ? parseInt(filterProtocolId) : undefined}
+            plateFilter={filterPlateId}
+            reagentFilter={filterReagentId}
+            sampleFilter={filterSampleId}
+            creatorFilter={filterCreator}
+            archivedFilter={includeArchived}
+        />
         <div className="row">
             <small className="col-auto my-auto">Samples (<i><Button variant="link" size="sm" onClick={exportSamples} disabled={exportingSamples}>Export to CSV {exportingSamples && <Spinner size="sm" animation="border" />}</Button></i>)</small>
             <hr className="col my-auto" />

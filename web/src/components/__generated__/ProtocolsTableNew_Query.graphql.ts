@@ -5,6 +5,7 @@
 import { ConcreteRequest } from "relay-runtime";
 import { FragmentRefs } from "relay-runtime";
 export type ProtocolsTableNew_QueryVariables = {
+    protocol?: number | null;
     run?: number | null;
     plate?: string | null;
     reagent?: string | null;
@@ -34,6 +35,7 @@ export type ProtocolsTableNew_Query = {
 
 /*
 query ProtocolsTableNew_Query(
+  $protocol: Int
   $run: Int
   $plate: String
   $reagent: String
@@ -43,7 +45,7 @@ query ProtocolsTableNew_Query(
   $page: Int
   $perPage: Int
 ) {
-  allProtocols(run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived, page: $page, perPage: $perPage) {
+  allProtocols(protocol: $protocol, run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived, page: $page, perPage: $perPage) {
     ...ProtocolsTableNew_pagerData
     edges {
       node {
@@ -97,19 +99,24 @@ v4 = {
 v5 = {
   "defaultValue": null,
   "kind": "LocalArgument",
-  "name": "reagent"
+  "name": "protocol"
 },
 v6 = {
   "defaultValue": null,
   "kind": "LocalArgument",
-  "name": "run"
+  "name": "reagent"
 },
 v7 = {
   "defaultValue": null,
   "kind": "LocalArgument",
+  "name": "run"
+},
+v8 = {
+  "defaultValue": null,
+  "kind": "LocalArgument",
   "name": "sample"
 },
-v8 = [
+v9 = [
   {
     "kind": "Variable",
     "name": "archived",
@@ -137,6 +144,11 @@ v8 = [
   },
   {
     "kind": "Variable",
+    "name": "protocol",
+    "variableName": "protocol"
+  },
+  {
+    "kind": "Variable",
     "name": "reagent",
     "variableName": "reagent"
   },
@@ -151,7 +163,7 @@ v8 = [
     "variableName": "sample"
   }
 ],
-v9 = {
+v10 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
@@ -168,7 +180,8 @@ return {
       (v4/*: any*/),
       (v5/*: any*/),
       (v6/*: any*/),
-      (v7/*: any*/)
+      (v7/*: any*/),
+      (v8/*: any*/)
     ],
     "kind": "Fragment",
     "metadata": null,
@@ -176,7 +189,7 @@ return {
     "selections": [
       {
         "alias": null,
-        "args": (v8/*: any*/),
+        "args": (v9/*: any*/),
         "concreteType": "ProtocolConnection",
         "kind": "LinkedField",
         "name": "allProtocols",
@@ -198,7 +211,7 @@ return {
                 "name": "node",
                 "plural": false,
                 "selections": [
-                  (v9/*: any*/),
+                  (v10/*: any*/),
                   {
                     "args": null,
                     "kind": "FragmentSpread",
@@ -225,10 +238,11 @@ return {
   "kind": "Request",
   "operation": {
     "argumentDefinitions": [
-      (v6/*: any*/),
-      (v4/*: any*/),
       (v5/*: any*/),
       (v7/*: any*/),
+      (v4/*: any*/),
+      (v6/*: any*/),
+      (v8/*: any*/),
       (v1/*: any*/),
       (v0/*: any*/),
       (v2/*: any*/),
@@ -239,7 +253,7 @@ return {
     "selections": [
       {
         "alias": null,
-        "args": (v8/*: any*/),
+        "args": (v9/*: any*/),
         "concreteType": "ProtocolConnection",
         "kind": "LinkedField",
         "name": "allProtocols",
@@ -275,7 +289,7 @@ return {
                 "name": "node",
                 "plural": false,
                 "selections": [
-                  (v9/*: any*/),
+                  (v10/*: any*/),
                   {
                     "alias": null,
                     "args": null,
@@ -323,14 +337,14 @@ return {
     ]
   },
   "params": {
-    "cacheID": "85febddabd9704296a4459a774450500",
+    "cacheID": "ccc6a4112409affe1f7e0803b5af24b8",
     "id": null,
     "metadata": {},
     "name": "ProtocolsTableNew_Query",
     "operationKind": "query",
-    "text": "query ProtocolsTableNew_Query(\n  $run: Int\n  $plate: String\n  $reagent: String\n  $sample: String\n  $creator: String\n  $archived: Boolean\n  $page: Int\n  $perPage: Int\n) {\n  allProtocols(run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived, page: $page, perPage: $perPage) {\n    ...ProtocolsTableNew_pagerData\n    edges {\n      node {\n        id\n        ...ProtocolsTableNew_protocol\n      }\n    }\n  }\n}\n\nfragment ProtocolsTableNew_pagerData on ProtocolConnection {\n  page\n  pageCount\n}\n\nfragment ProtocolsTableNew_protocol on ProtocolNode {\n  protocolId\n  name\n  createdBy\n  createdOn\n  updatedOn\n}\n"
+    "text": "query ProtocolsTableNew_Query(\n  $protocol: Int\n  $run: Int\n  $plate: String\n  $reagent: String\n  $sample: String\n  $creator: String\n  $archived: Boolean\n  $page: Int\n  $perPage: Int\n) {\n  allProtocols(protocol: $protocol, run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived, page: $page, perPage: $perPage) {\n    ...ProtocolsTableNew_pagerData\n    edges {\n      node {\n        id\n        ...ProtocolsTableNew_protocol\n      }\n    }\n  }\n}\n\nfragment ProtocolsTableNew_pagerData on ProtocolConnection {\n  page\n  pageCount\n}\n\nfragment ProtocolsTableNew_protocol on ProtocolNode {\n  protocolId\n  name\n  createdBy\n  createdOn\n  updatedOn\n}\n"
   }
 };
 })();
-(node as any).hash = '9d19cfee13a67b729d9b43ece3be6910';
+(node as any).hash = 'aa52ec6b8942f972b922238dd1a4750b';
 export default node;

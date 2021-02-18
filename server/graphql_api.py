@@ -412,6 +412,7 @@ class Query(graphene.ObjectType):
         ProtocolConnection,
 
         # Search parameters
+        protocol=graphene.Int(required=False),
         run=graphene.Int(required=False),
         plate=graphene.String(required=False),
         reagent=graphene.String(required=False),
@@ -432,6 +433,7 @@ class Query(graphene.ObjectType):
 
         # Search parameters
         protocol=graphene.Int(required=False),
+        run=graphene.Int(required=False),
         plate=graphene.String(required=False),
         reagent=graphene.String(required=False),
         sample=graphene.String(required=False),
@@ -502,6 +504,7 @@ class Query(graphene.ObjectType):
 
         # Search parameters
         run: Optional[int] = None,
+        protocol: Optional[int] = None,
         plate: Optional[str] = None,
         reagent: Optional[str] = None,
         sample: Optional[str] = None,
@@ -529,6 +532,7 @@ class Query(graphene.ObjectType):
                 db=db,
                 current_user=current_user,
 
+                protocol=protocol,
                 run=run,
                 plate=plate,
                 reagent=reagent,
@@ -590,6 +594,7 @@ class Query(graphene.ObjectType):
 
         # Search parameters
         protocol: Optional[int] = None,
+        run: Optional[int] = None,
         plate: Optional[str] = None,
         reagent: Optional[str] = None,
         sample: Optional[str] = None,
@@ -618,6 +623,7 @@ class Query(graphene.ObjectType):
                 current_user=current_user,
 
                 protocol=protocol,
+                run=run,
                 plate=plate,
                 reagent=reagent,
                 sample=sample,

@@ -223,9 +223,9 @@ type ProtocolNode implements Node {
 type Query {
   node(id: ID!): Node
   protocol(id: ID!): ProtocolNode
-  allProtocols(run: Int, plate: String, reagent: String, sample: String, creator: String, archived: Boolean, page: Int, perPage: Int, before: String, after: String, first: Int, last: Int): ProtocolConnection
+  allProtocols(protocol: Int, run: Int, plate: String, reagent: String, sample: String, creator: String, archived: Boolean, page: Int, perPage: Int, before: String, after: String, first: Int, last: Int): ProtocolConnection
   run(id: ID!): RunNode
-  allRuns(protocol: Int, plate: String, reagent: String, sample: String, creator: String, archived: Boolean, page: Int, perPage: Int, before: String, after: String, first: Int, last: Int): RunConnection
+  allRuns(protocol: Int, run: Int, plate: String, reagent: String, sample: String, creator: String, archived: Boolean, page: Int, perPage: Int, before: String, after: String, first: Int, last: Int): RunConnection
   user(id: ID!): UserNode
   allUsers(archived: Boolean, page: Int, perPage: Int, before: String, after: String, first: Int, last: Int): UserConnection
   sample(id: ID!): SampleNode
