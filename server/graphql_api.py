@@ -350,7 +350,7 @@ class RunNode(VersionedPydanticObjectType):
                     Run.protocol_version_id == ProtocolVersion.id,
                 ))\
                 .first()
-            protocol = fix_plate_markers_protocol(row_version.protocol)
+            protocol = fix_plate_markers_protocol(db, row_version.protocol)
             return ProtocolModel.parse_obj(add_ids(versioned_row_to_dict(protocol, protocol.current), protocol_id=protocol.id))
 
     @staticmethod
