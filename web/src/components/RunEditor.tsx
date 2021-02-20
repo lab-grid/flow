@@ -66,13 +66,13 @@ export function RunEditor({
         }
     };
 
-    const syncRun = (override?: Run) => {
+    const syncRun = async (override?: Run) => {
         const newRun = Object.assign({}, run, override);
         newRun.status = calculateRunStatus(newRun);
 
         setFormSaving(true);
         try {
-            return runUpsert(newRun);
+            return await runUpsert(newRun);
         } catch (e) {
             if (e instanceof FetchError) {
                 const err: FetchError = e;

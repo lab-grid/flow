@@ -818,11 +818,12 @@ function RunBlockStartTimestampEditor({ disabled, definition, timestampLabel, se
                                 setStartedOn(moment(start).format());
                             }
                         }}
+                        disabled={disabled}
                         placeholderText="Click here to set a date/time..."
                         todayButton="Now"
                         showTimeSelect
                         dateFormat="Pp"
-                        customInput={<Form.Control />}
+                        customInput={<Form.Control disabled={disabled} />}
                     />
                     <InputGroup.Append>
                         <Button variant="secondary" onClick={() => setStartedOn(moment().format())}>Now</Button>
@@ -865,11 +866,12 @@ function RunBlockEndTimestampEditor({ disabled, definition, timestampLabel, setT
                                 setEndedOn(moment(start).format());
                             }
                         }}
+                        disabled={disabled}
                         placeholderText="Click here to set a date/time..."
                         todayButton="Now"
                         showTimeSelect
                         dateFormat="Pp"
-                        customInput={<Form.Control />}
+                        customInput={<Form.Control disabled={disabled} />}
                     />
                     <InputGroup.Append>
                         <Button variant="secondary" onClick={() => setEndedOn(moment().format())}>Now</Button>
