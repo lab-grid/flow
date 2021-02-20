@@ -126,7 +126,7 @@ export function RunEditor({
             <DocumentTitle
                 disableSharing={disableSharing}
                 disablePrint={disablePrint}
-                disabled={disabled}
+                disabled={isCompleted || disabled}
                 className="row"
                 targetName="Run"
                 targetPath={`run/${run.id}`}
@@ -151,7 +151,7 @@ export function RunEditor({
                 }
                 return <RunSectionEditor
                     key={section.definition.id}
-                    disabled={isCompleted || disabled}
+                    disabled={disabled}
                     runId={(run && run.id) || -1}
                     index={i}
                     section={section}

@@ -697,6 +697,7 @@ function RunBlockStartPlateSequencerEditor({ disabled, definition, plateLabels, 
             <InputGroup>
                 <DatePicker
                     selected={startedOn ? moment(startedOn).toDate() : undefined}
+                    disabled={disabled}
                     onChange={start => {
                         if (start && (start instanceof Date)) {
                             setStartedOn(moment(start).format());
@@ -706,7 +707,7 @@ function RunBlockStartPlateSequencerEditor({ disabled, definition, plateLabels, 
                     todayButton="Now"
                     showTimeSelect
                     dateFormat="Pp"
-                    customInput={<Form.Control />}
+                    customInput={<Form.Control disabled={disabled} />}
                 />
                 <InputGroup.Append>
                     <Button variant="secondary" onClick={() => setStartedOn(moment().format())}>Now</Button>
