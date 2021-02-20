@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import Request, Response, HTTPException
 from fastapi.security.http import HTTPBearer
 
-from database import Protocol, ProtocolVersion, Run, RunVersion, User, UserVersion, Sample, SampleVersion, versioned_row_to_dict
+from database import Protocol, ProtocolVersion, Run, RunVersion, User, UserVersion, Sample, SampleVersion, versioned_row_to_dict, fix_plate_markers_protocol
 from models import SampleResult, ProtocolModel, RunModel, UserModel, SectionDefinition
 from server import app, Session, get_current_user
 from crud.run import crud_get_runs, crud_get_run, crud_get_run_samples, crud_get_run_sample
@@ -350,7 +350,8 @@ class RunNode(VersionedPydanticObjectType):
                     Run.protocol_version_id == ProtocolVersion.id,
                 ))\
                 .first()
-            return ProtocolModel.parse_obj(add_ids(versioned_row_to_dict(row_version.protocol, row_version.protocol.current), protocol_id=row_version.protocol_id))
+            protocol = fix_plate_markers_protocol(row_version.protocol)
+            return ProtocolModel.parse_obj(add_ids(versioned_row_to_dict(protocol, protocol.current), protocol_id=protocol.id))
 
     @staticmethod
     def resolve_owner(root, info):
