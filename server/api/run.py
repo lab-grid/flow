@@ -1,7 +1,7 @@
-import copy
 import io
 import jsonpatch
 import re
+import json
 import logging
 
 from functools import reduce, wraps
@@ -45,6 +45,7 @@ def extract_protocol_id(run_dict):
 
 
 def get_samples(run_version, protocol_version):
+    sample_ids = set()
     samples = []
     markers = {}
     results = {}
@@ -75,6 +76,10 @@ def get_samples(run_version, protocol_version):
                         for plate_sample in plate_mapping['coordinates']:
                             if not plate_sample or 'sampleLabel' not in plate_sample:
                                 continue
+                            if f"{plate_id}-{plate_sample['sampleLabel']}" in sample_ids:
+                                logger.warn(f"Skipping duplicate sample: {json.dumps(plate_sample)}")
+                                continue
+                            sample_ids.add(f"{plate_id}-{plate_sample['sampleLabel']}")
                             sample = Sample(
                                 sample_id=f"{plate_sample['sampleLabel']}",
                                 plate_id=plate_id,
@@ -104,6 +109,8 @@ def get_samples(run_version, protocol_version):
                 if block['type'] == 'end-plate-sequencer' and 'plateMarkers' in block and block['plateMarkers'] is not None:
                     for marker in block['plateMarkers']:
                         markers[f"{marker['plateIndex']}-{marker['plateRow']}-{marker['plateColumn']}"] = marker
+
+    logger.info(f"Found {len(samples)} samples, {len(markers)} markers, {len(results)} results")
 
     for sample in samples:
         sample.current.data['signers'] = signers
