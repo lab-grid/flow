@@ -549,6 +549,11 @@ class Query(graphene.ObjectType):
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
+        import pprint
+        print("==============================================================")
+        pprint.pprint(info)
+        print("==============================================================")
+
         with Session() as db:
             pagination_dict = crud_get_protocols(
                 item_to_dict=lambda protocol: add_ids(versioned_row_to_dict(protocol, protocol.current), protocol_id=protocol.id),

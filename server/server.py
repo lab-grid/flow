@@ -2,21 +2,18 @@ import logging
 
 from contextlib import contextmanager
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi_cloudauth.auth0 import Auth0, Auth0Claims, Auth0CurrentUser
-from fastapi_cloudauth.base import BaseTokenVerifier, JWKS
+from fastapi_cloudauth.auth0 import Auth0, Auth0CurrentUser
 from fastapi_utils.timing import add_timing_middleware
 
-from typing import Optional, Type
 from pydantic import BaseModel, Field
-from pydantic.error_wrappers import ValidationError
-from jose import jwk, jwt
-from starlette import status
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+from easy_profile import StreamReporter
+from easy_profile_asgi import EasyProfileMiddleware
 
 from settings import settings
 
@@ -108,6 +105,10 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+app.add_middleware(
+    EasyProfileMiddleware,
+    reporter=StreamReporter(display_duplicates=100)
 )
 
 add_timing_middleware(app, record=logger.info)

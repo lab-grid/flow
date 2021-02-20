@@ -12,6 +12,7 @@ graphene = "*"
 graphene-pydantic = {git = "https://github.com/lab-grid/graphene-pydantic.git", editable = false, ref = "literal-types-0.1.0"}
 jsonpatch = "*"
 sqlalchemy = "*"
+sqlalchemy-easy-profile = "*"
 pydantic = "*"
 uvicorn = "*"
 python-multipart = "*"
