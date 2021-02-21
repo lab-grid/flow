@@ -225,7 +225,7 @@ function RunBlockPlateLabelUploader({ disabled, name, wells, plateLabel, plateIn
             <Form.Control
                 disabled={true}
                 placeholder={plateLabel ? `Plate ID: ${plateLabel}. Barcodes saved...` : "Upload sample barcodes csv"}
-                aria-label={plateLabel ? `Plate ID: ${plateLabel}. Barcides saved...` : "Upload sample barcodes csv"}
+                aria-label={plateLabel ? `Plate ID: ${plateLabel}. Barcodes saved...` : "Upload sample barcodes csv"}
             />
             <InputGroup.Append>
                 {name && <InputGroup.Text>{name}</InputGroup.Text>}

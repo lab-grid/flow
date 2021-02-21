@@ -1,6 +1,7 @@
 import logging
 
 from contextlib import contextmanager
+from typing import Generator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +11,7 @@ from fastapi_utils.timing import add_timing_middleware
 from pydantic import BaseModel, Field
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 
 from easy_profile import StreamReporter
 from easy_profile_asgi import EasyProfileMiddleware
@@ -57,9 +58,9 @@ def SessionTransaction():
         db.close()
 
 @contextmanager
-def Session():
+def Session() -> Generator[Session, None, None]:
     """Provide a transactional scope around a series of operations."""
-    db = SessionLocal()
+    db: Session = SessionLocal()
     try:
         yield db
     finally:

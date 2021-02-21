@@ -8,7 +8,6 @@ from sqlalchemy.orm import relationship, Session
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.ext.declarative import declared_attr, declarative_base
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.sql import func
 
 
 logger = logging.getLogger(__name__)
@@ -145,26 +144,28 @@ def run_to_sample(sample):
 
 # Searching -------------------------------------------------------------------
 
-
-def filter_by_plate_label(run_version_query, plate_id):
-    return run_version_query.filter(
-        or_(
-            func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].plateLabels."{plate_id}"'),
-            func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].mappings."{plate_id}"'),
-            func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plateLabel ? (@ == "{plate_id}"))')
-        )
+def filter_by_plate_label_filter(plate_id: str):
+    return or_(
+        func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].plateLabels."{plate_id}"'),
+        func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].mappings."{plate_id}"'),
+        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plateLabel ? (@ == "{plate_id}"))')
     )
 
-def filter_by_reagent_label(run_version_query, reagent_id):
-    return run_version_query.filter(
-        # TODO: FIXME. This doesn't work if we remove repeated definitions.
-        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].definition.reagentLabel ? (@ == "{reagent_id}"))')
-    )
+def filter_by_reagent_label_filter(reagent_id: str):
+    # TODO: FIXME. This doesn't work if we remove repeated definitions.
+    return func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].definition.reagentLabel ? (@ == "{reagent_id}"))')
 
-def filter_by_sample_label(run_version_query, sample_id):
-    return run_version_query.filter(
-        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plates[*].coordinates[*].sampleLabel ? (@ == "{sample_id}"))')
-    )
+def filter_by_sample_label_filter(sample_id: str):
+    return func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plates[*].coordinates[*].sampleLabel ? (@ == "{sample_id}"))')
+
+def filter_by_plate_label(run_version_query, plate_id: str):
+    return run_version_query.filter(filter_by_plate_label_filter(plate_id))
+
+def filter_by_reagent_label(run_version_query, reagent_id: str):
+    return run_version_query.filter(filter_by_reagent_label_filter(reagent_id))
+
+def filter_by_sample_label(run_version_query, sample_id: str):
+    return run_version_query.filter(filter_by_sample_label_filter(sample_id))
 
 
 # Tables ----------------------------------------------------------------------
