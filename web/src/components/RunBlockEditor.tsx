@@ -427,7 +427,7 @@ function RunBlockFileUploader({ disabled, runId, label, fileData, setFileData }:
             label={fileData ? "File saved. Upload new file(s)" : "Upload new file(s)"}
             onChange={uploadFile}
         />
-        {(fileData || []).map(attachment =>
+        {(fileData || []).map((attachment, i) =>
             <div className="d-flex" key={attachment.id}>
                 <Button
                     className="mr-auto my-auto"
@@ -436,7 +436,7 @@ function RunBlockFileUploader({ disabled, runId, label, fileData, setFileData }:
                 >
                     {attachment.name}
                 </Button>
-                <Button variant="outline-danger" size="sm" onClick={() => attachment.id && deleteFile(attachment.id)}><Trash /></Button>
+                <Button variant="outline-danger" size="sm" onClick={() => deleteFile(i)}><Trash /></Button>
             </div>
         )}
     </Form.Group>
