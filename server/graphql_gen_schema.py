@@ -1,4 +1,4 @@
-from graphql_api import schema
+from api_graphql.schema import schema
 from graphql.utils import schema_printer
 
 def write_schema():
