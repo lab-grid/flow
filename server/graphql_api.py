@@ -25,6 +25,9 @@ from crud.sample import crud_get_samples, crud_get_sample
 import models
 
 
+def get_session(info: ResolveInfo) -> Session:
+    return getattr(info.context['request'].state, 'session', None)
+
 def get_current_user_from_request(request: Request) -> Auth0CurrentUserPatched:
     return getattr(request.state, 'user', None)
 
@@ -134,53 +137,54 @@ def graphql_crud_get_runs(
         jsonb_fields.append(field)
         select_args.append(RunVersion.data[field].label(field))
 
-    with Session() as db:
-        # Join with additional tables as necessary for search params.
-        from_tables = OrderedDict()
-        filters = []
-        
-        if protocol is not None:
-            from_tables[ProtocolVersion] = ProtocolVersion.id == Run.protocol_version_id
-            filters.append(ProtocolVersion.protocol_id == protocol)
-        if run is not None:
-            filters.append(Run.id == run)
-        if plate is not None:
-            filters.append(filter_by_plate_label_filter(plate))
-        if reagent is not None:
-            filters.append(filter_by_reagent_label_filter(reagent))
-        if sample is not None:
-            filters.append(filter_by_sample_label_filter(reagent))
-        if creator is not None:
-            filters.append(Run.created_by == creator)
-        if archived is None or archived == False:
-            filters.append(Run.is_deleted == False)
+    db = get_session(info)
 
-        query = db.query(*select_args)\
-            .select_from(Run)\
-            .join(RunVersion, RunVersion.id == Run.version_id)
-        for join_cls, join_filter in from_tables.values():
-            query = query.join(join_cls, join_filter)
-        
-        # Apply search filters.
-        for search_filter in filters:
-            query = query.filter(search_filter)
+    # Join with additional tables as necessary for search params.
+    from_tables = OrderedDict()
+    filters = []
+    
+    if protocol:
+        from_tables[ProtocolVersion] = ProtocolVersion.id == Run.protocol_version_id
+        filters.append(ProtocolVersion.protocol_id == protocol)
+    if run:
+        filters.append(Run.id == run)
+    if plate:
+        filters.append(filter_by_plate_label_filter(plate))
+    if reagent:
+        filters.append(filter_by_reagent_label_filter(reagent))
+    if sample:
+        filters.append(filter_by_sample_label_filter(reagent))
+    if creator:
+        filters.append(Run.created_by == creator)
+    if archived is None or archived == False:
+        filters.append(Run.is_deleted == False)
 
-        # Get results
-        query = query.distinct().order_by(Run.created_on.desc())
-        rows = [
-            run
-            for run
-            in query
-            if check_access(user=current_user.username, path=f"/run/{str(run.id)}", method="GET")
-        ]
+    query = db.query(*select_args)\
+        .select_from(Run)\
+        .join(RunVersion, RunVersion.id == Run.version_id)
+    for join_cls, join_filter in from_tables.values():
+        query = query.join(join_cls, join_filter)
+    
+    # Apply search filters.
+    for search_filter in filters:
+        query = query.filter(search_filter)
 
-        return paginatify(
-            items_label='runs',
-            items=rows,
-            item_to_dict=lambda run: RunModel.parse_obj(run._asdict()),
-            page=page,
-            per_page=per_page,
-        )
+    # Get results
+    query = query.distinct().order_by(Run.created_on.desc())
+    rows = [
+        run
+        for run
+        in query
+        if check_access(user=current_user.username, path=f"/run/{str(run.id)}", method="GET")
+    ]
+
+    return paginatify(
+        items_label='runs',
+        items=rows,
+        item_to_dict=lambda run: RunModel.parse_obj(run._asdict()),
+        page=page,
+        per_page=per_page,
+    )
 
 def graphql_crud_get_protocols(
     current_user: Auth0CurrentUserPatched,
@@ -229,59 +233,173 @@ def graphql_crud_get_protocols(
         jsonb_fields.append(field)
         select_args.append(ProtocolVersion.data[field].label(field))
 
-    with Session() as db:
-        # Join with additional tables as necessary for search params.
-        from_tables = OrderedDict()
-        filters = []
-        
-        if protocol is not None:
-            filters.append(Protocol.id == protocol)
-        if run is not None:
-            from_tables[Run] = Run.protocol_version_id == ProtocolVersion.id
-            filters.append(Run.id == run)
-        if plate is not None:
-            from_tables[Run] = Run.protocol_version_id == ProtocolVersion.id
-            from_tables[RunVersion] = RunVersion.id == Run.version_id
-            filters.append(filter_by_plate_label_filter(plate))
-        if reagent is not None:
-            from_tables[Run] = Run.protocol_version_id == ProtocolVersion.id
-            from_tables[RunVersion] = RunVersion.id == Run.version_id
-            filters.append(filter_by_reagent_label_filter(reagent))
-        if sample is not None:
-            from_tables[Run] = Run.protocol_version_id == ProtocolVersion.id
-            from_tables[RunVersion] = RunVersion.id == Run.version_id
-            filters.append(filter_by_sample_label_filter(reagent))
-        if creator is not None:
-            filters.append(Protocol.created_by == creator)
-        if archived is None or archived == False:
-            filters.append(Protocol.is_deleted == False)
+    db = get_session(info)
 
-        query = db.query(*select_args)\
-            .select_from(Protocol)\
-            .join(ProtocolVersion, ProtocolVersion.id == Protocol.version_id)
-        for join_cls, join_filter in from_tables.values():
-            query = query.join(join_cls, join_filter)
-        
-        # Apply search filters.
-        for search_filter in filters:
-            query = query.filter(search_filter)
+    # Join with additional tables as necessary for search params.
+    from_tables = OrderedDict()
+    filters = []
+    
+    if protocol:
+        filters.append(Protocol.id == protocol)
+    if run:
+        from_tables[Run] = Run.protocol_version_id == ProtocolVersion.id
+        filters.append(Run.id == run)
+    if plate:
+        from_tables[Run] = Run.protocol_version_id == ProtocolVersion.id
+        from_tables[RunVersion] = RunVersion.id == Run.version_id
+        filters.append(filter_by_plate_label_filter(plate))
+    if reagent:
+        from_tables[Run] = Run.protocol_version_id == ProtocolVersion.id
+        from_tables[RunVersion] = RunVersion.id == Run.version_id
+        filters.append(filter_by_reagent_label_filter(reagent))
+    if sample:
+        from_tables[Run] = Run.protocol_version_id == ProtocolVersion.id
+        from_tables[RunVersion] = RunVersion.id == Run.version_id
+        filters.append(filter_by_sample_label_filter(reagent))
+    if creator:
+        filters.append(Protocol.created_by == creator)
+    if archived is None or archived == False:
+        filters.append(Protocol.is_deleted == False)
 
-        # Get results
-        query = query.distinct().order_by(Protocol.created_on.desc())
-        rows = [
-            protocol
-            for protocol
-            in query
-            if check_access(user=current_user.username, path=f"/protocol/{str(protocol.id)}", method="GET")
-        ]
+    query = db.query(*select_args)\
+        .select_from(Protocol)\
+        .join(ProtocolVersion, ProtocolVersion.id == Protocol.version_id)
+    for join_cls, join_filter in from_tables.items():
+        query = query.join(join_cls, join_filter)
+    
+    # Apply search filters.
+    for search_filter in filters:
+        query = query.filter(search_filter)
 
-        return paginatify(
-            items_label='protocols',
-            items=rows,
-            item_to_dict=lambda protocol: ProtocolModel.parse_obj(protocol._asdict()),
-            page=page,
-            per_page=per_page,
-        )
+    # Get results
+    query = query.distinct().order_by(Protocol.created_on.desc())
+    rows = [
+        protocol
+        for protocol
+        in query
+        if check_access(user=current_user.username, path=f"/protocol/{str(protocol.id)}", method="GET")
+    ]
+
+    return paginatify(
+        items_label='protocols',
+        items=rows,
+        item_to_dict=lambda protocol: ProtocolModel.parse_obj(protocol._asdict()),
+        page=page,
+        per_page=per_page,
+    )
+
+def graphql_crud_get_samples(
+    current_user: Auth0CurrentUserPatched,
+    info: ResolveInfo,
+
+    # Search parameters
+    protocol: Optional[int] = None,
+    run: Optional[int] = None,
+    plate: Optional[str] = None,
+    reagent: Optional[str] = None,
+    sample: Optional[str] = None,
+    creator: Optional[str] = None,
+    archived: Optional[bool] = None,
+
+    # Paging parameters
+    page: Optional[int] = None,
+    per_page: Optional[int] = None,
+):
+    # Calculate which top level fields to remove.
+    top_level_ignore = {'sample_id', 'plate_id', 'run_version_id', 'protocol_version_id', 'created_by', 'created_on', 'updated_by', 'updated_on', 'run_id', 'protocol_id'}
+
+    # Flatten `info` parameter into jsonb_query_path statements.
+    select_args = []
+    top_level = set()
+    for result in graphql_ast_flatten_field(info.field_asts[0], info.fragments, info.return_type, info.schema):
+        result_parts = result.split('.')
+        if len(result_parts) > 3 and result_parts[3] not in top_level_ignore:
+            top_level.add(result_parts[3])
+    jsonb_fields = [
+        'sampleID',
+        'sample_id',
+        'plateID',
+        'plate_id',
+        'run_version_id',
+        'protocol_version_id',
+        'created_by',
+        'created_on',
+        'updated_by',
+        'updated_on',
+        'run_id',
+        'runID',
+        'protocol_id',
+        'protocolID',
+    ]
+    select_args = [
+        Sample.sample_id.label('sample_id'),
+        Sample.sample_id.label('sampleID'),
+        Sample.plate_id.label('plate_id'),
+        Sample.plate_id.label('plateID'),
+        Sample.run_version_id.label('run_version_id'),
+        Sample.protocol_version_id.label('protocol_version_id'),
+        Sample.created_by.label('created_by'),
+        Sample.created_on.label('created_on'),
+        SampleVersion.updated_by.label('updated_by'),
+        SampleVersion.updated_on.label('updated_on'),
+        RunVersion.run_id.label('run_id'),
+        RunVersion.run_id.label('runID'),
+        ProtocolVersion.protocol_id.label('protocol_id'),
+        ProtocolVersion.protocol_id.label('protocolID'),
+    ]
+    for field in top_level:
+        jsonb_fields.append(field)
+        select_args.append(SampleVersion.data[field].label(field))
+
+    db = get_session(info)
+
+    # Join with additional tables as necessary for search params.
+    from_tables = OrderedDict()
+    filters = []
+    
+    if protocol:
+        filters.append(ProtocolVersion.protocol_id == protocol)
+    if run:
+        filters.append(RunVersion.run_id == run)
+    if plate:
+        filters.append(Sample.plate_id == plate)
+    if reagent:
+        filters.append(filter_by_reagent_label_filter(reagent))
+    if sample:
+        filters.append(Sample.sample_id == sample)
+    if creator:
+        filters.append(Sample.created_by == creator)
+    if archived is None or archived == False:
+        filters.append(Sample.is_deleted == False)
+
+    query = db.query(*select_args)\
+        .select_from(Sample)\
+        .join(SampleVersion, SampleVersion.id == Sample.version_id)\
+        .join(RunVersion, RunVersion.id == Sample.run_version_id)\
+        .join(ProtocolVersion, ProtocolVersion.id == Sample.protocol_version_id)
+    for join_cls, join_filter in from_tables.items():
+        query = query.join(join_cls, join_filter)
+    
+    # Apply search filters.
+    for search_filter in filters:
+        query = query.filter(search_filter)
+
+    # Get results
+    query = query.distinct().order_by(Sample.created_on.desc())
+    rows = [
+        sample
+        for sample
+        in query
+        if check_access(user=current_user.username, path=f"/run/{str(sample.run_id)}", method="GET")
+    ]
+
+    return paginatify(
+        items_label='samples',
+        items=rows,
+        item_to_dict=lambda sample: SampleResult.parse_obj(sample._asdict()),
+        page=page,
+        per_page=per_page,
+    )
 
 
 # Pydantic Schema Classes -----------------------------------------------------
@@ -507,15 +625,15 @@ class VersionedPydanticObjectType(PydanticObjectType):
         abstract = True
 
     @classmethod
-    def get_node(cls, info, id):
-        with Session() as db:
-            row = db.query(cls._meta.db_model)\
-                .filter(and_(
-                    cls._meta.db_model.is_deleted != True,
-                    cls._meta.db_model.id == id,
-                ))\
-                .first()
-            return cls._meta.model.parse_obj(versioned_row_to_dict(row, row.current))
+    def get_node(cls, info: ResolveInfo, id):
+        db = get_session(info)
+        row = db.query(cls._meta.db_model)\
+            .filter(and_(
+                cls._meta.db_model.is_deleted != True,
+                cls._meta.db_model.id == id,
+            ))\
+            .first()
+        return cls._meta.model.parse_obj(versioned_row_to_dict(row, row.current))
 
 
 def add_ids(input: dict, **kwargs) -> dict:
@@ -548,15 +666,15 @@ class SampleNode(VersionedPydanticObjectType):
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
-        with Session() as db:
-            return UserModel.parse_obj(
-                crud_get_user(
-                    item_to_dict=lambda user: versioned_row_to_dict(user, user.current),
-                    db=db,
-                    current_user=current_user,
-                    user_id=root.created_by,
-                ),
-            )
+        db = get_session(info)
+        return UserModel.parse_obj(
+            crud_get_user(
+                item_to_dict=lambda user: versioned_row_to_dict(user, user.current),
+                db=db,
+                current_user=current_user,
+                user_id=root.created_by,
+            ),
+        )
 
 class SampleConnection(relay.Connection):
     class Meta:
@@ -578,15 +696,15 @@ class ProtocolNode(VersionedPydanticObjectType):
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
-        with Session() as db:
-            return UserModel.parse_obj(
-                crud_get_user(
-                    item_to_dict=lambda user: versioned_row_to_dict(user, user.current),
-                    db=db,
-                    current_user=current_user,
-                    user_id=root.created_by,
-                ),
-            )
+        db = get_session(info)
+        return UserModel.parse_obj(
+            crud_get_user(
+                item_to_dict=lambda user: versioned_row_to_dict(user, user.current),
+                db=db,
+                current_user=current_user,
+                user_id=root.created_by,
+            ),
+        )
 
 class ProtocolConnection(relay.Connection):
     class Meta:
@@ -640,16 +758,16 @@ class RunNode(VersionedPydanticObjectType):
             jsonb_fields.append(field)
             select_args.append(ProtocolVersion.data[field].label(field))
 
-        with Session() as db:
-            row_version = db.query(*select_args)\
-                .select_from(ProtocolVersion)\
-                .join(Run, and_(
-                    Run.id == root.id,
-                    Run.protocol_version_id == ProtocolVersion.id,
-                ))\
-                .join(Protocol, Protocol.id == ProtocolVersion.protocol_id)\
-                .first()
-            return ProtocolModel.parse_obj(row_version._asdict())
+        db = get_session(info)
+        row_version = db.query(*select_args)\
+            .select_from(ProtocolVersion)\
+            .join(Run, and_(
+                Run.id == root.id,
+                Run.protocol_version_id == ProtocolVersion.id,
+            ))\
+            .join(Protocol, Protocol.id == ProtocolVersion.protocol_id)\
+            .first()
+        return ProtocolModel.parse_obj(row_version._asdict())
 
     @staticmethod
     def resolve_owner(root, info):
@@ -657,20 +775,20 @@ class RunNode(VersionedPydanticObjectType):
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
-        with Session() as db:
-            return UserModel.parse_obj(
-                crud_get_user(
-                    item_to_dict=lambda user: add_ids(versioned_row_to_dict(user, user.current), user_id=user.id),
-                    db=db,
-                    current_user=current_user,
-                    user_id=root.created_by,
-                ),
-            )
+        db = get_session(info)
+        return UserModel.parse_obj(
+            crud_get_user(
+                item_to_dict=lambda user: add_ids(versioned_row_to_dict(user, user.current), user_id=user.id),
+                db=db,
+                current_user=current_user,
+                user_id=root.created_by,
+            ),
+        )
 
     @staticmethod
     def resolve_samples(
         root,
-        info,
+        info: ResolveInfo,
 
         # Paging parameters
         page: Optional[int] = None,
@@ -680,37 +798,37 @@ class RunNode(VersionedPydanticObjectType):
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
-        with Session() as db:
-            pagination_dict = crud_get_run_samples(
-                item_to_dict=lambda sample: versioned_row_to_dict(sample, sample.current),
-                
-                db=db,
-                current_user=current_user,
+        db = get_session(info)
+        pagination_dict = crud_get_run_samples(
+            item_to_dict=lambda sample: versioned_row_to_dict(sample, sample.current),
+            
+            db=db,
+            current_user=current_user,
 
-                run_id=root.run_id,
+            run_id=root.run_id,
 
-                page=page,
-                per_page=per_page,
-            )
+            page=page,
+            per_page=per_page,
+        )
 
-            return SampleConnection(
-                page=pagination_dict.get('page', None),
-                pageCount=pagination_dict.get('pageCount', None),
-                edges=[
-                    SampleConnection.Edge(
-                        node=SampleResult.parse_obj(r),
-                        cursor=f"{pagination_dict.get('page', 1)}.{i}",
-                    )
-                    for i, r
-                    in enumerate(pagination_dict['samples'])
-                ],
-                page_info=relay.PageInfo(
-                    has_next_page=pagination_dict.get('page', 1) < pagination_dict.get('pageCount', 1),
-                    has_previous_page=pagination_dict.get('page', 1) > pagination_dict.get('pageCount', 1),
-                    start_cursor="1.0",
-                    end_cursor=f"1.{len(pagination_dict['samples'])}" if pagination_dict.get('pageCount', None) is None else f"{pagination_dict['pageCount']}.{len(pagination_dict['samples'])}",
-                ),
-            )
+        return SampleConnection(
+            page=pagination_dict.get('page', None),
+            pageCount=pagination_dict.get('pageCount', None),
+            edges=[
+                SampleConnection.Edge(
+                    node=SampleResult.parse_obj(r),
+                    cursor=f"{pagination_dict.get('page', 1)}.{i}",
+                )
+                for i, r
+                in enumerate(pagination_dict['samples'])
+            ],
+            page_info=relay.PageInfo(
+                has_next_page=pagination_dict.get('page', 1) < pagination_dict.get('pageCount', 1),
+                has_previous_page=pagination_dict.get('page', 1) > pagination_dict.get('pageCount', 1),
+                start_cursor="1.0",
+                end_cursor=f"1.{len(pagination_dict['samples'])}" if pagination_dict.get('pageCount', None) is None else f"{pagination_dict['pageCount']}.{len(pagination_dict['samples'])}",
+            ),
+        )
 
 class RunConnection(relay.Connection):
     class Meta:
@@ -799,27 +917,27 @@ class Query(graphene.ObjectType):
     )
 
     @staticmethod
-    def resolve_protocol(root, info, id: int, version_id: Optional[int]):
+    def resolve_protocol(root, info: ResolveInfo, id: int, version_id: Optional[int]):
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
-        with Session() as db:
-            model_dict = crud_get_protocol(
-                item_to_dict=lambda protocol: add_ids(versioned_row_to_dict(protocol, protocol.current), protocol_id=protocol.id),
+        db = get_session(info)
+        model_dict = crud_get_protocol(
+            item_to_dict=lambda protocol: add_ids(versioned_row_to_dict(protocol, protocol.current), protocol_id=protocol.id),
 
-                db=db,
-                current_user=current_user,
+            db=db,
+            current_user=current_user,
 
-                protocol_id=id,
-                version_id=version_id,
-            )
-            return ProtocolModel.parse_obj(model_dict)
+            protocol_id=id,
+            version_id=version_id,
+        )
+        return ProtocolModel.parse_obj(model_dict)
 
     @staticmethod
     def resolve_all_protocols(
         root,
-        info,
+        info: ResolveInfo,
 
         # Search parameters
         run: Optional[int] = None,
@@ -880,7 +998,7 @@ class Query(graphene.ObjectType):
     @staticmethod
     def resolve_run(
         root,
-        info,
+        info: ResolveInfo,
         
         id: int,
         version_id: int,
@@ -889,17 +1007,17 @@ class Query(graphene.ObjectType):
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
-        with Session() as db:
-            model_dict = crud_get_run(
-                item_to_dict=lambda run: add_ids(versioned_row_to_dict(run, run.current), run_id=run.id),
+        db = get_session(info)
+        model_dict = crud_get_run(
+            item_to_dict=lambda run: add_ids(versioned_row_to_dict(run, run.current), run_id=run.id),
 
-                db=db,
-                current_user=current_user,
+            db=db,
+            current_user=current_user,
 
-                run_id=id,
-                version_id=version_id,
-            )
-            return RunModel.parse_obj(model_dict)
+            run_id=id,
+            version_id=version_id,
+        )
+        return RunModel.parse_obj(model_dict)
 
     @staticmethod
     def resolve_all_runs(
@@ -963,27 +1081,27 @@ class Query(graphene.ObjectType):
         )
 
     @staticmethod
-    def resolve_user(root, info, id: str, version_id: Optional[int]):
+    def resolve_user(root, info: ResolveInfo, id: str, version_id: Optional[int]):
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
-        with Session() as db:
-            model_dict = crud_get_user(
-                item_to_dict=lambda user: add_ids(versioned_row_to_dict(user, user.current), user_id=user.id),
+        db = get_session(info)
+        model_dict = crud_get_user(
+            item_to_dict=lambda user: add_ids(versioned_row_to_dict(user, user.current), user_id=user.id),
 
-                db=db,
-                current_user=current_user,
+            db=db,
+            current_user=current_user,
 
-                user_id=id,
-                version_id=version_id,
-            )
-            return UserModel.parse_obj(model_dict)
+            user_id=id,
+            version_id=version_id,
+        )
+        return UserModel.parse_obj(model_dict)
 
     @staticmethod
     def resolve_all_users(
         root,
-        info,
+        info: ResolveInfo,
 
         # Search parameters
         archived: Optional[bool] = None,
@@ -1002,63 +1120,63 @@ class Query(graphene.ObjectType):
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
-        with Session() as db:
-            pagination_dict = crud_get_users(
-                item_to_dict=lambda user: add_ids(versioned_row_to_dict(user, user.current), user_id=user.id),
+        db = get_session(info)
+        pagination_dict = crud_get_users(
+            item_to_dict=lambda user: add_ids(versioned_row_to_dict(user, user.current), user_id=user.id),
 
-                db=db,
-                current_user=current_user,
+            db=db,
+            current_user=current_user,
 
-                archived=archived,
+            archived=archived,
 
-                page=page,
-                per_page=per_page,
-            )
+            page=page,
+            per_page=per_page,
+        )
 
-            return UserConnection(
-                page=pagination_dict.get('page', None),
-                pageCount=pagination_dict.get('pageCount', None),
-                edges=[
-                    UserConnection.Edge(
-                        node=UserModel.parse_obj(r),
-                        cursor=f"{pagination_dict.get('page', 1)}.{i}",
-                    )
-                    for i, r
-                    in enumerate(pagination_dict['users'])
-                ],
-                page_info=relay.PageInfo(
-                    has_next_page=pagination_dict.get('page', 1) < pagination_dict.get('pageCount', 1),
-                    has_previous_page=pagination_dict.get('page', 1) > pagination_dict.get('pageCount', 1),
-                    start_cursor="1.0",
-                    end_cursor=f"1.{len(pagination_dict['users'])}" if pagination_dict.get('pageCount', None) is None else f"{pagination_dict['pageCount']}.{len(pagination_dict['users'])}",
-                ),
-            )
+        return UserConnection(
+            page=pagination_dict.get('page', None),
+            pageCount=pagination_dict.get('pageCount', None),
+            edges=[
+                UserConnection.Edge(
+                    node=UserModel.parse_obj(r),
+                    cursor=f"{pagination_dict.get('page', 1)}.{i}",
+                )
+                for i, r
+                in enumerate(pagination_dict['users'])
+            ],
+            page_info=relay.PageInfo(
+                has_next_page=pagination_dict.get('page', 1) < pagination_dict.get('pageCount', 1),
+                has_previous_page=pagination_dict.get('page', 1) > pagination_dict.get('pageCount', 1),
+                start_cursor="1.0",
+                end_cursor=f"1.{len(pagination_dict['users'])}" if pagination_dict.get('pageCount', None) is None else f"{pagination_dict['pageCount']}.{len(pagination_dict['users'])}",
+            ),
+        )
 
     @staticmethod
-    def resolve_sample(root, info, sample_id: str, plate_id: str, run_version_id: int, protocol_version_id: int, version_id: Optional[int]):
+    def resolve_sample(root, info: ResolveInfo, sample_id: str, plate_id: str, run_version_id: int, protocol_version_id: int, version_id: Optional[int]):
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
-        with Session() as db:
-            model_dict = crud_get_sample(
-                item_to_dict=lambda sample: versioned_row_to_dict(sample, sample.current),
+        db = get_session(info)
+        model_dict = crud_get_sample(
+            item_to_dict=lambda sample: versioned_row_to_dict(sample, sample.current),
 
-                db=db,
-                current_user=current_user,
+            db=db,
+            current_user=current_user,
 
-                sample_id=sample_id,
-                plate_id=plate_id,
-                run_version_id=run_version_id,
-                protocol_version_id=protocol_version_id,
-                version_id=version_id,
-            )
-            return SampleResult.parse_obj(model_dict)
+            sample_id=sample_id,
+            plate_id=plate_id,
+            run_version_id=run_version_id,
+            protocol_version_id=protocol_version_id,
+            version_id=version_id,
+        )
+        return SampleResult.parse_obj(model_dict)
 
     @staticmethod
     def resolve_all_samples(
         root,
-        info,
+        info: ResolveInfo,
 
         # Search params
         protocol: Optional[int] = None,
@@ -1083,43 +1201,38 @@ class Query(graphene.ObjectType):
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
-        with Session() as db:
-            pagination_dict = crud_get_samples(
-                item_to_dict=lambda sample: versioned_row_to_dict(sample, sample.current),
+        pagination_dict = graphql_crud_get_samples(
+            current_user,
+            info,
+            protocol,
+            run,
+            plate,
+            reagent,
+            sample,
+            creator,
+            archived,
+            page,
+            per_page,
+        )
 
-                db=db,
-                current_user=current_user,
-
-                protocol=protocol,
-                run=run,
-                plate=plate,
-                reagent=reagent,
-                sample=sample,
-                creator=creator,
-                archived=archived,
-
-                page=page,
-                per_page=per_page,
-            )
-
-            return SampleConnection(
-                page=pagination_dict.get('page', None),
-                pageCount=pagination_dict.get('pageCount', None),
-                edges=[
-                    SampleConnection.Edge(
-                        node=SampleResult.parse_obj(r),
-                        cursor=f"{pagination_dict.get('page', 1)}.{i}",
-                    )
-                    for i, r
-                    in enumerate(pagination_dict['samples'])
-                ],
-                page_info=relay.PageInfo(
-                    has_next_page=pagination_dict.get('page', 1) < pagination_dict.get('pageCount', 1),
-                    has_previous_page=pagination_dict.get('page', 1) > pagination_dict.get('pageCount', 1),
-                    start_cursor="1.0",
-                    end_cursor=f"1.{len(pagination_dict['samples'])}" if pagination_dict.get('pageCount', None) is None else f"{pagination_dict['pageCount']}.{len(pagination_dict['samples'])}",
-                ),
-            )
+        return SampleConnection(
+            page=pagination_dict.get('page', None),
+            pageCount=pagination_dict.get('pageCount', None),
+            edges=[
+                SampleConnection.Edge(
+                    node=SampleResult.parse_obj(r),
+                    cursor=f"{pagination_dict.get('page', 1)}.{i}",
+                )
+                for i, r
+                in enumerate(pagination_dict['samples'])
+            ],
+            page_info=relay.PageInfo(
+                has_next_page=pagination_dict.get('page', 1) < pagination_dict.get('pageCount', 1),
+                has_previous_page=pagination_dict.get('page', 1) > pagination_dict.get('pageCount', 1),
+                start_cursor="1.0",
+                end_cursor=f"1.{len(pagination_dict['samples'])}" if pagination_dict.get('pageCount', None) is None else f"{pagination_dict['pageCount']}.{len(pagination_dict['samples'])}",
+            ),
+        )
 
 
 @app.middleware("http")

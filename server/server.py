@@ -17,6 +17,7 @@ from easy_profile import StreamReporter
 from easy_profile_asgi import EasyProfileMiddleware
 
 from settings import settings
+from sqlalchemy_session_asgi import SqlalchemySessionMiddleware
 
 
 # Logging ---------------------------------------------------------------------
@@ -110,6 +111,10 @@ app.add_middleware(
 app.add_middleware(
     EasyProfileMiddleware,
     reporter=StreamReporter(display_duplicates=100)
+)
+app.add_middleware(
+    SqlalchemySessionMiddleware,
+    session_factory=Session,
 )
 
 add_timing_middleware(app, record=logger.info)

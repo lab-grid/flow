@@ -273,5 +273,5 @@ export function ProtocolsTable({
             }
             return <LoadingPage />;
         }}
-    />
+    />;
 }
