@@ -5,7 +5,7 @@ import { useRecoilCallback, useRecoilState } from "recoil";
 import { Run, Section, calculateRunStatus, humanizeRunName } from "../models/run";
 import { SampleResult, exportSampleResultsToCSV } from "../models/sample-result";
 import { deserializeSlate, initialSlateValue, serializeSlate } from "../slate";
-import { FetchError, getRunSamples } from "../state/api";
+import { exportRunSamples, FetchError, getRunSamples } from "../state/api";
 import { auth0State, errorsState } from "../state/atoms";
 import { DocumentTitle } from "./DocumentTitle";
 import { ResultsTable } from "./ResultsTable";
@@ -104,12 +104,7 @@ export function RunEditor({
             if (!run || !run.id || !auth0Client) {
                 return;
             }
-            const samples = await getRunSamples(() => auth0Client, run.id);
-            if (!samples || !samples.samples) {
-                alert('No samples were found to be exported!');
-                return;
-            }
-            exportSampleResultsToCSV(`export-sample-results-${moment().format()}.csv`, samples.samples, true);
+            await exportRunSamples(() => auth0Client, run.id);
         } finally {
             setExportingSamples(false);
         }

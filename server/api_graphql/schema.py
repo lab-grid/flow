@@ -7,7 +7,7 @@ from graphene_pydantic import PydanticObjectType
 from typing import Optional
 from fastapi import HTTPException
 
-from database import Protocol, ProtocolVersion, Run, versioned_row_to_dict
+from database import Protocol, ProtocolVersion, Run, RunVersion, versioned_row_to_dict
 from api_graphql.crud import get_current_user_from_request, get_session, graphql_ast_flatten_field, graphql_crud_get_protocols, graphql_crud_get_runs, graphql_crud_get_samples
 from models import SampleResult, ProtocolModel, RunModel, UserModel
 from crud.run import crud_get_run, crud_get_run_samples
@@ -16,6 +16,14 @@ from crud.user import crud_get_users, crud_get_user
 from crud.sample import crud_get_sample
 
 import models
+
+
+# Helpers ---------------------------------------------------------------------
+
+def add_ids(input: dict, **kwargs) -> dict:
+    for key, value in kwargs.items():
+        input[key] = value
+    return input
 
 
 # Pydantic Schema Classes -----------------------------------------------------
@@ -252,11 +260,6 @@ class VersionedPydanticObjectType(PydanticObjectType):
         return cls._meta.model.parse_obj(versioned_row_to_dict(row, row.current))
 
 
-def add_ids(input: dict, **kwargs) -> dict:
-    for key, value in kwargs.items():
-        input[key] = value
-    return input
-
 class UserNode(VersionedPydanticObjectType):
     class Meta:
         model = UserModel
@@ -275,6 +278,7 @@ class SampleNode(VersionedPydanticObjectType):
         interfaces = (relay.Node, )
 
     owner = graphene.Field(UserNode)
+    run = graphene.Field("api_graphql.schema.RunNode")
 
     @staticmethod
     def resolve_owner(root, info):
@@ -291,6 +295,50 @@ class SampleNode(VersionedPydanticObjectType):
                 user_id=root.created_by,
             ),
         )
+
+    @staticmethod
+    def resolve_run(root, info: ResolveInfo):
+        current_user = get_current_user_from_request(info.context['request'])
+        if current_user is None:
+            raise HTTPException(401, "Unauthorized")
+
+        # Calculate which top level fields to remove.
+        top_level_ignore = {'id', 'run_id', 'created_by', 'created_on', 'updated_by', 'updated_on'}
+
+        select_args = []
+        top_level = set()
+        for result in graphql_ast_flatten_field(info.field_asts[0], info.fragments, info.return_type, info.schema):
+            result_parts = result.split('.')
+            if len(result_parts) > 1 and result_parts[1] not in top_level_ignore:
+                top_level.add(result_parts[1])
+
+        jsonb_fields = [
+            'id',
+            'run_id',
+            'created_by',
+            'created_on',
+            'updated_by',
+            'updated_on',
+        ]
+        select_args = [
+            Run.id.label('id'),
+            Run.id.label('run_id'),
+            Run.created_by.label('created_by'),
+            Run.created_on.label('created_on'),
+            RunVersion.updated_by.label('updated_by'),
+            RunVersion.updated_on.label('updated_on'),
+        ]
+        for field in top_level:
+            jsonb_fields.append(field)
+            select_args.append(RunVersion.data[field].label(field))
+
+        db = get_session(info)
+        row_version = db.query(*select_args)\
+            .select_from(RunVersion)\
+            .join(Run, Run.id == RunVersion.run_id)\
+            .filter(RunVersion.id == root.run_version_id)\
+            .first()
+        return RunModel.parse_obj(row_version._asdict())
 
 class SampleConnection(relay.Connection):
     class Meta:
@@ -849,6 +897,10 @@ class Query(graphene.ObjectType):
                 end_cursor=f"1.{len(pagination_dict['samples'])}" if pagination_dict.get('pageCount', None) is None else f"{pagination_dict['pageCount']}.{len(pagination_dict['samples'])}",
             ),
         )
+
+
+# TODO:
+# - Fix search filters
 
 
 schema = graphene.Schema(query=Query)

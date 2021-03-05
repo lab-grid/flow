@@ -56,6 +56,7 @@ class Policy(BaseModel):
 # SampleResult ----------------------------------------------------------------
 
 class SampleResult(AuditedModel):
+    id: Optional[str]
     sampleID: str
     runID: int
     protocolID: int

@@ -1,3 +1,4 @@
+import csv
 import io
 import jsonpatch
 import re
@@ -5,9 +6,9 @@ import json
 import logging
 
 from functools import reduce, wraps
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Tuple, Union
 
-from fastapi import Depends, HTTPException, File, UploadFile, Request
+from fastapi import Depends, HTTPException, File, UploadFile, Request, Response
 from fastapi.responses import StreamingResponse
 from fastapi_utils.timing import add_timing_middleware, record_timing
 from server import Auth0ClaimsPatched
@@ -396,6 +397,77 @@ async def get_run_samples(
         page=page,
         per_page=per_page,
     )
+
+def list_or_dict_items(collection: Union[list, dict]):
+    if type(collection) == list:
+        for i, value in enumerate(collection):
+            yield (f"{i}", value)
+    elif type(collection) == dict:
+        for key, value in collection.items():
+            yield (key, value)
+    else:
+        raise TypeError(f"Expected a list or a dict type. Found: {type(collection)}")
+
+def flatten_list_or_dict(nested: Union[list, dict], regex: Optional[str] = None, current_path: str = "") -> Tuple[dict]:
+    result = {}
+    if regex is None or re.search(regex, current_path) is None:
+        for key, value in list_or_dict_items(nested):
+            sub_path = f"{key}" if current_path == "" else f"{current_path}__{key}"
+            if type(value) == list or type(value) == dict:
+                result.update(flatten_list_or_dict(value, regex, sub_path))
+            else:
+                result[sub_path] = value
+    return result
+
+@app.get('/run/{run_id}/sample.csv', tags=['runs'], response_model_exclude_none=True)
+async def export_run_samples_csv(
+    run_id: Optional[int] = None,
+    protocol: Optional[int] = None,
+    plate: Optional[str] = None,
+    reagent: Optional[str] = None,
+    creator: Optional[str] = None,
+    archived: Optional[bool] = None,
+    db: Session = Depends(get_db),
+    current_user: Auth0ClaimsPatched = Depends(get_current_user)
+):
+    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+        raise HTTPException(status_code=403, detail='Insufficient Permissions')
+    run = db.query(Run).get(run_id)
+    if not run or run.is_deleted:
+        raise HTTPException(status_code=404, detail='Run Not Found')
+
+    samples = crud_get_run_samples(
+        item_to_dict=lambda sample: run_to_sample(sample),
+
+        db=db,
+        current_user=current_user,
+
+        run_id=run_id,
+        protocol=protocol,
+        plate=plate,
+        reagent=reagent,
+        creator=creator,
+        archived=archived,
+    )
+
+    # Process each sample and add in flattened run data (with a filter).
+    flattened_run = flatten_list_or_dict(run_to_dict(run, run.current, False), '(attachments|type|definition|protocol|plates|plateSequencingResults|plateMarkers)')
+    flattened_samples = []
+    sample_headers = set()
+    for sample in samples['samples']:
+        flattened_sample = {**flattened_run, **flatten_list_or_dict(sample)}
+        flattened_samples.append(flattened_sample)
+        sample_headers.update(flattened_sample.keys())
+
+    sample_headers = list(sample_headers)
+    sample_headers.sort()
+    csvfile = io.StringIO()
+    writer = csv.writer(csvfile, quoting=csv.QUOTE_NONNUMERIC)
+    writer.writerow(sample_headers)
+    for flattened_sample in flattened_samples:
+        writer.writerow([flattened_sample.get(header, '') for header in sample_headers])
+
+    return Response(csvfile.getvalue(), media_type='text/csv')
 
 @app.get('/run/{run_id}/sample/{sample_id}', tags=['runs'], response_model=SampleResults, response_model_exclude_none=True)
 async def get_run_sample(run_id: int, sample_id: str, version_id: Optional[int] = None, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):

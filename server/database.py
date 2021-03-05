@@ -146,17 +146,18 @@ def run_to_sample(sample):
 
 def filter_by_plate_label_filter(plate_id: str):
     return or_(
-        func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].plateLabels."{plate_id}"'),
-        func.jsonb_path_exists(RunVersion.data, f'$.sections[*].blocks[*].mappings."{plate_id}"'),
-        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plateLabel ? (@ == "{plate_id}"))')
+        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plateLabels[*] ? (@ like_regex "{plate_id}"))'),
+        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plates[*].label ? (@ like_regex "{plate_id}"))'),
+        func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plateLabel ? (@ like_regex "{plate_id}"))'),
     )
 
 def filter_by_reagent_label_filter(reagent_id: str):
+    return func.jsonb_path_match(ProtocolVersion.data, f'exists($.sections[*].blocks[*].reagentLabel ? (@ like_regex "{reagent_id}"))')
     # TODO: FIXME. This doesn't work if we remove repeated definitions.
-    return func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].definition.reagentLabel ? (@ == "{reagent_id}"))')
+    # return func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].definition.reagentLabel ? (@ == "{reagent_id}"))')
 
 def filter_by_sample_label_filter(sample_id: str):
-    return func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plates[*].coordinates[*].sampleLabel ? (@ == "{sample_id}"))')
+    return func.jsonb_path_match(RunVersion.data, f'exists($.sections[*].blocks[*].plates[*].coordinates[*].sampleLabel ? (@ like_regex "{sample_id}"))')
 
 def filter_by_plate_label(run_version_query, plate_id: str):
     return run_version_query.filter(filter_by_plate_label_filter(plate_id))
@@ -406,22 +407,28 @@ def fix_plate_markers_protocol_field(protocol):
         changes_made = changes_made or fix_plate_markers_section(section)
     return changes_made
 
-def fix_plate_markers_protocol(db: Session, protocol: Protocol) -> Protocol:
-    if protocol.current.data.get('sections', None) is None:
-        return protocol
+def fix_plate_markers_protocol_version(db: Session, protocol_version: ProtocolVersion) -> ProtocolVersion:
+    if protocol_version.data.get('sections', None) is None:
+        return protocol_version
 
     changes_made = False
-    for section in protocol.current.data['sections']:
+    for section in protocol_version.data['sections']:
         changes_made = changes_made or fix_plate_markers_section(section)
 
     if changes_made:
-        flag_modified(protocol.current, 'data')
+        flag_modified(protocol_version, 'data')
         db.commit()
-        logger.info(f"Updated protocol ({protocol.id}, {protocol.version_id}) with new plateMarkers format.")
+        logger.info(f"Updated protocol ({protocol_version.protocol_id}, {protocol_version.id}) with new plateMarkers format.")
 
+    return protocol_version
+
+def fix_plate_markers_protocol(db: Session, protocol: Protocol) -> Protocol:
+    fix_plate_markers_protocol_version(db, protocol.current)
     return protocol
 
 def fix_plate_markers_run(db: Session, run: Run) -> Run:
+    fix_plate_markers_protocol_version(db, run.protocol_version)
+
     changes_made = False
 
     if run.current.data.get('protocol', None) is not None:

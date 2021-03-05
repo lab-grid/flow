@@ -1,7 +1,7 @@
 import moment from "moment";
 import React, { useState } from "react";
 import { Button, Dropdown, Spinner, Table } from "react-bootstrap";
-import { createFragmentContainer, createRefetchContainer, QueryRenderer, RelayRefetchProp } from "react-relay";
+import { createFragmentContainer, QueryRenderer } from "react-relay";
 import { graphql } from 'babel-plugin-relay/macro';
 import { Link, useHistory } from "react-router-dom";
 import environment from "../environment";
@@ -92,32 +92,27 @@ const RunsTableFragment = createFragmentContainer(
 // <RunsPagerFragment /> ------------------------------------------------------
 
 function RunsPagerFragmentView({
-    relay,
     pagerData: {
         page,
         pageCount,
     },
+    onPageChange,
 }: {
-    relay: RelayRefetchProp;
     pagerData: RunsTableNew_pagerData;
+    onPageChange?: (page: number) => void;
 }) {
     if ((page || pageCount) && (pageCount || 1) > 1) {
         return <Paginator
             page={page}
             pageCount={pageCount}
-            onPageChange={newPage => {
-                relay.refetch({
-                    page: newPage,
-                    perPage: defaultPerPage,
-                })
-            }}
+            onPageChange={onPageChange}
         />;
     }
 
     return <></>;
 }
 
-const RunsPagerFragment = createRefetchContainer(
+const RunsPagerFragment = createFragmentContainer(
     RunsPagerFragmentView,
     {
         pagerData: graphql`fragment RunsTableNew_pagerData on RunConnection {
@@ -125,7 +120,7 @@ const RunsPagerFragment = createRefetchContainer(
             pageCount
         }`,
     },
-    runsQuery,
+    // runsQuery,
 );
 
 
@@ -160,6 +155,7 @@ export function RunsTable({
 }) {
     const history = useHistory();
     const [exportingRuns, setExportingRuns] = useState(false);
+    const [page, setPage] = useState(1);
     const runUpsert = useRecoilCallback(({ snapshot }) => async (run: Run) => {
         const { auth0Client } = await snapshot.getPromise(auth0State);
         return await upsertRun(() => auth0Client, run);
@@ -186,7 +182,7 @@ export function RunsTable({
 
     const filterParams: {[name: string]: string} = {};
     const variables: RunsTableNew_QueryVariables = {
-        page: 1,
+        page,
         perPage: defaultPerPage,
     };
     if (protocolFilter !== undefined && protocolFilter !== null) {
@@ -281,7 +277,7 @@ export function RunsTable({
                             )}
                         </tbody>
                     </Table>
-                    <RunsPagerFragment pagerData={props.allRuns} />
+                    <RunsPagerFragment pagerData={props.allRuns} onPageChange={setPage} />
                     {
                         !hideActions && <div className="d-flex w-100 justify-content-center">
                             {

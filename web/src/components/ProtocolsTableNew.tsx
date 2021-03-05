@@ -4,7 +4,7 @@ import { Button, Spinner, Table } from "react-bootstrap";
 import { graphql } from 'babel-plugin-relay/macro';
 import { Link, useHistory } from "react-router-dom";
 import { Paginator } from "./Paginator";
-import { createFragmentContainer, createRefetchContainer, QueryRenderer, RelayRefetchProp } from "react-relay";
+import { createFragmentContainer, QueryRenderer } from "react-relay";
 import { ErrorPage } from "./ErrorPage";
 import { ProtocolsTableNew_pagerData } from "./__generated__/ProtocolsTableNew_pagerData.graphql";
 import { ProtocolsTableNew_protocol } from "./__generated__/ProtocolsTableNew_protocol.graphql";
@@ -72,32 +72,27 @@ const ProtocolsTableFragment = createFragmentContainer(
 // <ProtocolsPagerFragment /> -------------------------------------------------
 
 function ProtocolsPagerFragmentView({
-    relay,
     pagerData: {
         page,
         pageCount,
     },
+    onPageChange,
 }: {
-    relay: RelayRefetchProp;
     pagerData: ProtocolsTableNew_pagerData;
+    onPageChange?: (page: number) => void;
 }) {
     if ((page || pageCount) && (pageCount || 1) > 1) {
         return <Paginator
             page={page}
             pageCount={pageCount}
-            onPageChange={newPage => {
-                relay.refetch({
-                    page: newPage,
-                    perPage: defaultPerPage,
-                })
-            }}
+            onPageChange={onPageChange}
         />;
     }
 
     return <></>;
 }
 
-const ProtocolsPagerFragment = createRefetchContainer(
+const ProtocolsPagerFragment = createFragmentContainer(
     ProtocolsPagerFragmentView,
     {
         pagerData: graphql`fragment ProtocolsTableNew_pagerData on ProtocolConnection {
@@ -105,7 +100,6 @@ const ProtocolsPagerFragment = createRefetchContainer(
             pageCount
         }`,
     },
-    protocolsQuery,
 );
 
 
@@ -139,6 +133,7 @@ export function ProtocolsTable({
     hideRefresh?: boolean;
 }) {
     const history = useHistory();
+    const [page, setPage] = useState(1);
     const [exportingProtocols, setExportingProtocols] = useState(false);
     const [errors, setErrors] = useRecoilState(errorsState);
     const protocolUpsert = useRecoilCallback(({ snapshot }) => async (protocol: Protocol) => {
@@ -180,7 +175,7 @@ export function ProtocolsTable({
 
     const filterParams: {[name: string]: string} = {};
     const variables: ProtocolsTableNew_QueryVariables = {
-        page: 1,
+        page,
         perPage: defaultPerPage,
     };
     if (protocolFilter !== undefined && protocolFilter !== null) {
@@ -258,7 +253,7 @@ export function ProtocolsTable({
                             )}
                         </tbody>
                     </Table>
-                    <ProtocolsPagerFragment pagerData={props.allProtocols} />
+                    <ProtocolsPagerFragment pagerData={props.allProtocols} onPageChange={setPage} />
                     {
                         !hideActions && <div className="d-flex w-100 justify-content-center">
                             {

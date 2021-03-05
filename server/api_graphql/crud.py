@@ -75,6 +75,10 @@ def graphql_ast_get_sub_fields(field: Field, fragments: Dict[str, FragmentDefini
 def graphql_ast_schema_fields(schema) -> Set[str]:
     return schema.fields.keys()
 
+def add_sample_id(sample_dict: dict) -> dict:
+    sample_dict['id'] = f"{sample_dict.get('run_version_id', '')}-{sample_dict.get('protocol_version_id', '')}-{sample_dict.get('sample_id', '')}-{sample_dict.get('plate_id', '')}"
+    return sample_dict
+
 
 # CRUD methods ----------------------------------------------------------------
 
@@ -142,7 +146,7 @@ def graphql_crud_get_runs(
     if reagent:
         filters.append(filter_by_reagent_label_filter(reagent))
     if sample:
-        filters.append(filter_by_sample_label_filter(reagent))
+        filters.append(filter_by_sample_label_filter(sample))
     if creator:
         filters.append(Run.created_by == creator)
     if archived is None or archived == False:
@@ -151,7 +155,7 @@ def graphql_crud_get_runs(
     query = db.query(*select_args)\
         .select_from(Run)\
         .join(RunVersion, RunVersion.id == Run.version_id)
-    for join_cls, join_filter in from_tables.values():
+    for join_cls, join_filter in from_tables.items():
         query = query.join(join_cls, join_filter)
     
     # Apply search filters.
@@ -244,7 +248,7 @@ def graphql_crud_get_protocols(
     if sample:
         from_tables[Run] = Run.protocol_version_id == ProtocolVersion.id
         from_tables[RunVersion] = RunVersion.id == Run.version_id
-        filters.append(filter_by_sample_label_filter(reagent))
+        filters.append(filter_by_sample_label_filter(sample))
     if creator:
         filters.append(Protocol.created_by == creator)
     if archived is None or archived == False:
@@ -305,10 +309,10 @@ def graphql_crud_get_samples(
         if len(result_parts) > 3 and result_parts[3] not in top_level_ignore:
             top_level.add(result_parts[3])
     jsonb_fields = [
-        'sampleID',
         'sample_id',
-        'plateID',
+        'sampleID',
         'plate_id',
+        'plateID',
         'run_version_id',
         'protocol_version_id',
         'created_by',
@@ -351,11 +355,11 @@ def graphql_crud_get_samples(
     if run:
         filters.append(RunVersion.run_id == run)
     if plate:
-        filters.append(Sample.plate_id == plate)
+        filters.append(Sample.plate_id.like(f"%{plate}%"))
     if reagent:
         filters.append(filter_by_reagent_label_filter(reagent))
     if sample:
-        filters.append(Sample.sample_id == sample)
+        filters.append(Sample.sample_id.like(f"%{sample}%"))
     if creator:
         filters.append(Sample.created_by == creator)
     if archived is None or archived == False:
@@ -385,7 +389,7 @@ def graphql_crud_get_samples(
     return paginatify(
         items_label='samples',
         items=rows,
-        item_to_dict=lambda sample: SampleResult.parse_obj(sample._asdict()),
+        item_to_dict=lambda sample: SampleResult.parse_obj(add_sample_id(sample._asdict())),
         page=page,
         per_page=per_page,
     )

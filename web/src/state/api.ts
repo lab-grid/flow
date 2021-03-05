@@ -7,6 +7,7 @@ import { Run, Runs } from "../models/run";
 import { SampleResults } from "../models/sample-result";
 import { User, Users } from "../models/user";
 import { Operation } from "fast-json-patch";
+import moment from 'moment';
 
 export class FetchError extends Error {
     constructor(
@@ -320,4 +321,13 @@ export async function deleteRunAttachment(auth0ClientFn: () => Auth0Client | und
 
 export async function downloadRunAttachment(auth0ClientFn: () => Auth0Client | undefined, runId: number, attachmentId: number, filename: string): Promise<void> {
     await apiDownload(labflowOptions, auth0ClientFn, "GET", `run/${runId}/attachment/${attachmentId}`, filename);
+}
+
+
+// ----------------------------------------------------------------------------
+// Exporters ------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+export async function exportRunSamples(auth0ClientFn: () => Auth0Client | undefined, runId: number): Promise<void> {
+    await apiDownload(labflowOptions, auth0ClientFn, "GET", `run/${runId}/sample.csv`, `run-${runId}-samples-export-${moment().format('YYYY-MM-DDThh-mm-ss')}.csv`);
 }

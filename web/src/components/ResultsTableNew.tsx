@@ -5,7 +5,7 @@ import { Button, Spinner, Table } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { exportSampleResultsToCSV } from "../models/sample-result";
 import { Paginator } from "./Paginator";
-import { createFragmentContainer, createRefetchContainer, QueryRenderer, RelayRefetchProp } from "react-relay";
+import { createFragmentContainer, QueryRenderer } from "react-relay";
 import environment from "../environment";
 import { ErrorPage } from "./ErrorPage";
 import { LoadingPage } from "./LoadingPage";
@@ -30,6 +30,51 @@ query ResultsTableNew_Query($protocol: Int, $run: Int, $plate: String, $reagent:
         }
     }
 }`;
+
+// const samplesExportQuery = graphql`
+// query ResultsTableNew_export_Query($protocol: Int, $run: Int, $plate: String, $reagent: String, $sample: String, $creator: String, $archived: Boolean) {
+//     allSamples(protocol: $protocol, run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived) {
+//         edges {
+//             node {
+//                 id
+//                 sampleID
+//                 plateID
+//                 runID
+//                 protocolID
+//                 marker1
+//                 marker2
+//                 signers
+//                 witnesses
+//                 result
+//                 createdBy
+//                 createdOn
+//                 updatedOn
+//                 completedOn
+
+//                 run {
+//                     notes
+//                 }
+//             }
+//         }
+//     }
+// }`;
+
+// const exportResults = useRecoilCallback(({ snapshot }) => async () => {
+//     setExportingResults(true);
+//     try {
+//         const { auth0Client } = await snapshot.getPromise(auth0State);
+
+//         const response = await fetchQuery<ResultsTableNew_export_Query>(environment, samplesExportQuery, variables);
+//         const samples = response.allSamples && response.allSamples.edges.map(edge => edge && edge.node);
+//         if (!samples) {
+//             alert('No results were found to be exported!');
+//             return;
+//         }
+//         exportSampleResultsToCSV(`export-sample-results-${moment().format()}.csv`, samples, true);
+//     } finally {
+//         setExportingResults(false);
+//     }
+// });
 
 const defaultPerPage = 20;
 
@@ -92,32 +137,27 @@ const ResultsTableFragment = createFragmentContainer(
 // <ResultsPagerFragment /> ---------------------------------------------------
 
 function ResultsPagerFragmentView({
-    relay,
     pagerData: {
         page,
         pageCount,
     },
+    onPageChange,
 }: {
-    relay: RelayRefetchProp;
     pagerData: ResultsTableNew_pagerData;
+    onPageChange?: (page: number) => void;
 }) {
     if ((page || pageCount) && (pageCount || 1) > 1) {
         return <Paginator
             page={page}
             pageCount={pageCount}
-            onPageChange={newPage => {
-                relay.refetch({
-                    page: newPage,
-                    perPage: defaultPerPage,
-                })
-            }}
+            onPageChange={onPageChange}
         />;
     }
 
     return <></>;
 }
 
-const ResultsPagerFragment = createRefetchContainer(
+const ResultsPagerFragment = createFragmentContainer(
     ResultsPagerFragmentView,
     {
         pagerData: graphql`fragment ResultsTableNew_pagerData on SampleConnection {
@@ -125,7 +165,6 @@ const ResultsPagerFragment = createRefetchContainer(
             pageCount
         }`,
     },
-    samplesQuery,
 );
 
 
@@ -156,11 +195,13 @@ export function ResultsTable({
     hideActions?: boolean;
     hideRefresh?: boolean;
 }) {
+    const [page, setPage] = useState(1);
     const [exportingResults, setExportingResults] = useState(false);
     const exportResults = useRecoilCallback(({ snapshot }) => async () => {
         setExportingResults(true);
         try {
             const { auth0Client } = await snapshot.getPromise(auth0State);
+            // await exportRunSamples(() => auth0Client, )
             const samples = await getSamples(() => auth0Client, filterParams);
             if (!samples || !samples.samples) {
                 alert('No results were found to be exported!');
@@ -174,7 +215,7 @@ export function ResultsTable({
 
     const filterParams: {[name: string]: string} = {};
     const variables: ProtocolsTableNew_QueryVariables = {
-        page: 1,
+        page,
         perPage: defaultPerPage,
     };
     if (protocolFilter !== undefined && protocolFilter !== null) {
@@ -236,11 +277,13 @@ export function ResultsTable({
                     <Table striped bordered hover responsive>
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>Owner</th>
-                                <th>Last Modified</th>
-                                <th>Date Created</th>
+                                <th>Sample ID</th>
+                                <th>Sequencing Result</th>
+                                <th>Run</th>
+                                <th>Protocol</th>
+                                <th>Signer</th>
+                                <th>Witness</th>
+                                <th>Date Completed</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -252,7 +295,7 @@ export function ResultsTable({
                             )}
                         </tbody>
                     </Table>
-                    <ResultsPagerFragment pagerData={props.allSamples} />
+                    <ResultsPagerFragment pagerData={props.allSamples} onPageChange={setPage} />
                     {
                         !hideActions && <div className="d-flex w-100 justify-content-center">
                             {

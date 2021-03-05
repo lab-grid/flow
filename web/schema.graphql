@@ -166,7 +166,7 @@ type PlateMappingSchema {
 
 type PlateResultSchema {
   plateLabel: String
-  plateIndex: Int
+  plateIndex: String
   plateRow: Int
   plateCol: Int
   marker1: String
@@ -294,6 +294,7 @@ type SampleNode implements Node {
   completedOn: String
   id: ID!
   owner: UserNode
+  run: RunNode
 }
 
 type SectionDefinitionSchema {
