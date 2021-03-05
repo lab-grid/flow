@@ -8,8 +8,9 @@ import { userQuery } from '../state/selectors';
 import { RunBlockEditor } from './RunBlockEditor';
 import { SignatureEditor } from './SignatureEditor';
 
-export function RunSectionEditor({disabled, runId, index, section, setSection, syncSection}: {
+export function RunSectionEditor({disabled, plateIndexOffset, runId, index, section, setSection, syncSection}: {
     disabled?: boolean;
+    plateIndexOffset?: number;
     runId: number;
     index: number;
     section?: Section;
@@ -48,6 +49,8 @@ export function RunSectionEditor({disabled, runId, index, section, setSection, s
     const requiresSignature = (section && section.definition && section.definition.requiresSignature) === undefined ? true : section && section.definition && section.definition.requiresSignature;
     const requiresWitness = (section && section.definition && section.definition.requiresWitness) || false;
 
+    let currentPlateIndexOffset = plateIndexOffset || 0;
+
     return <>
         <h2 className="row">
             <i>Section {index + 1}: {(section && section.definition.name) || 'Untitled Section'}</i>
@@ -57,9 +60,13 @@ export function RunSectionEditor({disabled, runId, index, section, setSection, s
             if (!block || !block.definition || !block.definition.id) {
                 return undefined;
             }
+            if (block.type === 'plate-sampler') {
+                currentPlateIndexOffset++;
+            }
             return <div key={block.definition.id}>
               <RunBlockEditor
                 key={block.definition.id}
+                plateIndexOffset={currentPlateIndexOffset}
                 runId={runId}
                 block={block}
                 setBlock={updateBlock}

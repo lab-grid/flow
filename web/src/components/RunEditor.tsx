@@ -110,6 +110,8 @@ export function RunEditor({
         }
     });
 
+    let plateIndexOffset = 0;
+
     return <>
         <ImportExportModal
             show={showImportExportModal}
@@ -144,8 +146,9 @@ export function RunEditor({
                 if (!section || !section.definition || !section.definition.id) {
                     return undefined;
                 }
-                return <RunSectionEditor
+                const sectionEditor = <RunSectionEditor
                     key={section.definition.id}
+                    plateIndexOffset={plateIndexOffset}
                     disabled={disabled}
                     runId={(run && run.id) || -1}
                     index={i}
@@ -153,6 +156,8 @@ export function RunEditor({
                     setSection={updateSection}
                     syncSection={syncSection(i)}
                 />
+                plateIndexOffset += (section.blocks || []).filter(block => block.type === 'plate-sampler').length;
+                return sectionEditor;
             })}
 
             <div className="row">

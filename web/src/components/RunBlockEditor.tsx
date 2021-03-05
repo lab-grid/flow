@@ -488,8 +488,9 @@ function RunBlockPlateLotEditor({ disabled, lot, setLot }: {
     </InputGroup>
 }
 
-function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, setOutputPlateLabel, plates, setPlates }: {
+function RunBlockPlateSamplerEditor({ disabled, plateIndexOffset, definition, outputPlateLabel, setOutputPlateLabel, plates, setPlates }: {
     disabled?: boolean;
+    plateIndexOffset?: number;
     definition: PlateSamplerBlockDefinition;
     outputPlateLabel?: string;
     setOutputPlateLabel: (outputPlateLabel?: string) => void;
@@ -507,7 +508,7 @@ function RunBlockPlateSamplerEditor({ disabled, definition, outputPlateLabel, se
                     wells={definition.plates && definition.plates[i] && definition.plates[i].size}
                     name={definition.plates && definition.plates[i] && definition.plates[i].name}
                     plateLabel={plate && plate.label}
-                    plateIndex={i+1}
+                    plateIndex={(plateIndexOffset || 0) + i + 1}
                     setCoordinates={(label, coordinates) => {
                         const newPlates = [...(plates || [])];
                         newPlates[i] = { ...plate, label, coordinates };
@@ -886,6 +887,7 @@ export interface RunBlockEditorProps {
     disabled?: boolean;
     runId: number;
     block?: Block;
+    plateIndexOffset?: number;
     setBlock: (block?: Block) => void;
     syncBlock: (block?: Block) => void;
 }
@@ -940,6 +942,7 @@ export function RunBlockEditor(props: RunBlockEditorProps) {
             return (
                 <RunBlockPlateSamplerEditor
                     disabled={props.disabled}
+                    plateIndexOffset={props.plateIndexOffset}
                     definition={block.definition}
                     outputPlateLabel={block.outputPlateLabel}
                     setOutputPlateLabel={outputPlateLabel => props.setBlock({ ...block, type: 'plate-sampler', outputPlateLabel })}
