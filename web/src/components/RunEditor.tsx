@@ -3,9 +3,9 @@ import React, { useState } from "react";
 import { Button, Form, Spinner } from "react-bootstrap";
 import { useRecoilCallback, useRecoilState } from "recoil";
 import { Run, Section, calculateRunStatus, humanizeRunName } from "../models/run";
-import { SampleResult, exportSampleResultsToCSV } from "../models/sample-result";
+import { SampleResult } from "../models/sample-result";
 import { deserializeSlate, initialSlateValue, serializeSlate } from "../slate";
-import { exportRunSamples, FetchError, getRunSamples } from "../state/api";
+import { exportRunSamples, FetchError } from "../state/api";
 import { auth0State, errorsState } from "../state/atoms";
 import { DocumentTitle } from "./DocumentTitle";
 import { ResultsTable } from "./ResultsTable";
@@ -148,7 +148,7 @@ export function RunEditor({
                 }
                 const sectionEditor = <RunSectionEditor
                     key={section.definition.id}
-                    plateIndexOffset={plateIndexOffset}
+                    plateIndexOffset={plateIndexOffset || 0}
                     disabled={disabled}
                     runId={(run && run.id) || -1}
                     index={i}
@@ -156,7 +156,11 @@ export function RunEditor({
                     setSection={updateSection}
                     syncSection={syncSection(i)}
                 />
-                plateIndexOffset += (section.blocks || []).filter(block => block.type === 'plate-sampler').length;
+                for (const block of (section.definition.blocks || [])) {
+                    if (block.type === 'plate-sampler') {
+                        plateIndexOffset += block.plateCount || 0;
+                    }
+                }
                 return sectionEditor;
             })}
 

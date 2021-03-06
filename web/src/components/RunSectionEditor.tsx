@@ -60,10 +60,7 @@ export function RunSectionEditor({disabled, plateIndexOffset, runId, index, sect
             if (!block || !block.definition || !block.definition.id) {
                 return undefined;
             }
-            if (block.type === 'plate-sampler') {
-                currentPlateIndexOffset++;
-            }
-            return <div key={block.definition.id}>
+            const blockEditor = <div key={block.definition.id}>
               <RunBlockEditor
                 key={block.definition.id}
                 plateIndexOffset={currentPlateIndexOffset}
@@ -74,6 +71,10 @@ export function RunSectionEditor({disabled, plateIndexOffset, runId, index, sect
                 disabled={isSigned || isWitnessed || disabled}
               />
             </div>
+            if (block.type === 'plate-sampler') {
+                currentPlateIndexOffset += block.definition.plateCount || 0;
+            }
+            return blockEditor;
         })}
 
         {
