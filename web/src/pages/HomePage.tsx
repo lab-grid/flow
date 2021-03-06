@@ -1,6 +1,6 @@
 import React from 'react';
-import { ProtocolsTable } from '../components/ProtocolsTableNew';
-import { RunsTable } from '../components/RunsTableNew';
+import { ProtocolsTable } from '../components/ProtocolsTable';
+import { RunsTable } from '../components/RunsTable';
 
 
 // <HomePage /> ---------------------------------------------------------------

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Button, Form } from "react-bootstrap";
 import { useRecoilValue } from "recoil";
-import { ProtocolsTable } from "../components/ProtocolsTableNew";
-import { RunsTable } from "../components/RunsTableNew";
+import { ProtocolsTable } from "../components/ProtocolsTable";
+import { RunsTable } from "../components/RunsTable";
 import { usersQuery } from "../state/selectors";
 import moment from 'moment';
 import { ResultsTable } from "../components/ResultsTableNew";
