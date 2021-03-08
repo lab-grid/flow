@@ -590,14 +590,6 @@ function RunBlockPlateAddReagentEditor({ disabled, definition, plateLabel, setPl
                     setLabel={setPlateLabel}
                 />
             </Form.Group>
-            <Form.Group className="col">
-                <Form.Label>Reagent lot number</Form.Label>
-                <RunBlockPlateLotEditor
-                    disabled={disabled}
-                    lot={plateLot}
-                    setLot={setPlateLot}
-                />
-            </Form.Group>
         </div>
     </>;
 }
@@ -625,16 +617,6 @@ function RunBlockAddReagentEditor({ disabled, definition, reagentLot, setReagent
                 </div>
             </div>
         }
-        <div className="row">
-            <Form.Group className="col">
-                <Form.Label>Reagent lot number</Form.Label>
-                <RunBlockPlateLotEditor
-                    disabled={disabled}
-                    lot={reagentLot}
-                    setLot={setReagentLot}
-                />
-            </Form.Group>
-        </div>
     </>;
 }
 
@@ -683,7 +665,7 @@ function RunBlockStartPlateSequencerEditor({ disabled, definition, plateLabels, 
             </tbody>
         </Table>
         <Form.Group className="col">
-            <Form.Label>Timestamp ID/Label</Form.Label>
+            <Form.Label>ID/Label</Form.Label>
             <Form.Control
                 disabled={disabled}
                 type="text"
@@ -734,7 +716,7 @@ function RunBlockEndPlateSequencerEditor({ disabled, runId, definition, attachme
     return <>
         <h4 className="row">{definition.name}</h4>
         <Form.Group className="col">
-            <Form.Label>Timestamp ID/Label</Form.Label>
+            <Form.Label>ID/Label</Form.Label>
             <Form.Control
                 disabled={disabled}
                 type="text"
@@ -799,7 +781,7 @@ function RunBlockStartTimestampEditor({ disabled, definition, timestampLabel, se
         <RunBlockLabel name={definition.name} />
         <div className="row">
             <Form.Group className="col">
-                <Form.Label>Timestamp ID/Label</Form.Label>
+                <Form.Label>ID/Label</Form.Label>
                 <Form.Control
                     disabled={disabled}
                     type="text"
@@ -847,7 +829,7 @@ function RunBlockEndTimestampEditor({ disabled, definition, timestampLabel, setT
         <RunBlockLabel name={definition.name} />
         <div className="row">
             <Form.Group className="col">
-                <Form.Label>Timestamp ID/Label</Form.Label>
+                <Form.Label>ID/Label</Form.Label>
                 <Form.Control
                     disabled={disabled}
                     type="text"
