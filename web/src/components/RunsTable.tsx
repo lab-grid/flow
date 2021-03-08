@@ -7,9 +7,9 @@ import { Link, useHistory } from "react-router-dom";
 import environment from "../environment";
 import { LoadingPage } from "./LoadingPage";
 import { Paginator } from "./Paginator";
-import { RunsTableNew_pagerData } from "./__generated__/RunsTableNew_pagerData.graphql";
-import { RunsTableNew_Query, RunsTableNew_QueryVariables } from "./__generated__/RunsTableNew_Query.graphql";
-import { RunsTableNew_run } from "./__generated__/RunsTableNew_run.graphql";
+import { RunsTable_pagerData } from "./__generated__/RunsTable_pagerData.graphql";
+import { RunsTable_Query, RunsTable_QueryVariables } from "./__generated__/RunsTable_Query.graphql";
+import { RunsTable_run } from "./__generated__/RunsTable_run.graphql";
 import { ErrorPage } from "./ErrorPage";
 import { useRecoilCallback } from "recoil";
 import { labflowOptions } from "../config";
@@ -21,13 +21,13 @@ import { auth0State } from "../state/atoms";
 
 
 const runsQuery = graphql`
-query RunsTableNew_Query($page: Int, $perPage: Int, $protocol: Int, $run: Int, $plate: String, $reagent: String, $sample: String, $creator: String, $archived: Boolean) {
+query RunsTable_Query($page: Int, $perPage: Int, $protocol: Int, $run: Int, $plate: String, $reagent: String, $sample: String, $creator: String, $archived: Boolean) {
     allRuns(page: $page, perPage: $perPage, protocol: $protocol, run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived) {
-        ...RunsTableNew_pagerData
+        ...RunsTable_pagerData
         edges {
             node {
                 id
-                ...RunsTableNew_run
+                ...RunsTable_run
             }
         }
     }
@@ -43,7 +43,7 @@ query RunsTableNew_Query($page: Int, $perPage: Int, $protocol: Int, $run: Int, $
 
 const defaultPerPage = 20;
 
-export function humanizeRunName(run: RunsTableNew_run) {
+export function humanizeRunName(run: RunsTable_run) {
     return `Run ${(run.runId) || 'Unknown'} (Protocol: ${(run.protocol && run.protocol.name) || 'Untitled Protocol'})`;
 }
 
@@ -53,7 +53,7 @@ export function humanizeRunName(run: RunsTableNew_run) {
 function RunsTableFragmentView({
     run,
 }: {
-    run: RunsTableNew_run | null;
+    run: RunsTable_run | null;
 }) {
     if (run === null) {
         return <></>;
@@ -64,7 +64,7 @@ function RunsTableFragmentView({
             <Link to={`/run/${run.runId}`}>{run.runId}</Link>
         </td>
         <td>{humanizeRunName(run)}</td>
-        <td>{run.createdBy}</td>
+        <td>{run.owner && run.owner.email}</td>
         <td>{run.status}</td>
         <td>{(run.createdOn && moment(run.createdOn).format("LLLL")) || ''}</td>
         <td>{((run.updatedOn || run.createdOn) && moment(run.updatedOn || run.createdOn).format("LLLL")) || ''}</td>
@@ -74,15 +74,17 @@ function RunsTableFragmentView({
 const RunsTableFragment = createFragmentContainer(
     RunsTableFragmentView,
     {
-        run: graphql`fragment RunsTableNew_run on RunNode {
+        run: graphql`fragment RunsTable_run on RunNode {
             runId
             name
-            createdBy
             createdOn
             updatedOn
             status
             protocol {
                 name
+            }
+            owner {
+                email
             }
         }`,
     },
@@ -98,7 +100,7 @@ function RunsPagerFragmentView({
     },
     onPageChange,
 }: {
-    pagerData: RunsTableNew_pagerData;
+    pagerData: RunsTable_pagerData;
     onPageChange?: (page: number) => void;
 }) {
     if ((page || pageCount) && (pageCount || 1) > 1) {
@@ -115,7 +117,7 @@ function RunsPagerFragmentView({
 const RunsPagerFragment = createFragmentContainer(
     RunsPagerFragmentView,
     {
-        pagerData: graphql`fragment RunsTableNew_pagerData on RunConnection {
+        pagerData: graphql`fragment RunsTable_pagerData on RunConnection {
             page
             pageCount
         }`,
@@ -181,7 +183,7 @@ export function RunsTable({
     });
 
     const filterParams: {[name: string]: string} = {};
-    const variables: RunsTableNew_QueryVariables = {
+    const variables: RunsTable_QueryVariables = {
         page,
         perPage: defaultPerPage,
     };
@@ -229,7 +231,7 @@ export function RunsTable({
         }
     });
 
-    return <QueryRenderer<RunsTableNew_Query>
+    return <QueryRenderer<RunsTable_Query>
         environment={environment}
         query={runsQuery}
         variables={variables}

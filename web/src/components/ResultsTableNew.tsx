@@ -9,7 +9,7 @@ import { createFragmentContainer, QueryRenderer } from "react-relay";
 import environment from "../environment";
 import { ErrorPage } from "./ErrorPage";
 import { LoadingPage } from "./LoadingPage";
-import { ProtocolsTableNew_QueryVariables } from "./__generated__/ProtocolsTableNew_Query.graphql";
+import { ProtocolsTable_QueryVariables } from "./__generated__/ProtocolsTable_Query.graphql";
 import { useRecoilCallback } from "recoil";
 import { auth0State } from "../state/atoms";
 import { getSamples } from "../state/api";
@@ -214,7 +214,7 @@ export function ResultsTable({
     });
 
     const filterParams: {[name: string]: string} = {};
-    const variables: ProtocolsTableNew_QueryVariables = {
+    const variables: ProtocolsTable_QueryVariables = {
         page,
         perPage: defaultPerPage,
     };

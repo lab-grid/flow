@@ -4,7 +4,7 @@
 
 import { ConcreteRequest } from "relay-runtime";
 import { FragmentRefs } from "relay-runtime";
-export type ProtocolsTableNew_QueryVariables = {
+export type ProtocolsTable_QueryVariables = {
     protocol?: number | null;
     run?: number | null;
     plate?: string | null;
@@ -15,26 +15,26 @@ export type ProtocolsTableNew_QueryVariables = {
     page?: number | null;
     perPage?: number | null;
 };
-export type ProtocolsTableNew_QueryResponse = {
+export type ProtocolsTable_QueryResponse = {
     readonly allProtocols: {
         readonly edges: ReadonlyArray<{
             readonly node: {
                 readonly id: string;
-                readonly " $fragmentRefs": FragmentRefs<"ProtocolsTableNew_protocol">;
+                readonly " $fragmentRefs": FragmentRefs<"ProtocolsTable_protocol">;
             } | null;
         } | null>;
-        readonly " $fragmentRefs": FragmentRefs<"ProtocolsTableNew_pagerData">;
+        readonly " $fragmentRefs": FragmentRefs<"ProtocolsTable_pagerData">;
     } | null;
 };
-export type ProtocolsTableNew_Query = {
-    readonly response: ProtocolsTableNew_QueryResponse;
-    readonly variables: ProtocolsTableNew_QueryVariables;
+export type ProtocolsTable_Query = {
+    readonly response: ProtocolsTable_QueryResponse;
+    readonly variables: ProtocolsTable_QueryVariables;
 };
 
 
 
 /*
-query ProtocolsTableNew_Query(
+query ProtocolsTable_Query(
   $protocol: Int
   $run: Int
   $plate: String
@@ -46,27 +46,30 @@ query ProtocolsTableNew_Query(
   $perPage: Int
 ) {
   allProtocols(protocol: $protocol, run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived, page: $page, perPage: $perPage) {
-    ...ProtocolsTableNew_pagerData
+    ...ProtocolsTable_pagerData
     edges {
       node {
         id
-        ...ProtocolsTableNew_protocol
+        ...ProtocolsTable_protocol
       }
     }
   }
 }
 
-fragment ProtocolsTableNew_pagerData on ProtocolConnection {
+fragment ProtocolsTable_pagerData on ProtocolConnection {
   page
   pageCount
 }
 
-fragment ProtocolsTableNew_protocol on ProtocolNode {
+fragment ProtocolsTable_protocol on ProtocolNode {
   protocolId
   name
-  createdBy
   createdOn
   updatedOn
+  owner {
+    email
+    id
+  }
 }
 */
 
@@ -185,7 +188,7 @@ return {
     ],
     "kind": "Fragment",
     "metadata": null,
-    "name": "ProtocolsTableNew_Query",
+    "name": "ProtocolsTable_Query",
     "selections": [
       {
         "alias": null,
@@ -215,7 +218,7 @@ return {
                   {
                     "args": null,
                     "kind": "FragmentSpread",
-                    "name": "ProtocolsTableNew_protocol"
+                    "name": "ProtocolsTable_protocol"
                   }
                 ],
                 "storageKey": null
@@ -226,7 +229,7 @@ return {
           {
             "args": null,
             "kind": "FragmentSpread",
-            "name": "ProtocolsTableNew_pagerData"
+            "name": "ProtocolsTable_pagerData"
           }
         ],
         "storageKey": null
@@ -249,7 +252,7 @@ return {
       (v3/*: any*/)
     ],
     "kind": "Operation",
-    "name": "ProtocolsTableNew_Query",
+    "name": "ProtocolsTable_Query",
     "selections": [
       {
         "alias": null,
@@ -308,13 +311,6 @@ return {
                     "alias": null,
                     "args": null,
                     "kind": "ScalarField",
-                    "name": "createdBy",
-                    "storageKey": null
-                  },
-                  {
-                    "alias": null,
-                    "args": null,
-                    "kind": "ScalarField",
                     "name": "createdOn",
                     "storageKey": null
                   },
@@ -323,6 +319,25 @@ return {
                     "args": null,
                     "kind": "ScalarField",
                     "name": "updatedOn",
+                    "storageKey": null
+                  },
+                  {
+                    "alias": null,
+                    "args": null,
+                    "concreteType": "UserNode",
+                    "kind": "LinkedField",
+                    "name": "owner",
+                    "plural": false,
+                    "selections": [
+                      {
+                        "alias": null,
+                        "args": null,
+                        "kind": "ScalarField",
+                        "name": "email",
+                        "storageKey": null
+                      },
+                      (v10/*: any*/)
+                    ],
                     "storageKey": null
                   }
                 ],
@@ -337,14 +352,14 @@ return {
     ]
   },
   "params": {
-    "cacheID": "ccc6a4112409affe1f7e0803b5af24b8",
+    "cacheID": "374b46dcd01379de7346a0f0963c92d2",
     "id": null,
     "metadata": {},
-    "name": "ProtocolsTableNew_Query",
+    "name": "ProtocolsTable_Query",
     "operationKind": "query",
-    "text": "query ProtocolsTableNew_Query(\n  $protocol: Int\n  $run: Int\n  $plate: String\n  $reagent: String\n  $sample: String\n  $creator: String\n  $archived: Boolean\n  $page: Int\n  $perPage: Int\n) {\n  allProtocols(protocol: $protocol, run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived, page: $page, perPage: $perPage) {\n    ...ProtocolsTableNew_pagerData\n    edges {\n      node {\n        id\n        ...ProtocolsTableNew_protocol\n      }\n    }\n  }\n}\n\nfragment ProtocolsTableNew_pagerData on ProtocolConnection {\n  page\n  pageCount\n}\n\nfragment ProtocolsTableNew_protocol on ProtocolNode {\n  protocolId\n  name\n  createdBy\n  createdOn\n  updatedOn\n}\n"
+    "text": "query ProtocolsTable_Query(\n  $protocol: Int\n  $run: Int\n  $plate: String\n  $reagent: String\n  $sample: String\n  $creator: String\n  $archived: Boolean\n  $page: Int\n  $perPage: Int\n) {\n  allProtocols(protocol: $protocol, run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived, page: $page, perPage: $perPage) {\n    ...ProtocolsTable_pagerData\n    edges {\n      node {\n        id\n        ...ProtocolsTable_protocol\n      }\n    }\n  }\n}\n\nfragment ProtocolsTable_pagerData on ProtocolConnection {\n  page\n  pageCount\n}\n\nfragment ProtocolsTable_protocol on ProtocolNode {\n  protocolId\n  name\n  createdOn\n  updatedOn\n  owner {\n    email\n    id\n  }\n}\n"
   }
 };
 })();
-(node as any).hash = 'aa52ec6b8942f972b922238dd1a4750b';
+(node as any).hash = '605229bcadbdf77da4f9f5ace745421c';
 export default node;

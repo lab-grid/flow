@@ -6,9 +6,9 @@ import { Link, useHistory } from "react-router-dom";
 import { Paginator } from "./Paginator";
 import { createFragmentContainer, QueryRenderer } from "react-relay";
 import { ErrorPage } from "./ErrorPage";
-import { ProtocolsTableNew_pagerData } from "./__generated__/ProtocolsTableNew_pagerData.graphql";
-import { ProtocolsTableNew_protocol } from "./__generated__/ProtocolsTableNew_protocol.graphql";
-import { ProtocolsTableNew_Query, ProtocolsTableNew_QueryVariables } from "./__generated__/ProtocolsTableNew_Query.graphql";
+import { ProtocolsTable_pagerData } from "./__generated__/ProtocolsTable_pagerData.graphql";
+import { ProtocolsTable_protocol } from "./__generated__/ProtocolsTable_protocol.graphql";
+import { ProtocolsTable_Query, ProtocolsTable_QueryVariables } from "./__generated__/ProtocolsTable_Query.graphql";
 import { LoadingPage } from "./LoadingPage";
 import environment from "../environment";
 import { useRecoilState, useRecoilCallback } from "recoil";
@@ -18,13 +18,13 @@ import { errorsState, auth0State } from "../state/atoms";
 
 
 const protocolsQuery = graphql`
-query ProtocolsTableNew_Query($protocol: Int, $run: Int, $plate: String, $reagent: String, $sample: String, $creator: String, $archived: Boolean, $page: Int, $perPage: Int) {
+query ProtocolsTable_Query($protocol: Int, $run: Int, $plate: String, $reagent: String, $sample: String, $creator: String, $archived: Boolean, $page: Int, $perPage: Int) {
     allProtocols(protocol: $protocol, run: $run, plate: $plate, reagent: $reagent, sample: $sample, creator: $creator, archived: $archived, page: $page, perPage: $perPage) {
-        ...ProtocolsTableNew_pagerData
+        ...ProtocolsTable_pagerData
         edges {
             node {
                 id
-                ...ProtocolsTableNew_protocol
+                ...ProtocolsTable_protocol
             }
         }
     }
@@ -38,7 +38,7 @@ const defaultPerPage = 20;
 function ProtocolsTableFragmentView({
     protocol,
 }: {
-    protocol: ProtocolsTableNew_protocol | null;
+    protocol: ProtocolsTable_protocol | null;
 }) {
     if (protocol === null) {
         return <></>;
@@ -49,7 +49,7 @@ function ProtocolsTableFragmentView({
             <Link to={`/protocol/${protocol.protocolId}`}>{protocol.protocolId}</Link>
         </td>
         <td>{protocol.name}</td>
-        <td>{protocol.createdBy}</td>
+        <td>{protocol.owner && protocol.owner.email}</td>
         <td>{(protocol.createdOn && moment(protocol.createdOn).format("LLLL")) || ''}</td>
         <td>{((protocol.updatedOn || protocol.createdOn) && moment(protocol.updatedOn || protocol.createdOn).format("LLLL")) || ''}</td>
     </tr>;
@@ -58,12 +58,14 @@ function ProtocolsTableFragmentView({
 const ProtocolsTableFragment = createFragmentContainer(
     ProtocolsTableFragmentView,
     {
-        protocol: graphql`fragment ProtocolsTableNew_protocol on ProtocolNode {
+        protocol: graphql`fragment ProtocolsTable_protocol on ProtocolNode {
             protocolId
             name
-            createdBy
             createdOn
             updatedOn
+            owner {
+                email
+            }
         }`,
     },
 );
@@ -78,7 +80,7 @@ function ProtocolsPagerFragmentView({
     },
     onPageChange,
 }: {
-    pagerData: ProtocolsTableNew_pagerData;
+    pagerData: ProtocolsTable_pagerData;
     onPageChange?: (page: number) => void;
 }) {
     if ((page || pageCount) && (pageCount || 1) > 1) {
@@ -95,7 +97,7 @@ function ProtocolsPagerFragmentView({
 const ProtocolsPagerFragment = createFragmentContainer(
     ProtocolsPagerFragmentView,
     {
-        pagerData: graphql`fragment ProtocolsTableNew_pagerData on ProtocolConnection {
+        pagerData: graphql`fragment ProtocolsTable_pagerData on ProtocolConnection {
             page
             pageCount
         }`,
@@ -174,7 +176,7 @@ export function ProtocolsTable({
     });
 
     const filterParams: {[name: string]: string} = {};
-    const variables: ProtocolsTableNew_QueryVariables = {
+    const variables: ProtocolsTable_QueryVariables = {
         page,
         perPage: defaultPerPage,
     };
@@ -206,7 +208,7 @@ export function ProtocolsTable({
         variables.archived = archivedFilter;
         filterParams.archived = archivedFilter ? "true" : "false";
     }
-    return <QueryRenderer<ProtocolsTableNew_Query>
+    return <QueryRenderer<ProtocolsTable_Query>
         environment={environment}
         query={protocolsQuery}
         variables={variables}

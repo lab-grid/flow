@@ -4,15 +4,15 @@
 
 import { ReaderFragment } from "relay-runtime";
 import { FragmentRefs } from "relay-runtime";
-export type ProtocolsTableNew_pagerData = {
+export type RunsTable_pagerData = {
     readonly page: number | null;
     readonly pageCount: number | null;
-    readonly " $refType": "ProtocolsTableNew_pagerData";
+    readonly " $refType": "RunsTable_pagerData";
 };
-export type ProtocolsTableNew_pagerData$data = ProtocolsTableNew_pagerData;
-export type ProtocolsTableNew_pagerData$key = {
-    readonly " $data"?: ProtocolsTableNew_pagerData$data;
-    readonly " $fragmentRefs": FragmentRefs<"ProtocolsTableNew_pagerData">;
+export type RunsTable_pagerData$data = RunsTable_pagerData;
+export type RunsTable_pagerData$key = {
+    readonly " $data"?: RunsTable_pagerData$data;
+    readonly " $fragmentRefs": FragmentRefs<"RunsTable_pagerData">;
 };
 
 
@@ -21,7 +21,7 @@ const node: ReaderFragment = {
   "argumentDefinitions": [],
   "kind": "Fragment",
   "metadata": null,
-  "name": "ProtocolsTableNew_pagerData",
+  "name": "RunsTable_pagerData",
   "selections": [
     {
       "alias": null,
@@ -38,8 +38,8 @@ const node: ReaderFragment = {
       "storageKey": null
     }
   ],
-  "type": "ProtocolConnection",
+  "type": "RunConnection",
   "abstractKey": null
 };
-(node as any).hash = 'd0a244e1d8255fccd679c49e42e3e5ce';
+(node as any).hash = 'dd5ebab9840837bf1ef7d77004ad6ad5';
 export default node;
