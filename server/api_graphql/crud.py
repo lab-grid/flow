@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from typing import Dict, List, Optional, Set
+import casbin
 from graphql.execution.base import ResolveInfo
 from graphql.language.ast import Field, FragmentDefinition, FragmentSpread
 from graphql.type.definition import GraphQLList, GraphQLNonNull
@@ -19,6 +20,9 @@ def get_session(info: ResolveInfo) -> Session:
 
 def get_current_user_from_request(request: Request) -> Auth0CurrentUserPatched:
     return getattr(request.state, 'user', None)
+
+def get_enforcer_from_request(request: Request) -> casbin.Enforcer:
+    return getattr(request.state, 'enforcer', None)
 
 def change_case(orig: str) -> str:
     return ''\
@@ -83,6 +87,7 @@ def add_sample_id(sample_dict: dict) -> dict:
 # CRUD methods ----------------------------------------------------------------
 
 def graphql_crud_get_runs(
+    enforcer: casbin.Enforcer,
     current_user: Auth0CurrentUserPatched,
     info: ResolveInfo,
 
@@ -168,7 +173,7 @@ def graphql_crud_get_runs(
         run
         for run
         in query
-        if check_access(user=current_user.username, path=f"/run/{str(run.id)}", method="GET")
+        if check_access(enforcer, user=current_user.username, path=f"/run/{str(run.id)}", method="GET")
     ]
 
     return paginatify(
@@ -180,6 +185,7 @@ def graphql_crud_get_runs(
     )
 
 def graphql_crud_get_protocols(
+    enforcer: casbin.Enforcer,
     current_user: Auth0CurrentUserPatched,
     info: ResolveInfo,
 
@@ -270,7 +276,7 @@ def graphql_crud_get_protocols(
         protocol
         for protocol
         in query
-        if check_access(user=current_user.username, path=f"/protocol/{str(protocol.id)}", method="GET")
+        if check_access(enforcer, user=current_user.username, path=f"/protocol/{str(protocol.id)}", method="GET")
     ]
 
     return paginatify(
@@ -282,6 +288,7 @@ def graphql_crud_get_protocols(
     )
 
 def graphql_crud_get_samples(
+    enforcer: casbin.Enforcer,
     current_user: Auth0CurrentUserPatched,
     info: ResolveInfo,
 
@@ -383,7 +390,7 @@ def graphql_crud_get_samples(
         sample
         for sample
         in query
-        if check_access(user=current_user.username, path=f"/run/{str(sample.run_id)}", method="GET")
+        if check_access(enforcer, user=current_user.username, path=f"/run/{str(sample.run_id)}", method="GET")
     ]
 
     return paginatify(

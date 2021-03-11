@@ -1,8 +1,7 @@
-import sys
 import urllib.parse
 
-from functools import wraps
 from typing import Optional
+import casbin
 
 from fastapi import Depends, HTTPException
 from server import Auth0ClaimsPatched
@@ -10,17 +9,16 @@ from sqlalchemy.orm import Session
 
 from server import app, get_db, get_current_user
 from settings import settings
-from authorization import check_access, add_policy, get_policies, get_roles
+from authorization import add_policy, get_enforcer, get_roles
 from database import versioned_row_to_dict, strip_metadata, User, UserVersion
 from models import UserModel, UsersModel
 
-from api.utils import add_owner, add_updator, paginatify
-
+from api.utils import add_owner, add_updator
 from crud.user import crud_get_users, crud_get_user
 
 
-def add_role(d):
-    d['role'] = get_roles(d['id'])
+def add_role(enforcer: casbin.Enforcer, d):
+    d['role'] = get_roles(enforcer, d['id'])
     return d
 
 
@@ -29,12 +27,14 @@ async def get_users(
     page: Optional[int] = None,
     per_page: Optional[int] = None,
 
+    enforcer: casbin.Enforcer = Depends(get_enforcer),
     db: Session = Depends(get_db),
     current_user: Auth0ClaimsPatched = Depends(get_current_user),
 ):
     return crud_get_users(
-        item_to_dict=lambda user: add_role(versioned_row_to_dict(user, user.current)),
+        item_to_dict=lambda user: add_role(enforcer, versioned_row_to_dict(user, user.current)),
 
+        enforcer=enforcer,
         db=db,
         current_user=current_user,
 
@@ -44,7 +44,7 @@ async def get_users(
     )
 
 @app.post('/user', tags=['users'], response_model=UserModel, response_model_exclude_none=True)
-async def create_user(user: UserModel, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+async def create_user(user: UserModel, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
     user_dict = user.dict()
 
     # Drop the roles field if it was provided.
@@ -56,15 +56,16 @@ async def create_user(user: UserModel, db: Session = Depends(get_db), current_us
     add_owner(new_user, current_user.username)
     db.add_all([new_user, new_user_version])
     db.commit()
-    add_policy(user=current_user.username, path=f"/user/{str(new_user.id)}", method="GET")
-    add_policy(user=current_user.username, path=f"/user/{str(new_user.id)}", method="PUT")
-    return add_role(versioned_row_to_dict(new_user, new_user_version))
+    add_policy(enforcer, user=current_user.username, path=f"/user/{str(new_user.id)}", method="GET")
+    add_policy(enforcer, user=current_user.username, path=f"/user/{str(new_user.id)}", method="PUT")
+    return add_role(enforcer, versioned_row_to_dict(new_user, new_user_version))
 
 @app.get('/user/{user_id}', tags=['users'], response_model=UserModel, response_model_exclude_none=True)
-async def get_user(user_id: str, version_id: Optional[int] = None, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+async def get_user(user_id: str, version_id: Optional[int] = None, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
     return crud_get_user(
-        item_to_dict=lambda user: add_role(versioned_row_to_dict(user, user.current)),
+        item_to_dict=lambda user: add_role(enforcer, versioned_row_to_dict(user, user.current)),
 
+        enforcer=enforcer,
         db=db,
         current_user=current_user,
         
@@ -73,7 +74,7 @@ async def get_user(user_id: str, version_id: Optional[int] = None, db: Session =
     )
 
 @app.put('/user/{user_id}', tags=['users'], response_model=UserModel, response_model_exclude_none=True)
-async def update_user(user_id: str, user: UserModel, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+async def update_user(user_id: str, user: UserModel, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
     user_id = urllib.parse.unquote(user_id)
 
     user_dict = user.dict()
@@ -88,4 +89,4 @@ async def update_user(user_id: str, user: UserModel, db: Session = Depends(get_d
     new_user.current = new_user_version
     db.add(new_user_version)
     db.commit()
-    return add_role(versioned_row_to_dict(new_user, new_user.current))
+    return add_role(enforcer, versioned_row_to_dict(new_user, new_user.current))

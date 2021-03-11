@@ -1,3 +1,4 @@
+import casbin
 from sqlalchemy.orm import Session, Query
 from typing import Optional, List
 from functools import reduce
@@ -28,6 +29,7 @@ def all_protocols(db: Session, include_archived=False) -> Query:
 def crud_get_protocols(
     item_to_dict,
 
+    enforcer: casbin.Enforcer,
     db: Session,
     current_user: Auth0ClaimsPatched,
 
@@ -95,7 +97,7 @@ def crud_get_protocols(
             protocol
             for protocol
             in protocols_query.distinct().order_by(Protocol.created_on.desc())
-            if check_access(user=current_user.username, path=f"/protocol/{str(protocol.id)}", method="GET") and protocol and protocol.current
+            if check_access(enforcer, user=current_user.username, path=f"/protocol/{str(protocol.id)}", method="GET") and protocol and protocol.current
         ],
         item_to_dict=lambda protocol: item_to_dict(fix_plate_markers_protocol(db, protocol)),
         page=page,
@@ -105,13 +107,14 @@ def crud_get_protocols(
 def crud_get_protocol(
     item_to_dict,
 
+    enforcer: casbin.Enforcer,
     db: Session,
     current_user: Auth0ClaimsPatched,
 
     protocol_id: int,
     version_id: Optional[int] = None,
 ) -> dict:
-    if not check_access(user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="GET"):
+    if not check_access(enforcer, user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="GET"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
     if version_id:

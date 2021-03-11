@@ -53,7 +53,7 @@ def change_allowed(orig_dict, new_dict):
     is_signed = orig_dict.get(STATUS_FIELD, None) == STATUS_SIGNED
     is_witnessed = orig_dict.get(STATUS_FIELD, None) == STATUS_WITNESSED
 
-    is_signing = new_dict.get(STATUS_FIELD, None) == STATUS_SIGNED and status_lt(orig_dict.get(STATUS_FIELD, None), STATUS_SIGNED)
+    # is_signing = new_dict.get(STATUS_FIELD, None) == STATUS_SIGNED and status_lt(orig_dict.get(STATUS_FIELD, None), STATUS_SIGNED)
     is_witnessing = new_dict.get(STATUS_FIELD, None) == STATUS_WITNESSED and status_lt(orig_dict.get(STATUS_FIELD, None), STATUS_WITNESSED)
 
     is_unsigning = status_lt(new_dict.get(STATUS_FIELD, None), STATUS_SIGNED) and orig_dict.get(STATUS_FIELD, None) == STATUS_SIGNED

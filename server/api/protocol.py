@@ -1,5 +1,5 @@
-from functools import reduce, wraps
 from typing import List, Optional
+import casbin
 
 from fastapi import Depends, HTTPException
 from server import Auth0ClaimsPatched
@@ -9,13 +9,11 @@ import jsonpatch
 
 from server import app, get_db, get_current_user
 from settings import settings
-from authorization import check_access, add_policy, delete_policy, get_policies
-from database import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, versioned_row_to_dict, json_row_to_dict, strip_metadata, Protocol, ProtocolVersion, Run, RunVersion
+from authorization import check_access, add_policy, delete_policy, get_enforcer, get_policies
+from database import versioned_row_to_dict, strip_metadata, Protocol, ProtocolVersion
 from models import Policy, ProtocolModel, ProtocolsModel, SuccessResponse, success
-from pydantic_jsonpatch.jsonpatch import JSONPatch
 
-from api.utils import change_allowed, add_owner, add_updator, paginatify
-
+from api.utils import change_allowed, add_owner, add_updator
 from crud.protocol import crud_get_protocols, crud_get_protocol
 
 
@@ -29,12 +27,14 @@ async def get_protocols(
     archived: Optional[bool] = None,
     page: Optional[int] = None,
     per_page: Optional[int] = None,
+    enforcer: casbin.Enforcer = Depends(get_enforcer),
     db: Session = Depends(get_db),
     current_user: Auth0ClaimsPatched = Depends(get_current_user)
 ):
     return crud_get_protocols(
         item_to_dict=lambda protocol: versioned_row_to_dict(protocol, protocol.current, include_large_fields=False),
 
+        enforcer=enforcer,
         db=db,
         current_user=current_user,
 
@@ -49,7 +49,7 @@ async def get_protocols(
     )
 
 @app.post('/protocol', tags=['protocols'], response_model=ProtocolModel, response_model_exclude_none=True)
-async def create_protocol(protocol: ProtocolModel, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+async def create_protocol(protocol: ProtocolModel, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
     protocol_dict = protocol.dict()
     protocol = Protocol()
     protocol_version = ProtocolVersion(data=strip_metadata(protocol_dict), server_version=settings.server_version)
@@ -58,16 +58,17 @@ async def create_protocol(protocol: ProtocolModel, db: Session = Depends(get_db)
     add_owner(protocol, current_user.username)
     db.add_all([protocol, protocol_version])
     db.commit()
-    add_policy(user=current_user.username, path=f"/protocol/{str(protocol.id)}", method="GET")
-    add_policy(user=current_user.username, path=f"/protocol/{str(protocol.id)}", method="PUT")
-    add_policy(user=current_user.username, path=f"/protocol/{str(protocol.id)}", method="DELETE")
+    add_policy(enforcer, user=current_user.username, path=f"/protocol/{str(protocol.id)}", method="GET")
+    add_policy(enforcer, user=current_user.username, path=f"/protocol/{str(protocol.id)}", method="PUT")
+    add_policy(enforcer, user=current_user.username, path=f"/protocol/{str(protocol.id)}", method="DELETE")
     return versioned_row_to_dict(protocol, protocol_version)
 
 @app.get('/protocol/{protocol_id}', tags=['protocols'], response_model=ProtocolModel, response_model_exclude_none=True)
-async def get_protocol(protocol_id: int, version_id: Optional[int] = None, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+async def get_protocol(protocol_id: int, version_id: Optional[int] = None, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
     return crud_get_protocol(
         item_to_dict=lambda protocol: versioned_row_to_dict(protocol, protocol.current),
 
+        enforcer=enforcer,
         db=db,
         current_user=current_user,
 
@@ -76,8 +77,8 @@ async def get_protocol(protocol_id: int, version_id: Optional[int] = None, db: S
     )
 
 @app.put('/protocol/{protocol_id}', tags=['protocols'], response_model=ProtocolModel, response_model_exclude_none=True)
-async def update_protocol(protocol_id: int, protocol: ProtocolModel, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="PUT"):
+async def update_protocol(protocol_id: int, protocol: ProtocolModel, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="PUT"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
     protocol_dict = protocol.dict()
@@ -95,8 +96,8 @@ async def update_protocol(protocol_id: int, protocol: ProtocolModel, db: Session
     return versioned_row_to_dict(new_protocol, new_protocol.current)
 
 @app.patch('/protocol/{protocol_id}', tags=['protocols'], response_model=ProtocolModel, response_model_exclude_none=True)
-async def patch_protocol(protocol_id: int, patch: list, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="PUT"):
+async def patch_protocol(protocol_id: int, patch: list, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="PUT"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
     new_protocol = db.query(Protocol).get(protocol_id)
@@ -119,8 +120,8 @@ async def patch_protocol(protocol_id: int, patch: list, db: Session = Depends(ge
     return versioned_row_to_dict(new_protocol, new_protocol.current)
 
 @app.delete('/protocol/{protocol_id}', tags=['protocols'], response_model=SuccessResponse, response_model_exclude_none=True)
-async def delete_protocol(protocol_id: int, purge: bool = False, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="DELETE"):
+async def delete_protocol(protocol_id: int, purge: bool = False, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="DELETE"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
     protocol = db.query(Protocol).get(protocol_id)
@@ -131,31 +132,31 @@ async def delete_protocol(protocol_id: int, purge: bool = False, db: Session = D
     else:
         protocol.is_deleted = True
     db.commit()
-    delete_policy(path=f"/protocol/{str(protocol.id)}")
+    delete_policy(enforcer, path=f"/protocol/{str(protocol.id)}")
     return success
 
 
 # Permissions -----------------------------------------------------------------
 
 @app.get('/protocol/{protocol_id}/permission', tags=['protocols'], response_model=List[Policy], response_model_exclude_none=True)
-async def get_permissions(protocol_id: int, current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="GET"):
+async def get_permissions(protocol_id: int, enforcer: casbin.Enforcer = Depends(get_enforcer), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="GET"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
-    return get_policies(path=f"/protocol/{protocol_id}")
+    return get_policies(enforcer, path=f"/protocol/{protocol_id}")
 
 @app.post('/protocol/{protocol_id}/permission/{method}/{user_id}', tags=['protocols'], response_model=Policy, response_model_exclude_none=True)
-async def create_permission(protocol_id: int, method: str, user_id: str, current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="PUT"):
+async def create_permission(protocol_id: int, method: str, user_id: str, enforcer: casbin.Enforcer = Depends(get_enforcer), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="PUT"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
-    add_policy(user=user_id, path=f"/protocol/{protocol_id}", method=method)
+    add_policy(enforcer, user=user_id, path=f"/protocol/{protocol_id}", method=method)
     return success
 
 @app.delete('/protocol/{protocol_id}/permission/{method}/{user_id}', tags=['protocols'], response_model=SuccessResponse, response_model_exclude_none=True)
-async def delete_permission(protocol_id: int, method: str, user_id: str, current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="PUT"):
+async def delete_permission(protocol_id: int, method: str, user_id: str, enforcer: casbin.Enforcer = Depends(get_enforcer), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/protocol/{str(protocol_id)}", method="PUT"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
-    delete_policy(user=user_id, path=f"/protocol/{protocol_id}", method=method)
+    delete_policy(enforcer, user=user_id, path=f"/protocol/{protocol_id}", method=method)
     return success

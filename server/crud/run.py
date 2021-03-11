@@ -1,3 +1,4 @@
+import casbin
 from sqlalchemy.orm import Session, Query
 from typing import Optional, List
 from functools import reduce
@@ -35,6 +36,7 @@ def all_samples(db: Session, run: Run, include_archived=False) -> Query:
 def crud_get_runs(
     item_to_dict,
 
+    enforcer: casbin.Enforcer,
     db: Session,
     current_user: Auth0ClaimsPatched,
 
@@ -97,7 +99,7 @@ def crud_get_runs(
             run
             for run
             in runs_query.distinct().order_by(Run.created_on.desc())
-            if check_access(user=current_user.username, path=f"/run/{str(run.id)}", method="GET") and run and run.current
+            if check_access(enforcer, user=current_user.username, path=f"/run/{str(run.id)}", method="GET") and run and run.current
         ],
         item_to_dict=lambda run: item_to_dict(fix_plate_markers_run(db, run)),
         page=page,
@@ -107,13 +109,14 @@ def crud_get_runs(
 def crud_get_run(
     item_to_dict,
 
+    enforcer: casbin.Enforcer,
     db: Session,
     current_user: Auth0ClaimsPatched,
 
     run_id: int,
     version_id: Optional[int] = None,
 ) -> dict:
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
     if version_id:
@@ -135,6 +138,7 @@ def crud_get_run(
 def crud_get_run_samples(
     item_to_dict,
 
+    enforcer: casbin.Enforcer,
     db: Session,
     current_user: Auth0ClaimsPatched,
 
@@ -147,7 +151,7 @@ def crud_get_run_samples(
     page: Optional[int] = None,
     per_page: Optional[int] = None,
 ) -> List[dict]:
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
     run = db.query(Run).get(run_id)
     if not run or run.is_deleted:
@@ -200,6 +204,7 @@ def crud_get_run_samples(
 def crud_get_run_sample(
     item_to_dict,
 
+    enforcer: casbin.Enforcer,
     db: Session,
     current_user: Auth0ClaimsPatched,
 
@@ -207,7 +212,7 @@ def crud_get_run_sample(
     sample_id: str,
     version_id: Optional[int] = None,
 ) -> dict:
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
     run = db.query(Run).get(run_id)
     if not run or run.is_deleted:

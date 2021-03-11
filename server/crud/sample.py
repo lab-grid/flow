@@ -1,3 +1,4 @@
+import casbin
 from sqlalchemy.orm import Session, Query
 from typing import Optional, List
 from functools import reduce
@@ -6,9 +7,7 @@ from fastapi import HTTPException
 from authorization import check_access
 from server import Auth0ClaimsPatched
 from database import (
-    filter_by_plate_label,
     filter_by_reagent_label,
-    filter_by_sample_label,
     ProtocolVersion,
     Run,
     RunVersion,
@@ -30,6 +29,7 @@ def all_samples(db: Session, include_archived=False) -> Query:
 def crud_get_samples(
     item_to_dict,
 
+    enforcer: casbin.Enforcer,
     db: Session,
     current_user: Auth0ClaimsPatched,
 
@@ -92,7 +92,7 @@ def crud_get_samples(
             sample
             for sample
             in samples_query.distinct().order_by(Sample.created_on.desc())
-            if check_access(user=current_user.username, path=f"/run/{str(sample.run_version.run_id)}", method="GET") and sample and sample.current
+            if check_access(enforcer, user=current_user.username, path=f"/run/{str(sample.run_version.run_id)}", method="GET") and sample and sample.current
         ],
         item_to_dict=item_to_dict,
         page=page,
@@ -102,6 +102,7 @@ def crud_get_samples(
 def crud_get_sample(
     item_to_dict,
 
+    enforcer: casbin.Enforcer,
     db: Session,
     current_user: Auth0ClaimsPatched,
 
@@ -112,7 +113,7 @@ def crud_get_sample(
     version_id: Optional[int] = None,
 ) -> dict:
     sample = db.query(Sample).get(sample_id)
-    if not check_access(user=current_user.username, path=f"/run/{str(sample.run_version.run_id)}", method="GET"):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(sample.run_version.run_id)}", method="GET"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
     if version_id:

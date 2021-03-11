@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import HTTPException
 
 from database import Protocol, ProtocolVersion, Run, RunVersion, versioned_row_to_dict
-from api_graphql.crud import get_current_user_from_request, get_session, graphql_ast_flatten_field, graphql_crud_get_protocols, graphql_crud_get_runs, graphql_crud_get_samples
+from api_graphql.crud import get_current_user_from_request, get_enforcer_from_request, get_session, graphql_ast_flatten_field, graphql_crud_get_protocols, graphql_crud_get_runs, graphql_crud_get_samples
 from models import SampleResult, ProtocolModel, RunModel, UserModel
 from crud.run import crud_get_run, crud_get_run_samples
 from crud.protocol import crud_get_protocol
@@ -282,6 +282,7 @@ class SampleNode(VersionedPydanticObjectType):
 
     @staticmethod
     def resolve_owner(root, info):
+        enforcer = get_enforcer_from_request(info.context['request'])
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
@@ -290,6 +291,7 @@ class SampleNode(VersionedPydanticObjectType):
         return UserModel.parse_obj(
             crud_get_user(
                 item_to_dict=lambda user: versioned_row_to_dict(user, user.current),
+                enforcer=enforcer,
                 db=db,
                 current_user=current_user,
                 user_id=root.created_by,
@@ -356,6 +358,7 @@ class ProtocolNode(VersionedPydanticObjectType):
 
     @staticmethod
     def resolve_owner(root, info):
+        enforcer = get_enforcer_from_request(info.context['request'])
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
@@ -364,6 +367,7 @@ class ProtocolNode(VersionedPydanticObjectType):
         return UserModel.parse_obj(
             crud_get_user(
                 item_to_dict=lambda user: versioned_row_to_dict(user, user.current),
+                enforcer=enforcer,
                 db=db,
                 current_user=current_user,
                 user_id=root.created_by,
@@ -435,6 +439,7 @@ class RunNode(VersionedPydanticObjectType):
 
     @staticmethod
     def resolve_owner(root, info):
+        enforcer = get_enforcer_from_request(info.context['request'])
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
@@ -443,6 +448,7 @@ class RunNode(VersionedPydanticObjectType):
         return UserModel.parse_obj(
             crud_get_user(
                 item_to_dict=lambda user: add_ids(versioned_row_to_dict(user, user.current), user_id=user.id),
+                enforcer=enforcer,
                 db=db,
                 current_user=current_user,
                 user_id=root.created_by,
@@ -458,6 +464,7 @@ class RunNode(VersionedPydanticObjectType):
         page: Optional[int] = None,
         per_page: Optional[int] = None,
     ):
+        enforcer = get_enforcer_from_request(info.context['request'])
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
@@ -465,7 +472,8 @@ class RunNode(VersionedPydanticObjectType):
         db = get_session(info)
         pagination_dict = crud_get_run_samples(
             item_to_dict=lambda sample: versioned_row_to_dict(sample, sample.current),
-            
+
+            enforcer=enforcer,
             db=db,
             current_user=current_user,
 
@@ -582,6 +590,7 @@ class Query(graphene.ObjectType):
 
     @staticmethod
     def resolve_protocol(root, info: ResolveInfo, id: int, version_id: Optional[int]):
+        enforcer = get_enforcer_from_request(info.context['request'])
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
@@ -590,6 +599,7 @@ class Query(graphene.ObjectType):
         model_dict = crud_get_protocol(
             item_to_dict=lambda protocol: add_ids(versioned_row_to_dict(protocol, protocol.current), protocol_id=protocol.id),
 
+            enforcer=enforcer,
             db=db,
             current_user=current_user,
 
@@ -622,11 +632,13 @@ class Query(graphene.ObjectType):
         first: Optional[int] = None,
         last: Optional[int] = None,
     ):
+        enforcer = get_enforcer_from_request(info.context['request'])
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
         pagination_dict = graphql_crud_get_protocols(
+            enforcer,
             current_user,
             info,
             protocol,
@@ -667,6 +679,7 @@ class Query(graphene.ObjectType):
         id: int,
         version_id: int,
     ):
+        enforcer = get_enforcer_from_request(info.context['request'])
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
@@ -675,6 +688,7 @@ class Query(graphene.ObjectType):
         model_dict = crud_get_run(
             item_to_dict=lambda run: add_ids(versioned_row_to_dict(run, run.current), run_id=run.id),
 
+            enforcer=enforcer,
             db=db,
             current_user=current_user,
 
@@ -707,11 +721,13 @@ class Query(graphene.ObjectType):
         first: Optional[int] = None,
         last: Optional[int] = None,
     ):
+        enforcer = get_enforcer_from_request(info.context['request'])
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
         pagination_dict = graphql_crud_get_runs(
+            enforcer,
             current_user,
             info,
             protocol,
@@ -746,6 +762,7 @@ class Query(graphene.ObjectType):
 
     @staticmethod
     def resolve_user(root, info: ResolveInfo, id: str, version_id: Optional[int]):
+        enforcer = get_enforcer_from_request(info.context['request'])
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
@@ -754,6 +771,7 @@ class Query(graphene.ObjectType):
         model_dict = crud_get_user(
             item_to_dict=lambda user: add_ids(versioned_row_to_dict(user, user.current), user_id=user.id),
 
+            enforcer=enforcer,
             db=db,
             current_user=current_user,
 
@@ -780,6 +798,7 @@ class Query(graphene.ObjectType):
         first: Optional[int] = None,
         last: Optional[int] = None,
     ):
+        enforcer = get_enforcer_from_request(info.context['request'])
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
@@ -788,6 +807,7 @@ class Query(graphene.ObjectType):
         pagination_dict = crud_get_users(
             item_to_dict=lambda user: add_ids(versioned_row_to_dict(user, user.current), user_id=user.id),
 
+            enforcer=enforcer,
             db=db,
             current_user=current_user,
 
@@ -818,6 +838,7 @@ class Query(graphene.ObjectType):
 
     @staticmethod
     def resolve_sample(root, info: ResolveInfo, sample_id: str, plate_id: str, run_version_id: int, protocol_version_id: int, version_id: Optional[int]):
+        enforcer = get_enforcer_from_request(info.context['request'])
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
@@ -826,6 +847,7 @@ class Query(graphene.ObjectType):
         model_dict = crud_get_sample(
             item_to_dict=lambda sample: versioned_row_to_dict(sample, sample.current),
 
+            enforcer=enforcer,
             db=db,
             current_user=current_user,
 
@@ -861,11 +883,13 @@ class Query(graphene.ObjectType):
         first: Optional[int] = None,
         last: Optional[int] = None,
     ):
+        enforcer = get_enforcer_from_request(info.context['request'])
         current_user = get_current_user_from_request(info.context['request'])
         if current_user is None:
             raise HTTPException(401, "Unauthorized")
 
         pagination_dict = graphql_crud_get_samples(
+            enforcer,
             current_user,
             info,
             protocol,

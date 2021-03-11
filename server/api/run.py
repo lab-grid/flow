@@ -1,5 +1,6 @@
 import csv
 import io
+import casbin
 import jsonpatch
 import re
 import json
@@ -17,7 +18,7 @@ from sqlalchemy.orm.session import make_transient
 
 from server import app, get_db, get_current_user
 from settings import settings
-from authorization import check_access, add_policy, delete_policy, get_policies, get_roles
+from authorization import check_access, add_policy, delete_policy, get_enforcer, get_policies, get_roles
 from database import filter_by_plate_label, filter_by_reagent_label, filter_by_sample_label, versioned_row_to_dict, json_row_to_dict, strip_metadata, Run, RunVersion, Protocol, run_to_sample, Sample, SampleVersion, Attachment
 from models import AttachmentModel, SampleResult, SampleResults, Policy, RunModel, RunsModel, SuccessResponse, success
 from pydantic_jsonpatch.jsonpatch import JSONPatch
@@ -158,12 +159,14 @@ async def get_runs(
     archived: Optional[bool] = None,
     page: Optional[int] = None,
     per_page: Optional[int] = None,
+    enforcer: casbin.Enforcer = Depends(get_enforcer),
     db: Session = Depends(get_db),
     current_user: Auth0ClaimsPatched = Depends(get_current_user)
 ):
     return crud_get_runs(
         item_to_dict=lambda run: run_to_dict(run, run.current, include_large_fields=False),
 
+        enforcer=enforcer,
         db=db,
         current_user=current_user,
 
@@ -179,7 +182,7 @@ async def get_runs(
     )
 
 @app.post('/run', tags=['runs'], response_model=RunModel, response_model_exclude_none=True)
-async def create_run(run: RunModel, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+async def create_run(run: RunModel, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
     run_dict = run.dict()
     protocol_id = extract_protocol_id(run_dict)
     run_dict.pop('protocol', None)
@@ -200,16 +203,17 @@ async def create_run(run: RunModel, db: Session = Depends(get_db), current_user:
         for sample in samples:
             db.merge(sample)
     db.commit()
-    add_policy(user=current_user.username, path=f"/run/{str(new_run.id)}", method="GET")
-    add_policy(user=current_user.username, path=f"/run/{str(new_run.id)}", method="PUT")
-    add_policy(user=current_user.username, path=f"/run/{str(new_run.id)}", method="DELETE")
+    add_policy(enforcer, user=current_user.username, path=f"/run/{str(new_run.id)}", method="GET")
+    add_policy(enforcer, user=current_user.username, path=f"/run/{str(new_run.id)}", method="PUT")
+    add_policy(enforcer, user=current_user.username, path=f"/run/{str(new_run.id)}", method="DELETE")
     return run_to_dict(new_run, new_run_version)
 
 @app.get('/run/{run_id}', tags=['runs'], response_model=RunModel, response_model_exclude_none=True)
-async def get_run(run_id: int, version_id: Optional[int] = None, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+async def get_run(run_id: int, version_id: Optional[int] = None, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
     return crud_get_run(
         item_to_dict=lambda run: run_to_dict(run, run.current),
 
+        enforcer=enforcer,
         db=db,
         current_user=current_user,
 
@@ -218,8 +222,8 @@ async def get_run(run_id: int, version_id: Optional[int] = None, db: Session = D
     )
 
 @app.put('/run/{run_id}', tags=['runs'], response_model=RunModel, response_model_exclude_none=True)
-async def update_run(run_id: int, run: RunModel, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
+async def update_run(run_id: int, run: RunModel, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
     run_dict = run.dict()
@@ -243,8 +247,8 @@ async def update_run(run_id: int, run: RunModel, db: Session = Depends(get_db), 
     return run_to_dict(new_run, new_run.current)
 
 @app.patch('/run/{run_id}', tags=['runs'], response_model=RunModel, response_model_exclude_none=True)
-async def patch_run(request: Request, run_id: int, patch: list, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
+async def patch_run(request: Request, run_id: int, patch: list, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
     new_run = db.query(Run).get(run_id)
@@ -324,8 +328,8 @@ async def patch_run(request: Request, run_id: int, patch: list, db: Session = De
     return run_to_dict(new_run, new_run.current)
 
 @app.delete('/run/{run_id}', tags=['runs'], response_model=SuccessResponse, response_model_exclude_none=True)
-async def delete_run(run_id: int, purge: bool = False, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="DELETE"):
+async def delete_run(run_id: int, purge: bool = False, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="DELETE"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
     run = db.query(Run).get(run_id)
@@ -337,33 +341,33 @@ async def delete_run(run_id: int, purge: bool = False, db: Session = Depends(get
         run.is_deleted = True
         # TODO: Mark all samples as deleted/archived?
     db.commit()
-    delete_policy(path=f"/run/{str(run.id)}")
+    delete_policy(enforcer, path=f"/run/{str(run.id)}")
     return success
 
 
 # Permissions -----------------------------------------------------------------
 
 @app.get('/run/{run_id}/permission', tags=['runs'], response_model=List[Policy], response_model_exclude_none=True)
-async def get_permissions(run_id: int, current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+async def get_permissions(run_id: int, enforcer: casbin.Enforcer = Depends(get_enforcer), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
-    return get_policies(path=f"/run/{run_id}")
+    return get_policies(enforcer, path=f"/run/{run_id}")
 
 @app.post('/run/{run_id}/permission/{method}/{user_id}', tags=['protocols'], response_model=Policy, response_model_exclude_none=True)
-async def create_permission(run_id: int, method: str, user_id: str, current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
+async def create_permission(run_id: int, method: str, user_id: str, enforcer: casbin.Enforcer = Depends(get_enforcer), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
-    add_policy(user=user_id, path=f"/run/{run_id}", method=method)
+    add_policy(enforcer, user=user_id, path=f"/run/{run_id}", method=method)
     return success
 
 @app.delete('/run/{run_id}/permission/{method}/{user_id}', tags=['protocols'], response_model=SuccessResponse, response_model_exclude_none=True)
-async def delete_permission(run_id: int, method: str, user_id: str, current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
+async def delete_permission(run_id: int, method: str, user_id: str, enforcer: casbin.Enforcer = Depends(get_enforcer), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
-    delete_policy(user=user_id, path=f"/run/{run_id}", method=method)
+    delete_policy(enforcer, user=user_id, path=f"/run/{run_id}", method=method)
     return success
 
 
@@ -379,12 +383,14 @@ async def get_run_samples(
     archived: Optional[bool] = None,
     page: Optional[int] = None,
     per_page: Optional[int] = None,
+    enforcer: casbin.Enforcer = Depends(get_enforcer),
     db: Session = Depends(get_db),
     current_user: Auth0ClaimsPatched = Depends(get_current_user)
 ):
     return crud_get_run_samples(
         item_to_dict=lambda sample: run_to_sample(sample),
 
+        enforcer=enforcer,
         db=db,
         current_user=current_user,
 
@@ -427,10 +433,11 @@ async def export_run_samples_csv(
     reagent: Optional[str] = None,
     creator: Optional[str] = None,
     archived: Optional[bool] = None,
+    enforcer: casbin.Enforcer = Depends(get_enforcer),
     db: Session = Depends(get_db),
     current_user: Auth0ClaimsPatched = Depends(get_current_user)
 ):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
     run = db.query(Run).get(run_id)
     if not run or run.is_deleted:
@@ -439,6 +446,7 @@ async def export_run_samples_csv(
     samples = crud_get_run_samples(
         item_to_dict=lambda sample: run_to_sample(sample),
 
+        enforcer=enforcer,
         db=db,
         current_user=current_user,
 
@@ -470,10 +478,11 @@ async def export_run_samples_csv(
     return Response(csvfile.getvalue(), media_type='text/csv')
 
 @app.get('/run/{run_id}/sample/{sample_id}', tags=['runs'], response_model=SampleResults, response_model_exclude_none=True)
-async def get_run_sample(run_id: int, sample_id: str, version_id: Optional[int] = None, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+async def get_run_sample(run_id: int, sample_id: str, version_id: Optional[int] = None, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
     return crud_get_run_sample(
         item_to_dict=lambda sample: run_to_sample(sample),
 
+        enforcer=enforcer,
         db=db,
         current_user=current_user,
 
@@ -483,8 +492,8 @@ async def get_run_sample(run_id: int, sample_id: str, version_id: Optional[int] 
     )
 
 @app.put('/run/{run_id}/sample/{sample_id}', tags=['runs'], response_model=SampleResults, response_model_exclude_none=True)
-async def update_run_sample(run_id: int, sample_id: str, sample: SampleResult, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
+async def update_run_sample(run_id: int, sample_id: str, sample: SampleResult, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="PUT"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
     run = db.query(Run).get(run_id)
@@ -509,8 +518,8 @@ async def update_run_sample(run_id: int, sample_id: str, sample: SampleResult, d
 # Attachments -----------------------------------------------------------------
 
 @app.get('/run/{run_id}/attachment', tags=['runs'], response_model=List[AttachmentModel], response_model_exclude_none=True)
-async def get_run_attachments(run_id: int, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+async def get_run_attachments(run_id: int, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
     run = db.query(Run).get(run_id)
@@ -521,12 +530,12 @@ async def get_run_attachments(run_id: int, db: Session = Depends(get_db), curren
         AttachmentModel(id=attachment.id, name=attachment.name)
         for attachment
         in run.attachments
-        if check_access(user=current_user.username, path=f"/run/{str(run.id)}", method="GET") and attachment
+        if check_access(enforcer, user=current_user.username, path=f"/run/{str(run.id)}", method="GET") and attachment
     ]
 
 @app.post('/run/{run_id}/attachment', tags=['runs'], response_model=AttachmentModel, response_model_exclude_none=True)
-async def create_run_attachment(run_id: int, file: UploadFile = File(...), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+async def create_run_attachment(run_id: int, file: UploadFile = File(...), enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
     run = db.query(Run).get(run_id)
     if not run or run.is_deleted:
@@ -543,8 +552,8 @@ async def create_run_attachment(run_id: int, file: UploadFile = File(...), db: S
     return AttachmentModel(id=attachment.id, name=attachment.name)
 
 @app.get('/run/{run_id}/attachment/{attachment_id}', tags=['runs'], response_model_exclude_none=True)
-async def get_run_attachment(run_id: int, attachment_id: int, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+async def get_run_attachment(run_id: int, attachment_id: int, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
     run = db.query(Run).get(run_id)
     if not run or run.is_deleted:
@@ -557,8 +566,8 @@ async def get_run_attachment(run_id: int, attachment_id: int, db: Session = Depe
     return StreamingResponse(io.BytesIO(attachment.data), media_type=attachment.mimetype if attachment.mimetype else 'application/octet-stream')
 
 @app.delete('/run/{run_id}/attachment/{attachment_id}', tags=['runs'], response_model=SuccessResponse, response_model_exclude_none=True)
-async def delete_run_attachment(run_id: int, attachment_id: int, purge: bool = False, db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
-    if not check_access(user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
+async def delete_run_attachment(run_id: int, attachment_id: int, purge: bool = False, enforcer: casbin.Enforcer = Depends(get_enforcer), db: Session = Depends(get_db), current_user: Auth0ClaimsPatched = Depends(get_current_user)):
+    if not check_access(enforcer, user=current_user.username, path=f"/run/{str(run_id)}", method="GET"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
     run = db.query(Run).get(run_id)
     if not run or run.is_deleted:

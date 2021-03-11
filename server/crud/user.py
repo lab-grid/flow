@@ -1,4 +1,5 @@
 import urllib.parse
+import casbin
 
 from sqlalchemy.orm import Session, Query
 from typing import Optional, List
@@ -22,6 +23,7 @@ def all_users(db: Session, include_archived=False) -> Query:
 def crud_get_users(
     item_to_dict,
 
+    enforcer: casbin.Enforcer,
     db: Session,
     current_user: Auth0ClaimsPatched,
 
@@ -35,7 +37,7 @@ def crud_get_users(
             user
             for user
             in all_users(db, archived).order_by(User.created_on.desc())
-            if check_access(user=current_user.username, path=f"/user/{str(user.id)}", method="GET") and user and user.current
+            if check_access(enforcer, user=current_user.username, path=f"/user/{str(user.id)}", method="GET") and user and user.current
         ],
         item_to_dict=item_to_dict,
         page=page,
@@ -45,6 +47,7 @@ def crud_get_users(
 def crud_get_user(
     item_to_dict,
 
+    enforcer: casbin.Enforcer,
     db: Session,
     current_user: Auth0ClaimsPatched,
 
@@ -52,7 +55,7 @@ def crud_get_user(
     version_id: Optional[int] = None,
 ) -> dict:
     user_id = urllib.parse.unquote(user_id)
-    if user_id != current_user.username and not check_access(user=current_user.username, path=f"/user/{str(user_id)}", method="GET"):
+    if user_id != current_user.username and not check_access(enforcer, user=current_user.username, path=f"/user/{str(user_id)}", method="GET"):
         raise HTTPException(status_code=403, detail='Insufficient Permissions')
 
     if version_id:

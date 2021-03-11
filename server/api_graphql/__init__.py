@@ -1,6 +1,7 @@
 from starlette.graphql import GraphQLApp
 from fastapi import Request, Response, HTTPException
 from fastapi.security.http import HTTPBearer
+from authorization import init_enforcer
 from server import app, get_current_user
 from api_graphql.schema import schema
 
@@ -11,6 +12,7 @@ async def add_current_user(request: Request, call_next):
     if request.url.path.startswith("/graphql") and request.method != "OPTIONS":
         try:
             request.state.user = await get_current_user(await HTTPBearer()(request))
+            request.state.enforcer = init_enforcer()
         except HTTPException as ex:
             return Response(ex.detail, media_type="text/plain", status_code=ex.status_code)
 
