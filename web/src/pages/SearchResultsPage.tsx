@@ -5,7 +5,7 @@ import { ProtocolsTable } from "../components/ProtocolsTable";
 import { RunsTable } from "../components/RunsTable";
 import { usersQuery } from "../state/selectors";
 import moment from 'moment';
-import { ResultsTable } from "../components/ResultsTableNew";
+import { ResultsTable } from "../components/ResultsTable";
 import { User } from "../models/user";
 
 export type FilterParams = {

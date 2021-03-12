@@ -1,12 +1,11 @@
 import moment from "moment";
 import React, { useState } from "react";
-import { Button, Form, Spinner } from "react-bootstrap";
-import { useRecoilCallback, useRecoilState } from "recoil";
+import { Form } from "react-bootstrap";
+import { useRecoilState } from "recoil";
 import { Run, Section, calculateRunStatus, humanizeRunName } from "../models/run";
-import { SampleResult } from "../models/sample-result";
 import { deserializeSlate, initialSlateValue, serializeSlate } from "../slate";
-import { exportRunSamples, FetchError } from "../state/api";
-import { auth0State, errorsState } from "../state/atoms";
+import { FetchError } from "../state/api";
+import { errorsState } from "../state/atoms";
 import { DocumentTitle } from "./DocumentTitle";
 import { ResultsTable } from "./ResultsTable";
 import { RunSectionEditor } from "./RunSectionEditor";
@@ -20,38 +19,24 @@ export function RunEditor({
     disablePrint,
     disableSave,
     disabled,
-    samples,
     run,
     setRun,
     runUpsert,
     onDelete,
-
-    samplesPage,
-    samplesPageCount,
-
-    onSamplesPageChange,
 }: {
     disableSharing?: boolean;
     disablePrint?: boolean;
     disableSave?: boolean;
     disabled?: boolean;
-    samples: SampleResult[];
     run?: Run;
     setRun: (run: Run) => void;
     runUpsert: (run: Run) => Promise<Run>;
     onDelete?: () => void;
-
-    // Samples pagination
-    samplesPage?: number;
-    samplesPageCount?: number;
-
-    onSamplesPageChange?: (page: number) => void;
 }) {
     const [formSaving, setFormSaving] = useState<boolean>(false);
     const [formSavedTime, setFormSavedTime] = useState<string | null>(null);
     const [showImportExportModal, setShowImportExportModal] = useState(false);
     const [errors, setErrors] = useRecoilState(errorsState);
-    const [exportingSamples, setExportingSamples] = useState(false);
 
     const isCompleted = (run && run.status) === 'completed';
 
@@ -96,19 +81,6 @@ export function RunEditor({
             syncRun();
         }
     }
-
-    const exportSamples = useRecoilCallback(({ snapshot }) => async () => {
-        setExportingSamples(true);
-        try {
-            const { auth0Client } = await snapshot.getPromise(auth0State);
-            if (!run || !run.id || !auth0Client) {
-                return;
-            }
-            await exportRunSamples(() => auth0Client, run.id);
-        } finally {
-            setExportingSamples(false);
-        }
-    });
 
     let plateIndexOffset = 0;
 
@@ -164,14 +136,7 @@ export function RunEditor({
                 return sectionEditor;
             })}
 
-            <div className="row">
-                <small className="col-auto my-auto">Samples (<i><Button variant="link" size="sm" onClick={exportSamples} disabled={exportingSamples}>Export to CSV {exportingSamples && <Spinner size="sm" animation="border" />}</Button></i>)</small>
-                <hr className="col my-auto" />
-                <small className="col-auto my-auto">
-                    {(samples && samples.length) || 0}
-                </small>
-            </div>
-            <ResultsTable results={samples || []} page={samplesPage} pageCount={samplesPageCount} onPageChange={onSamplesPageChange} />
+            {run && run.id && <ResultsTable runFilter={run.id} />}
 
             {!disableSave && !disabled && <div className="row">
                 <SaveButton
