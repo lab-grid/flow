@@ -18,6 +18,8 @@ We want to make a self-hosted workflow manager for companies and biotech labs th
 - **For your whole team** - share protocols with teammates, view runs across the team
 - **Built with Postgres, React, Flask** - optimized for responsiveness, fault-tolerance, and support for regulated environments. Backend based on Python means easy integration of scientific libraries.
 
+![Overview](https://github.com/lab-grid/media/blob/main/quick_flow_overview.gif)
+
 # Getting Started
 
 Flow by LabGrid is currently under active development. Development docker containers that support hot code reloading on edit are provided.
