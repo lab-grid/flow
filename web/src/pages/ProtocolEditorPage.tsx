@@ -99,7 +99,6 @@ export function ProtocolEditorPage() {
     const runCol = <div className="col p-0">
         <RunEditor
             runUpsert={async run => run}
-            samples={[]}
             setRun={setCurrentRun}
             run={{...initialRun, ...currentRun}}
             disableSharing={true}

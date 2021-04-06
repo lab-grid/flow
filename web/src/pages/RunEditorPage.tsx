@@ -3,7 +3,7 @@ import { useHistory, useParams } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { initialRun, Run } from '../models/run';
 import { auth0State } from '../state/atoms';
-import { policyCheckQuery, runQuery, runSamplesQuery } from '../state/selectors';
+import { policyCheckQuery, runQuery } from '../state/selectors';
 import { deleteRun, patchRun } from '../state/api';
 import moment from 'moment';
 import { RunEditor } from '../components/RunEditor';
@@ -16,14 +16,12 @@ export interface RunEditorPageParams {
 export function RunEditorPage() {
     const history = useHistory();
     const [runTimestamp, setRunTimestamp] = useState("");
-    const [samplesPage, setSamplesPage] = React.useState(1);
     const [currentRun, setCurrentRun] = useState<Run>({});
     const { id } = useParams<RunEditorPageParams>();
     const run = useRecoilValue(runQuery({ runId: parseInt(id), queryTime: runTimestamp }));
     const policies = useRecoilValue(policyCheckQuery({ path: `run/${parseInt(id)}`, queryTime: runTimestamp }));
     const isWritable = policies.find(policy => policy.method === 'PUT') !== undefined;
     const isDeletable = policies.find(policy => policy.method === 'DELETE') !== undefined;
-    const { samples, pageCount: samplesPageCount } = useRecoilValue(runSamplesQuery({ runId: parseInt(id), queryTime: runTimestamp, filterParams: { page: `${samplesPage}` } }));
     const runUpsert = useRecoilCallback(({ snapshot }) => async (updatedRun: Run) => {
         try {
             const { auth0Client } = await snapshot.getPromise(auth0State);
@@ -48,15 +46,10 @@ export function RunEditorPage() {
 
     return <RunEditor
         runUpsert={runUpsert}
-        samples={samples || []}
         setRun={setCurrentRun}
         run={{...initialRun, ...run, ...currentRun}}
         onDelete={isDeletable ? runArchive : undefined}
 
         disabled={!isWritable}
-
-        samplesPage={samplesPage}
-        samplesPageCount={samplesPageCount}
-        onSamplesPageChange={setSamplesPage}
     />
 }
