@@ -68,13 +68,17 @@ export function SharingModal(props: SharingModalProps) {
                         value={currentSubjectId || ""}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewSubjectId((e.target as HTMLInputElement).value)}
                     >
+                        <option value="*">Everyone</option>
+                        <option className="divider" disabled={true} />
                         {groups.map(group =>
                             <option key={group.id} value={group.id}>{group.id}</option>
                         )}
+                        {groups.length === 0 && <option value="" disabled>- No Groups -</option>}
                         <option className="divider" disabled={true} />
                         {users && users.map(user =>
                             <option key={user.id} value={user.id}>{user.fullName || user.email || user.id}</option>
                         )}
+                        {(!users || users.length === 0) && <option value="" disabled>- No Users -</option>}
                     </Form.Control>
                 </Form.Group>
                 <Form.Group controlId="newMethod" className="col">

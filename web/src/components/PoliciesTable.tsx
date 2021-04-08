@@ -37,6 +37,14 @@ export function PoliciesTable(props: PoliciesTableProps) {
         users.forEach(user => user.id && userLookup.set(user.id, user));
     }
 
+    const getUsername = (userId: string) => {
+        if (userId === "*") {
+            return "Everyone";
+        }
+        const user = userLookup.get(userId);
+        return user ? user.fullName || user.email || user.id : userId;
+    };
+
     return (
         <Table striped bordered hover>
             <thead>
@@ -49,9 +57,9 @@ export function PoliciesTable(props: PoliciesTableProps) {
             </thead>
             <tbody>
                 {props.policies && props.policies.map(policy => {
-                    const user = policy.user && userLookup.get(policy.user);
+                    const username = policy.user && getUsername(policy.user);
                     return <tr key={`${policy.user}:${policy.path}:${policy.method}`}>
-                        <td>{user ? user.fullName || user.email || user.id : policy.user}</td>
+                        <td>{username}</td>
                         {!props.hidePath && <td><pre>{policy.path}</pre></td>}
                         <td>{humanizePolicyMethod(policy.method) || <i>Unknown</i>}</td>
                         {props.deletePolicy && <td>
