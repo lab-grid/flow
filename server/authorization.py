@@ -15,10 +15,11 @@ def init_enforcer():
 
 def get_enforcer():
     casbin_enforcer = init_enforcer()
-    try:
-        yield casbin_enforcer
-    finally:
-        casbin_enforcer.close()
+    yield casbin_enforcer
+    # try:
+    #     yield casbin_enforcer
+    # finally:
+    #     casbin_enforcer.close()
 
 
 # CASBIN Helpers --------------------------------------------------------------
