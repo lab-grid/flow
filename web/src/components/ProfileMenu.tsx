@@ -34,7 +34,18 @@ export function ProfileMenu() {
     if (auth0User) {
         return <>
             <Button variant="primary" as={Link} to="/profile" className="mr-3">Profile</Button>
-            <Button variant="primary" onClick={() => { auth0Client && auth0Client.logout() }}>Logout</Button>
+            <Button
+                variant="primary"
+                onClick={() => {
+                    if (auth0Client) {
+                        auth0Client.logout({
+                            returnTo: `${window.location.protocol}//${window.location.host}`
+                        });
+                    }
+                }}
+            >
+                Logout
+            </Button>
         </>
     } else {
         return <Button variant="primary" onClick={() => { auth0Client && auth0Client.loginWithRedirect() }}>Login</Button>
