@@ -2,7 +2,7 @@
 
 Flow by LabGrid is an open-source configurable workflow manager with a React/Typescript frontend, Python Flask backend, and Postgres database.  
 
-This project is currently under active development. See the getting started documentation to run the app using Docker and Auth0 for user auth. Hosted version of the latest master branch is available at https://flow.labgrid.com
+This project is currently under active development. See the getting started documentation to run the app using Docker and Auth0 for user auth. Hosted version of the latest master branch is available at https://flow.aws.labgrid.com
 
 If you have a question for us, feel to reach out at: [![Gitter chat](https://badges.gitter.im/lab-grid/community.png)](https://gitter.im/lab-grid/community)
 
